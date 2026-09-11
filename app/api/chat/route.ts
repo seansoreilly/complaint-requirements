@@ -11,6 +11,7 @@ import { applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
+import { patchSchema } from "@/lib/patch";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,31 @@ interface ChatRequest {
   history?: ChatTurn[];
   message?: string;
   focus?: string;
+}
+
+/**
+ * The client sends the whole state every turn, so it is untrusted input like
+ * any other. Rebuild it from a known-good empty state rather than believing
+ * the shape we were handed.
+ */
+function sanitiseState(input: unknown): ComplaintState {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return emptyState();
+  const parsed = patchSchema.safeParse(input);
+  if (!parsed.success) return emptyState();
+  return applyPatch(emptyState(), parsed.data);
+}
+
+function sanitiseHistory(input: unknown): ChatTurn[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((turn): turn is ChatTurn =>
+      Boolean(turn) &&
+      typeof turn === "object" &&
+      (turn as ChatTurn).role !== undefined &&
+      ((turn as ChatTurn).role === "user" || (turn as ChatTurn).role === "assistant") &&
+      typeof (turn as ChatTurn).content === "string",
+    )
+    .slice(-20);
 }
 
 /**
@@ -63,7 +89,11 @@ function resolveFirm(state: ComplaintState): {
 export async function POST(request: Request): Promise<NextResponse> {
   let body: ChatRequest;
   try {
-    body = (await request.json()) as ChatRequest;
+    const parsed: unknown = await request.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return NextResponse.json({ error: "Expected a JSON object." }, { status: 400 });
+    }
+    body = parsed as ChatRequest;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -73,8 +103,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
-  const incoming = body.state ?? emptyState();
-  const history = (body.history ?? []).slice(-20);
+  const incoming = sanitiseState(body.state);
+  const history = sanitiseHistory(body.history);
+  const focus = typeof body.focus === "string" ? body.focus : undefined;
 
   // Resolve the firm from whatever state we were handed, so the prompt carries
   // real directory facts before the model speaks.
@@ -87,7 +118,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       firm: resolvedBefore.firm,
       history,
       message,
-      focusPath: body.focus,
+      focusPath: focus,
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown error";
