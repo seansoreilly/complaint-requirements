@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ChatPane, type Message } from "@/components/ChatPane";
 import { MainMenu } from "@/components/MainMenu";
 import { DraftCard } from "@/components/DraftCard";
@@ -9,10 +9,26 @@ import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, setPath } from "@/lib/schema";
 import { cleanPatch } from "@/lib/patch";
 import { missingFor, stageProgress } from "@/lib/next";
+// PROTOTYPE: avatar concepts, switchable via ?variant=A|B|C. Remove with
+// components/prototype-avatars.tsx and components/PrototypeSwitcher.tsx.
+import { AVATARS, VARIANT_NAMES } from "@/components/prototype-avatars";
+import { PrototypeSwitcher } from "@/components/PrototypeSwitcher";
 
 const OPENER =
   "Hello — I can help you put together a complaint to AFCA, just by talking it through. " +
   "Nothing here is sent anywhere; it's a demo.\n\nTo start: which financial firm is your complaint about?";
+
+/** PROTOTYPE: the switcher pushes the URL, then pokes this event to re-read it. */
+const VARIANT_EVENT = "prototype-variant-change";
+
+function subscribeToVariant(onChange: () => void): () => void {
+  window.addEventListener(VARIANT_EVENT, onChange);
+  window.addEventListener("popstate", onChange);
+  return () => {
+    window.removeEventListener(VARIANT_EVENT, onChange);
+    window.removeEventListener("popstate", onChange);
+  };
+}
 
 export default function Page() {
   const [state, setState] = useState<ComplaintState>(emptyState);
@@ -22,6 +38,23 @@ export default function Page() {
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const [mode, setMode] = useState<"claude" | "mock" | null>(null);
   const [showReview, setShowReview] = useState(false);
+  // PROTOTYPE: useSyncExternalStore reads the URL identically on server and
+  // client, so switching variants doesn't trip a hydration mismatch.
+  const variant = useSyncExternalStore(
+    subscribeToVariant,
+    () => {
+      const fromUrl = new URLSearchParams(window.location.search).get("variant");
+      return fromUrl && fromUrl in AVATARS ? fromUrl : "A";
+    },
+    () => "A",
+  );
+
+  const chooseVariant = useCallback((next: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("variant", next);
+    window.history.replaceState(null, "", url);
+    window.dispatchEvent(new Event(VARIANT_EVENT));
+  }, []);
 
   useEffect(() => {
     fetch("/api/chat")
@@ -206,6 +239,7 @@ export default function Page() {
             focusField={focusField}
             onClearFocus={() => setFocusPath(null)}
             onSend={send}
+            Avatar={AVATARS[variant]}
           />
         </div>
         <div className="flex min-h-[70vh] flex-col lg:min-h-0">
@@ -246,6 +280,13 @@ export default function Page() {
           </FormPane>
         </div>
       </div>
+
+      <PrototypeSwitcher
+        variants={Object.keys(AVATARS)}
+        current={variant}
+        names={VARIANT_NAMES}
+        onChange={chooseVariant}
+      />
     </main>
   );
 }

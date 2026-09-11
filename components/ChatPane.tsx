@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type FieldDef } from "@/lib/schema";
+// PROTOTYPE: avatar concepts — remove with components/prototype-avatars.tsx
+import { type AvatarProps } from "@/components/prototype-avatars";
 
 export interface Message {
   role: "user" | "assistant";
@@ -18,6 +20,7 @@ export function ChatPane({
   focusField,
   onClearFocus,
   onSend,
+  Avatar,
 }: {
   messages: Message[];
   pending: boolean;
@@ -25,6 +28,8 @@ export function ChatPane({
   focusField: FieldDef | null;
   onClearFocus: () => void;
   onSend: (text: string) => void;
+  /** PROTOTYPE: when set, assistant messages get an animated character. */
+  Avatar?: (props: AvatarProps) => React.JSX.Element;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -43,24 +48,33 @@ export function ChatPane({
   return (
     <section className="chat flex h-full min-h-0 flex-col bg-white">
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
-          >
-            <div
-              className={
-                message.role === "user"
-                  ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
-                  : "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy"
-              }
-            >
-              {message.content}
+        {messages.map((message, index) => {
+          const isUser = message.role === "user";
+          // Only the newest assistant message animates; a column of bobbing
+          // characters would be a circus, and it keeps the cost at one.
+          const isLatestAssistant =
+            !isUser && index === messages.length - 1 && !pending;
+          return (
+            <div key={index} className={isUser ? "flex justify-end" : "flex justify-start gap-2"}>
+              {!isUser && Avatar && (
+                <Avatar state={isLatestAssistant ? "speaking" : "idle"} size={30} />
+              )}
+              <div
+                className={
+                  isUser
+                    ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
+                    : `${Avatar ? "max-w-[calc(85%-2.5rem)]" : "max-w-[85%]"} whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
+                }
+              >
+                {message.content}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {pending && (
-          <div className="flex justify-start">
+          <div className="flex justify-start gap-2">
+            {Avatar && <Avatar state="thinking" size={30} />}
+            {/* The pose is decorative; the word stays as the accessible signal. */}
             <div className="rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm text-afca-blue">
               Thinking…
             </div>
