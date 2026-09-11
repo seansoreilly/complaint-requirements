@@ -44,7 +44,7 @@ export function MainMenu({ onStartOver }: { onStartOver: () => void }) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={open ? "Close menu" : "Open menu"}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-white transition hover:bg-afca-blue/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-afca-yellow"
+        className="flex h-11 w-11 items-center justify-center rounded-lg text-white transition hover:bg-afca-blue/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-afca-yellow"
       >
         <span aria-hidden className="flex w-5 flex-col gap-[3px]">
           <span className="h-[2px] w-full rounded bg-current" />

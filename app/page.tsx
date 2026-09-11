@@ -147,13 +147,15 @@ export default function Page() {
   }, []);
 
   return (
-    <main className="flex h-dvh flex-col">
+    <main className="flex min-h-dvh flex-col lg:h-dvh">
       {/* Unmissable by design: this must never be mistaken for AFCA's own service. */}
       <div className="banner flex items-center gap-3 bg-afca-yellow px-4 py-2.5 text-afca-ink">
         <span aria-hidden className="text-lg leading-none">⚠️</span>
         <p className="text-xs font-bold leading-snug sm:text-sm">
           Demonstration only — this is not AFCA.
-          <span className="ml-1.5 font-normal">
+          {/* The full disclaimer costs a quarter of a small phone screen, so the
+              detail is kept for wider viewports and the headline carries it on phones. */}
+          <span className="ml-1.5 hidden font-normal sm:inline">
             Not affiliated with, endorsed by, or connected to the Australian Financial Complaints
             Authority. Nothing you enter is submitted or sent anywhere, and the firm details are
             invented. To make a real complaint, go to{" "}
@@ -166,6 +168,12 @@ export default function Page() {
               afca.org.au
             </a>
             .
+          </span>
+          <span className="ml-1.5 font-normal sm:hidden">
+            Nothing is submitted.{" "}
+            <a href="/privacy" className="underline underline-offset-2">
+              What happens to your data
+            </a>
           </span>
         </p>
       </div>
@@ -182,7 +190,7 @@ export default function Page() {
           <button
             type="button"
             onClick={() => setShowReview((previous) => !previous)}
-            className="rounded-full bg-afca-yellow px-3.5 py-1 text-[11px] font-bold text-afca-ink transition hover:brightness-95"
+            className="rounded-full bg-afca-yellow px-4 py-2 text-xs font-bold text-afca-ink transition hover:brightness-95"
           >
             {showReview ? "Form" : `Review${missing.length === 0 ? " ✓" : ""}`}
           </button>
@@ -190,7 +198,7 @@ export default function Page() {
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2">
-        <div className="min-h-0 border-b border-afca-line lg:border-b-0 lg:border-r">
+        <div className="flex min-h-[60vh] flex-col border-b border-afca-line lg:min-h-0 lg:border-b-0 lg:border-r">
           <ChatPane
             messages={messages}
             pending={pending}
@@ -200,7 +208,7 @@ export default function Page() {
             onSend={send}
           />
         </div>
-        <div className="min-h-0">
+        <div className="flex min-h-[70vh] flex-col lg:min-h-0">
           <FormPane
             state={state}
             stages={stages}

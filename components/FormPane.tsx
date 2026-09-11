@@ -44,7 +44,7 @@ function ProgressRail({
                 type="button"
                 onClick={() => onJump(stage.id)}
                 title={stage.title}
-                className="group flex w-full flex-col items-center gap-1.5"
+                className="group flex w-full flex-col items-center gap-1.5 py-2"
               >
                 <span
                   className={

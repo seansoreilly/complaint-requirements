@@ -108,7 +108,7 @@ export function ChatPane({
             type="button"
             onClick={submit}
             disabled={pending || draft.trim().length === 0}
-            className="self-end rounded-full bg-afca-yellow px-5 py-2.5 text-sm font-bold text-afca-ink transition hover:brightness-95 disabled:bg-afca-line disabled:text-white"
+            className="h-11 self-end rounded-full bg-afca-yellow px-5 text-sm font-bold text-afca-ink transition hover:brightness-95 disabled:bg-afca-line disabled:text-white"
           >
             Send
           </button>
@@ -117,7 +117,7 @@ export function ChatPane({
           <button
             type="button"
             onClick={() => setDraft(DEMO_STORY)}
-            className="mt-2 text-xs font-semibold text-afca-blue underline decoration-afca-sky underline-offset-2 hover:text-afca-navy"
+            className="mt-1 inline-block py-2 text-xs font-semibold text-afca-blue underline decoration-afca-sky underline-offset-2 hover:text-afca-navy"
           >
             Paste the demo story
           </button>
