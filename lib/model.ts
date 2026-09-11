@@ -47,7 +47,7 @@ export async function runTurn(args: {
   const { state, firm, history, message, focusPath } = args;
 
   if (brainMode() === "mock") {
-    const { reply, patch } = mockBrain(state, message, focusPath);
+    const { reply, patch } = mockBrain(state, message, focusPath, history);
     return { reply, patch, mode: "mock" };
   }
 
