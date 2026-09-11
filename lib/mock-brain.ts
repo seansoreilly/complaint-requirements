@@ -108,6 +108,44 @@ function guessIssues(type: string, text: string): string[] {
   return [...new Set(issues)];
 }
 
+const STATE_CODES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+
+/**
+ * Pull what we can from an Australian address written as one line. Partial
+ * results are fine — whatever is found gets filled, the rest stays askable.
+ */
+function parseAddress(text: string): Record<string, string> {
+  const found: Record<string, string> = {};
+  const value = text.trim();
+
+  const postcode = /\b(\d{4})\b/.exec(value);
+  const stateMatch = new RegExp(`\\b(${STATE_CODES.join("|")})\\b`, "i").exec(value);
+
+  if (stateMatch) found.state = stateMatch[1].toUpperCase();
+  // A four-digit number is only a postcode in an address-shaped string.
+  if (postcode && (stateMatch || /\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b/i.test(value))) {
+    found.postcode = postcode[1];
+  }
+
+  const street = /\b(\d+[a-zA-Z]?(?:[/-]\d+)?\s+[A-Za-z][A-Za-z'’-]*(?:\s+[A-Za-z][A-Za-z'’-]*)*?\s+(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b\.?)/i.exec(value);
+  if (street) found.line1 = street[1].replace(/\s+/g, " ").trim();
+
+  // The suburb sits between the street and the state.
+  if (found.line1 && found.state) {
+    const after = value.slice(value.indexOf(found.line1) + found.line1.length);
+    const suburb = new RegExp(`^[,\\s]*([A-Za-z][A-Za-z'’\\s-]*?)[,\\s]+${found.state}\\b`, "i").exec(after);
+    if (suburb) {
+      const cleaned = suburb[1].trim();
+      if (cleaned.length > 1 && cleaned.length < 40) found.suburb = titleCase(cleaned);
+    }
+  }
+  return found;
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+}
+
 function draftNarrative(state: ComplaintState, text: string): string {
   const firmName = state.firm.name || "the financial firm";
   const parts: string[] = [];
@@ -232,8 +270,32 @@ export function mockBrain(
 
   const email = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/.exec(text);
   if (email && !state.complainant.email) {
-    patch.complainant = { email: email[0] };
+    patch.complainant = { ...patch.complainant, email: email[0] };
     captured.push("your email address");
+  }
+
+  // Contact details tend to arrive in one breath ("I'm Sam Chen, 12 Ford St,
+  // Brunswick VIC 3056"), so parse them wherever they show up.
+  if (!state.complainant.first_name) {
+    // Case-insensitive: people write "i'm sam" as often as "I'm Sam".
+    const named = /(?:^|\b)(?:i.?m|i am|my name.?s|my name is|this is|it.?s)\s+([A-Za-z][a-z'’-]+)(?:\s+([A-Za-z][a-z'’-]+))?/i.exec(text);
+    if (named) {
+      patch.complainant = {
+        ...patch.complainant,
+        first_name: titleCase(named[1]),
+        ...(named[2] ? { last_name: titleCase(named[2]) } : {}),
+      };
+      captured.push(`your name (${[named[1], named[2]].filter(Boolean).join(" ")})`);
+    }
+  }
+
+  const address = parseAddress(text);
+  if (Object.keys(address).length > 0 && !state.complainant.address.postcode) {
+    patch.complainant = {
+      ...patch.complainant,
+      address: { ...patch.complainant?.address, ...address },
+    };
+    captured.push("your address");
   }
 
   // Approving or editing a held draft takes precedence over anything else.
@@ -375,16 +437,14 @@ function applyDirectAnswer(
       if (no) patch.complained_to_firm = { ...patch.complained_to_firm, final_reply: false };
       break;
     case "complainant.first_name": {
-      const name = /\b(?:i'?m|my name is|it'?s|this is)\s+([A-Z][a-z]+)(?:\s+([A-Z][a-z]+))?/.exec(text);
-      if (name) {
+      // A bare "Sam Chen" only reads as a name when we asked for one.
+      if (!patch.complainant?.first_name && /^[A-Za-z][A-Za-z'’-]*(\s+[A-Za-z][A-Za-z'’-]*)?$/.test(text.trim())) {
+        const [first, last] = text.trim().split(/\s+/);
         patch.complainant = {
           ...patch.complainant,
-          first_name: name[1],
-          ...(name[2] ? { last_name: name[2] } : {}),
+          first_name: first,
+          ...(last ? { last_name: last } : {}),
         };
-      } else if (/^[A-Za-z]+(\s+[A-Za-z]+)?$/.test(text.trim())) {
-        const [first, last] = text.trim().split(/\s+/);
-        patch.complainant = { ...patch.complainant, first_name: first, ...(last ? { last_name: last } : {}) };
       }
       break;
     }
@@ -393,6 +453,26 @@ function applyDirectAnswer(
       else if (no) patch.outcome = { ...patch.outcome, seeking_compensation: "no" };
       else if (yes) patch.outcome = { ...patch.outcome, seeking_compensation: "yes" };
       break;
+    case "complainant.last_name": {
+      const bare = text.trim();
+      if (/^[A-Za-z][A-Za-z'’-]*$/.test(bare)) {
+        patch.complainant = { ...patch.complainant, last_name: bare };
+      }
+      break;
+    }
+    case "complainant.address.line1":
+    case "complainant.address.suburb":
+    case "complainant.address.postcode":
+    case "complainant.address.state": {
+      const address = parseAddress(text);
+      if (Object.keys(address).length > 0) {
+        patch.complainant = {
+          ...patch.complainant,
+          address: { ...patch.complainant?.address, ...address },
+        };
+      }
+      break;
+    }
     case "complainant.dob": {
       if (SKIP.test(text)) break;
       const dob = DATE_PATTERN.exec(text);

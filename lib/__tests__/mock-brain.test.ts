@@ -129,3 +129,67 @@ describe("the model never supplies firm identifiers", () => {
     expect(patch.firm?.afca_member_no).toBeUndefined();
   });
 });
+
+describe("contact details can be given by talking", () => {
+  it("takes a name from a natural introduction", () => {
+    const state = turn(emptyState(), "I'm Sam Chen", "complainant.first_name").state;
+    expect(state.complainant.first_name).toBe("Sam");
+    expect(state.complainant.last_name).toBe("Chen");
+  });
+
+  it("takes an email wherever it appears", () => {
+    const state = turn(emptyState(), "you can reach me at sam.chen@example.com").state;
+    expect(state.complainant.email).toBe("sam.chen@example.com");
+  });
+
+  it("parses a one-line Australian address", () => {
+    const state = turn(emptyState(), "12 Ford Street, Brunswick VIC 3056").state;
+    expect(state.complainant.address.line1).toBe("12 Ford Street");
+    expect(state.complainant.address.suburb).toBe("Brunswick");
+    expect(state.complainant.address.state).toBe("VIC");
+    expect(state.complainant.address.postcode).toBe("3056");
+  });
+
+  it("does not mistake a bare number for a postcode", () => {
+    const state = turn(emptyState(), "about 3056 dollars", "outcome.fair_outcome").state;
+    expect(state.complainant.address.postcode).toBe("");
+  });
+
+  it("fills name, email and address from one message", () => {
+    const state = turn(
+      emptyState(),
+      "I'm Priya Nair, sam@example.com, 4/88 Rathdowne Road, Carlton VIC 3053",
+    ).state;
+    expect(state.complainant.first_name).toBe("Priya");
+    expect(state.complainant.email).toBe("sam@example.com");
+    expect(state.complainant.address.postcode).toBe("3053");
+  });
+
+  it("reaches zero missing fields through conversation alone", () => {
+    let state = emptyState();
+    const script: [string, string?][] = [
+      ["I emailed AustralianSuper on 3 Sept about my insurance being cancelled without warning and they still haven't replied."],
+      ["yes that's right"],
+      ["I don't have an account number", "firm.reference"],
+      ["no", "open_afca_complaint"],
+      ["yes I agree to both", "consents.authority"],
+      ["no", "legal_proceedings"],
+      ["not sure", "outcome.seeking_compensation"],
+      ["I just want my cover put back", "outcome.fair_outcome"],
+      ["yes that's good"],
+      ["I'm Sam Chen", "complainant.first_name"],
+      ["sam.chen@example.com", "complainant.email"],
+      ["12 Ford Street, Brunswick VIC 3056", "complainant.address.line1"],
+      ["4 March 1979", "complainant.dob"],
+    ];
+    let previous = Infinity;
+    for (const [message, focus] of script) {
+      state = turn(state, message, focus).state;
+      const remaining = missingFor(state).length;
+      // The form must never move backwards as the conversation goes on.
+      expect(remaining).toBeLessThanOrEqual(previous);
+      previous = remaining;
+    }
+    expect(missingFor(state)).toEqual([]);
+  });
+});
