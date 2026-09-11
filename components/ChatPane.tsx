@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type FieldDef } from "@/lib/schema";
-// PROTOTYPE: avatar concepts — remove with components/prototype-avatars.tsx
-import { type AvatarProps } from "@/components/prototype-avatars";
+import { Assistant } from "@/components/Assistant";
 
 export interface Message {
   role: "user" | "assistant";
@@ -20,8 +19,6 @@ export function ChatPane({
   focusField,
   onClearFocus,
   onSend,
-  Avatar,
-  avatarOnlyWhenThinking = false,
 }: {
   messages: Message[];
   pending: boolean;
@@ -29,10 +26,6 @@ export function ChatPane({
   focusField: FieldDef | null;
   onClearFocus: () => void;
   onSend: (text: string) => void;
-  /** PROTOTYPE: when set, assistant messages get an animated character. */
-  Avatar?: (props: AvatarProps) => React.JSX.Element;
-  /** PROTOTYPE: show the character only while it is working, not on every message. */
-  avatarOnlyWhenThinking?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -59,14 +52,12 @@ export function ChatPane({
             !isUser && index === messages.length - 1 && !pending;
           return (
             <div key={index} className={isUser ? "flex justify-end" : "flex justify-start gap-2"}>
-              {!isUser && Avatar && !avatarOnlyWhenThinking && (
-                <Avatar state={isLatestAssistant ? "speaking" : "still"} size={30} />
-              )}
+              {!isUser && <Assistant state={isLatestAssistant ? "speaking" : "still"} />}
               <div
                 className={
                   isUser
                     ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
-                    : `${Avatar && !avatarOnlyWhenThinking ? "max-w-[calc(85%-2.5rem)]" : "max-w-[85%]"} whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
+                    : `max-w-[calc(85%-2.5rem)] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
                 }
               >
                 {message.content}
@@ -76,7 +67,7 @@ export function ChatPane({
         })}
         {pending && (
           <div className="flex justify-start gap-2">
-            {Avatar && <Avatar state="thinking" size={30} />}
+            <Assistant state="thinking" />
             {/* The pose is decorative; the word stays as the accessible signal. */}
             <div className="rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm text-afca-blue">
               Thinking…

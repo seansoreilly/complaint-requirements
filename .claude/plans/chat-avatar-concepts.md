@@ -2,7 +2,11 @@
 
 **Question:** should the assistant have a cute animated character as its icon, and if so, what?
 
-**Status:** prototype built, recommendation below. Nothing folded into the real chat yet.
+**Status:** decided and shipped. **C (Sunny)** is now the assistant's avatar in the real
+chat (`components/Assistant.tsx`); the prototype scaffolding and the other two concepts
+have been deleted. This document is the record of why — the variants and the
+`?variant=` switcher it describes no longer exist, so read it as history, not as
+instructions.
 
 ## First, a scoping correction
 
@@ -17,18 +21,9 @@ chatbot icon" can only mean one of:
 
 ## How to look at it
 
-```
-npm run dev
-```
-
-- `http://localhost:3000/prototype/avatars` — contact sheet: all three characters, all
-  three states, at blown-up and actual (30px) size, plus on the real bubble colour.
-- `http://localhost:3000/?variant=none` — **the baseline: today's chat, no character.**
-  Switch with the floating bar at the bottom, or `←`/`→`. The cycle is
-  `none → A → B → C → thinking-only`, baseline first, so "no character at all" is always
-  one keypress from every concept.
-  - `?variant=thinking-only` is the cheaper middle ground described below: Sunny appears
-    only while the assistant is working, and settled messages stay plain.
+`npm run dev`, then `http://localhost:3000` — the character is on the assistant's
+messages. It was chosen by comparing three concepts side by side against the avatar-less
+baseline; that comparison harness has since been removed.
 
 ## The three concepts
 
@@ -114,21 +109,18 @@ Cheaper middle ground if the full character feels like too much: keep the charac
 **only** for the "Thinking…" state, where it does actual work (signalling wait), and leave
 the settled messages plain.
 
-## If we proceed
+## What shipped
 
-The prototype code is written under prototype rules — no tests, minimal structure. Rewrite
-rather than promote as-is:
+- `components/Assistant.tsx` — Sunny, rewritten as a real component rather than promoted
+  from prototype code. Three states: `still` (older messages, no animation at all),
+  `thinking` (rays rotate while the reply is in flight), `speaking` (the newest message
+  warms, three iterations, then settles).
+- The keyframes in `app/globals.css`, including the `animation-iteration-count: 1` rule
+  for reduced motion. **Keep that rule**: it's a latent trap in the existing clamp, and
+  the next looping animation added anywhere in this app would hit it too.
+- Everything else — the two rejected characters, the `?variant=` plumbing, the switcher,
+  the `/prototype/avatars` contact sheet — was deleted. `app/page.tsx` is byte-identical
+  to what it was before the investigation.
 
-1. Delete `components/prototype-avatars.tsx`, `components/PrototypeSwitcher.tsx`,
-   `app/prototype/avatars/page.tsx`, and the `?variant=` plumbing in `app/page.tsx`.
-2. Move the winning character to `components/Avatar.tsx`, keep the keyframes but drop the
-   `pa-`/`pb-` rules.
-3. Keep the `animation-iteration-count` fix regardless — it's a latent trap in the
-   reduced-motion clamp rather than prototype scaffolding. Nothing else in the repo loops
-   today, so nothing was visibly broken before this; the next looping animation would have
-   hit it.
-4. `PrototypeSwitcher` guards its key handler on `NODE_ENV`, but don't rely on that —
-   the whole file goes. Note also that `/prototype/avatars` is a real route in the
-   production build, so a preview deploy of this branch exposes the contact sheet.
-5. Optional follow-on: same mark in the header and as the favicon (`app/favicon.ico`
-   appears to still be the Next.js default).
+Still open, if wanted: the same mark in the header beside "Complaint Concierge", and as
+the favicon (`app/favicon.ico` appears to still be the Next.js default).

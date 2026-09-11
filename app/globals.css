@@ -54,101 +54,54 @@ html {
   }
 }
 
+
 /* ------------------------------------------------------------------ *
- * PROTOTYPE — avatar character concepts (components/prototype-avatars.tsx).
- * Delete along with that file once a concept is chosen.
+ * The assistant's character (components/Assistant.tsx).
  *
  * Every keyframe rests at its neutral pose at 0% and 100%, so the
- * reduced-motion clamp above (0.01ms) lands on the resting frame rather
- * than an arbitrary mid-animation one.
+ * reduced-motion rule below lands on the resting frame rather than an
+ * arbitrary mid-animation one.
  * ------------------------------------------------------------------ */
-.pa-root,
-.pb-root,
-.pc-root {
+.assistant {
   display: inline-block;
   flex: none;
   line-height: 0;
 }
 
-/* --- A: Pip the paper crane --- */
-@keyframes pa-blink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  96% { transform: scaleY(0.1); }
-}
-@keyframes pa-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1.5px); }
-}
-@keyframes pa-dip {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-9deg); }
-}
-@keyframes pa-flap {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-16deg); }
-}
-.pa-idle .pa-eye, .pa-thinking .pa-eye, .pa-speaking .pa-eye { animation: pa-blink 5s ease-in-out infinite; transform-origin: 25.5px 14.5px; }
-.pa-idle .pa-body { animation: pa-bob 3.4s ease-in-out infinite; }
-.pa-thinking .pa-head { animation: pa-dip 1.1s ease-in-out infinite; transform-origin: 24px 16px; }
-.pa-speaking .pa-wing-front { animation: pa-flap 0.9s ease-in-out 3; transform-origin: 24px 26px; }
-
-/* --- B: Nib the pen nib --- */
-@keyframes pb-blink {
-  0%, 90%, 100% { transform: scaleY(1); }
-  95% { transform: scaleY(0.1); }
-}
-@keyframes pb-tilt {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(6deg); }
-}
-@keyframes pb-drip {
-  0%, 100% { opacity: 0; transform: translateY(0) scale(0.4); }
-  40% { opacity: 1; transform: translateY(0) scale(1); }
-  99% { opacity: 0; transform: translateY(9px) scale(0.7); }
-}
-@keyframes pb-talk {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(1.5); }
-}
-.pb-idle .pb-eye, .pb-thinking .pb-eye, .pb-speaking .pb-eye { animation: pb-blink 4.2s ease-in-out infinite; transform-origin: center; }
-.pb-drop { opacity: 0; }
-.pb-idle .pb-body { animation: pb-tilt 4s ease-in-out infinite; transform-origin: 24px 32px; }
-.pb-thinking .pb-drop { animation: pb-drip 1.4s ease-in-out infinite; transform-origin: 24px 34px; }
-.pb-speaking .pb-smile { animation: pb-talk 0.7s ease-in-out 3; transform-origin: 24px 17px; }
-
-/* --- C: Sunny the little sun --- */
-@keyframes pc-blink {
+@keyframes assistant-blink {
   0%, 94%, 100% { transform: scaleY(1); }
   97% { transform: scaleY(0.1); }
 }
-@keyframes pc-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-}
-@keyframes pc-spin {
+@keyframes assistant-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-@keyframes pc-beam {
+@keyframes assistant-beam {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
 }
-.pc-idle .pc-eye, .pc-thinking .pc-eye, .pc-speaking .pc-eye { animation: pc-blink 4.8s ease-in-out infinite; transform-origin: center; }
-.pc-idle .pc-rays { animation: pc-pulse 3.2s ease-in-out infinite; transform-origin: 24px 24px; }
-.pc-thinking .pc-rays { animation: pc-spin 3.6s linear infinite; transform-origin: 24px 24px; }
-.pc-speaking .pc-face { animation: pc-beam 0.8s ease-in-out 3; transform-origin: 24px 24px; }
 
-/* The prototype switcher must never read as part of the design being judged. */
-.proto-bar { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+/* `still` deliberately has no rules: older messages sit completely at rest. */
+.assistant-thinking .assistant-eye,
+.assistant-speaking .assistant-eye {
+  animation: assistant-blink 4.8s ease-in-out infinite;
+  transform-origin: center;
+}
+.assistant-thinking .assistant-rays {
+  animation: assistant-spin 3.6s linear infinite;
+  transform-origin: 24px 24px;
+}
+/* Finite: the greeting settles instead of pulsing while a reply is typed. */
+.assistant-speaking .assistant-face {
+  animation: assistant-beam 0.8s ease-in-out 3;
+  transform-origin: 24px 24px;
+}
 
-/* PROTOTYPE (avatar concepts): the clamp above zeroes duration but leaves
-   infinite animations running, so a looping scale/rotate freezes on an
-   arbitrary frame — measured: the sun's face stuck at scale 1.11. Forcing a
-   single iteration lands every character on its resting pose instead. */
+/* The clamp above zeroes duration but leaves looping animations running, so
+   they freeze on an arbitrary frame — a scaled or half-rotated pose that never
+   resolves. Forcing a single iteration lands them on the resting pose. */
 @media (prefers-reduced-motion: reduce) {
-  .pa-root *,
-  .pb-root *,
-  .pc-root * {
+  .assistant * {
     animation-iteration-count: 1 !important;
     animation-fill-mode: none !important;
   }
