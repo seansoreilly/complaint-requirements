@@ -1,0 +1,149 @@
+[
+  {
+    "name": "AustralianSuper",
+    "abn": "65 714 394 898",
+    "afca_member_no": "10657",
+    "aliases": [
+      "aus super",
+      "australian super"
+    ],
+    "complaint_contact": {
+      "phone": "1300 300 273",
+      "email": "complaints@australiansuper.example",
+      "url": "https://example.invalid/australiansuper/complaints"
+    },
+    "sector": "superannuation"
+  },
+  {
+    "name": "Hesta Super Fund",
+    "abn": "64 971 749 321",
+    "afca_member_no": "11902",
+    "aliases": [
+      "hesta"
+    ],
+    "complaint_contact": {
+      "phone": "1800 813 327",
+      "email": "complaints@hesta.example",
+      "url": "https://example.invalid/hesta/complaints"
+    },
+    "sector": "superannuation"
+  },
+  {
+    "name": "Rest Superannuation",
+    "abn": "62 653 671 394",
+    "afca_member_no": "11540",
+    "aliases": [
+      "rest",
+      "rest super"
+    ],
+    "complaint_contact": {
+      "phone": "1300 300 778",
+      "email": "complaints@rest.example",
+      "url": "https://example.invalid/rest/complaints"
+    },
+    "sector": "superannuation"
+  },
+  {
+    "name": "Commonwealth Bank of Australia",
+    "abn": "48 123 123 124",
+    "afca_member_no": "10099",
+    "aliases": [
+      "cba",
+      "commbank",
+      "commonwealth bank"
+    ],
+    "complaint_contact": {
+      "phone": "1800 805 605",
+      "email": "customerrelations@cba.example",
+      "url": "https://example.invalid/cba/complaints"
+    },
+    "sector": "banking"
+  },
+  {
+    "name": "Westpac Banking Corporation",
+    "abn": "33 007 457 141",
+    "afca_member_no": "10102",
+    "aliases": [
+      "westpac"
+    ],
+    "complaint_contact": {
+      "phone": "1300 130 467",
+      "email": "complaints@westpac.example",
+      "url": "https://example.invalid/westpac/complaints"
+    },
+    "sector": "banking"
+  },
+  {
+    "name": "National Australia Bank",
+    "abn": "12 004 044 937",
+    "afca_member_no": "10100",
+    "aliases": [
+      "nab"
+    ],
+    "complaint_contact": {
+      "phone": "1800 152 015",
+      "email": "resolve@nab.example",
+      "url": "https://example.invalid/nab/complaints"
+    },
+    "sector": "banking"
+  },
+  {
+    "name": "ANZ Banking Group",
+    "abn": "11 005 357 522",
+    "afca_member_no": "10101",
+    "aliases": [
+      "anz",
+      "australia and new zealand banking group"
+    ],
+    "complaint_contact": {
+      "phone": "1800 805 154",
+      "email": "customer.advocate@anz.example",
+      "url": "https://example.invalid/anz/complaints"
+    },
+    "sector": "banking"
+  },
+  {
+    "name": "Latitude Financial Services",
+    "abn": "42 008 583 588",
+    "afca_member_no": "12207",
+    "aliases": [
+      "latitude",
+      "gem visa",
+      "latitude finance"
+    ],
+    "complaint_contact": {
+      "phone": "1800 800 015",
+      "email": "customersolutions@latitude.example",
+      "url": "https://example.invalid/latitude/complaints"
+    },
+    "sector": "credit"
+  },
+  {
+    "name": "Afterpay Australia",
+    "abn": "36 616 077 933",
+    "afca_member_no": "38393",
+    "aliases": [
+      "afterpay"
+    ],
+    "complaint_contact": {
+      "phone": "1300 100 729",
+      "email": "complaints@afterpay.example",
+      "url": "https://example.invalid/afterpay/complaints"
+    },
+    "sector": "credit"
+  },
+  {
+    "name": "Allianz Australia Insurance",
+    "abn": "15 000 122 850",
+    "afca_member_no": "10476",
+    "aliases": [
+      "allianz"
+    ],
+    "complaint_contact": {
+      "phone": "1300 360 111",
+      "email": "resolutions@allianz.example",
+      "url": "https://example.invalid/allianz/complaints"
+    },
+    "sector": "insurance"
+  }
+]

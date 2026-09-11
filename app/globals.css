@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+ * Palette and type sampled from afca.org.au so the demo reads as the same
+ * family of product. Deliberately no AFCA logo or wordmark: this is an
+ * unaffiliated demo and must not pass for the real thing.
+ */
+@theme {
+  --color-afca-navy: #002561;
+  --color-afca-ink: #00093c;
+  --color-afca-blue: #0c49ab;
+  --color-afca-sky: #64c4e8;
+  --color-afca-skylight: #e8f5fc;
+  --color-afca-yellow: #ffcf01;
+  --color-afca-amber: #f5a623;
+  --color-afca-cream: #fff8ea;
+  --color-afca-mist: #f2f3f5;
+  --color-afca-line: #d7dde7;
+
+  --font-sans: "Nunito Sans", "Segoe UI", Arial, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+/* The conversation is the interface; the form is the receipt. Printing should
+   give the receipt only. */
+@media print {
+  .chat,
+  .banner,
+  .rail,
+  .no-print {
+    display: none !important;
+  }
+  .review {
+    border: none;
+    padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
