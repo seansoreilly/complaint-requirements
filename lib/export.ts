@@ -49,6 +49,7 @@ export function plainTextSummary(state: ComplaintState): string {
 
 /** The form state, without the working drafts. */
 export function exportJson(state: ComplaintState): string {
-  const { drafts: _drafts, ...rest } = state;
+  const rest: Partial<ComplaintState> = { ...state };
+  delete rest.drafts;
   return JSON.stringify(rest, null, 2);
 }

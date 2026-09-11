@@ -193,6 +193,7 @@ export default function Page() {
             )}
             {state.drafts.narrative && (
               <DraftCard
+                key={state.drafts.narrative}
                 title="Tell us about your complaint"
                 draft={state.drafts.narrative}
                 onApprove={(text) => approveDraft("narrative", text)}
@@ -201,6 +202,7 @@ export default function Page() {
             )}
             {state.drafts.fair_outcome && (
               <DraftCard
+                key={state.drafts.fair_outcome}
                 title="What would be a fair outcome"
                 draft={state.drafts.fair_outcome}
                 onApprove={(text) => approveDraft("fair_outcome", text)}

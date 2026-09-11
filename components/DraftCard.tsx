@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 /**
  * A proposal held for approval. The assistant writes here; only the person's
@@ -18,10 +18,6 @@ export function DraftCard({
   onDiscard: () => void;
 }) {
   const [text, setText] = useState(draft);
-
-  useEffect(() => {
-    setText(draft);
-  }, [draft]);
 
   return (
     <div className="mb-4 rounded-2xl border-2 border-afca-yellow bg-afca-cream p-3.5 shadow-sm">
