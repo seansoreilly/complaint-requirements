@@ -8,6 +8,7 @@ import { FormPane, type StageStatus } from "@/components/FormPane";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, setPath } from "@/lib/schema";
 import { cleanPatch } from "@/lib/patch";
+import { applyServerDelta } from "@/lib/merge-state";
 import { missingFor, stageProgress } from "@/lib/next";
 
 const OPENER =
@@ -42,6 +43,10 @@ export default function Page() {
   const send = useCallback(
     async (text: string) => {
       const history = messages.slice(-20);
+      // Snapshot the state as it is sent: the server's reply is computed
+      // from exactly this, so it is the baseline the response gets diffed
+      // against, not whatever `state` has become by the time the reply lands.
+      const snapshot = state;
       setMessages((previous) => [...previous, { role: "user", content: text }]);
       setPending(true);
       setNotes([]);
@@ -50,7 +55,7 @@ export default function Page() {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state, history, message: text, focus: focusPath ?? undefined }),
+          body: JSON.stringify({ state: snapshot, history, message: text, focus: focusPath ?? undefined }),
         });
         const data = await response.json();
 
@@ -62,7 +67,13 @@ export default function Page() {
           return;
         }
 
-        setState(data.state as ComplaintState);
+        // Form inputs stay enabled while a reply is pending, so the person
+        // may have typed into the form since `snapshot` was sent. Replacing
+        // state wholesale with the server's reply would silently discard
+        // those in-flight edits (the server never saw them). Instead, apply
+        // only what the server actually changed this turn — see
+        // applyServerDelta for the merge and its conflict rule.
+        setState((previous) => applyServerDelta(previous, snapshot, data.state as ComplaintState));
         setMessages((previous) => [...previous, { role: "assistant", content: data.reply }]);
         setNotes((data.issues ?? []).map((issue: { message: string }) => issue.message));
         setFocusPath(null);
