@@ -34,6 +34,48 @@ describe("coerceDate", () => {
   it("returns empty for unreadable input", () => {
     expect(coerceDate("sometime last winter", TODAY)).toBe("");
   });
+
+  it("rejects days that do not exist in the month", () => {
+    expect(coerceDate("31 February 2026", TODAY)).toBe("");
+    expect(coerceDate("31 April 2026", TODAY)).toBe("");
+  });
+
+  it("knows which Februaries have 29 days", () => {
+    expect(coerceDate("29 Feb 2024", TODAY)).toBe("2024-02-29");
+    expect(coerceDate("29 Feb 2025", TODAY)).toBe("");
+  });
+
+  it("validates an ISO date instead of trusting its shape", () => {
+    expect(coerceDate("2026-13-45", TODAY)).toBe("");
+    expect(coerceDate("2026-02-30", TODAY)).toBe("");
+    expect(coerceDate("2026-09-03", TODAY)).toBe("2026-09-03");
+  });
+
+  it("rejects years outside any plausible range", () => {
+    expect(coerceDate("1 Jan 1850", TODAY)).toBe("");
+  });
+});
+
+describe("dates that cannot have happened yet", () => {
+  it("refuses a future date for when they complained", () => {
+    const { patch, issues } = cleanPatch(
+      { complained_to_firm: { date: "3 Sept 2099" } },
+      TODAY,
+    );
+    expect(patch.complained_to_firm?.date).toBeUndefined();
+    expect(issues[0].message).toContain("future");
+  });
+
+  it("refuses a future date of birth", () => {
+    const { patch, issues } = cleanPatch({ complainant: { dob: "2030-01-01" } }, TODAY);
+    expect(patch.complainant?.dob).toBeUndefined();
+    expect(issues).toHaveLength(1);
+  });
+
+  it("still accepts today", () => {
+    const { patch } = cleanPatch({ complained_to_firm: { date: "2026-09-11" } }, TODAY);
+    expect(patch.complained_to_firm?.date).toBe("2026-09-11");
+  });
 });
 
 describe("isValidEmail", () => {

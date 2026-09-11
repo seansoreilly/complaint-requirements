@@ -100,7 +100,7 @@ export function coerceDate(input: string, today = new Date()): string {
   if (value.length === 0) return "";
 
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (iso) return value;
+  if (iso) return format(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
   const slash = /^(\d{1,2})[/\-.](\d{1,2})(?:[/\-.](\d{2,4}))?$/.exec(value);
   if (slash) {
@@ -144,9 +144,24 @@ function inferYear(month: number, day: number, today: Date): number {
   return candidate.getTime() > cutoff.getTime() ? year - 1 : year;
 }
 
+/** Days in each month, accounting for leap years. */
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 function format(year: number, month: number, day: number): string {
-  if (month < 1 || month > 12 || day < 1 || day > 31) return "";
+  if (month < 1 || month > 12 || day < 1) return "";
+  // 31 February is not a date, however confidently it was typed.
+  if (day > daysInMonth(year, month)) return "";
+  if (year < 1900 || year > 2100) return "";
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** Neither a complaint nor a birth can have happened after today. */
+function isFuture(iso: string, today: Date): boolean {
+  if (iso === "") return false;
+  const cutoff = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`;
+  return iso > cutoff;
 }
 
 export function isValidEmail(value: string): boolean {
@@ -183,6 +198,12 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
     if (coerced === "" && patch.complained_to_firm.date.trim() !== "") {
       issues.push({ path: "complained_to_firm.date", message: "Could not read that as a date." });
       delete patch.complained_to_firm.date;
+    } else if (isFuture(coerced, today)) {
+      issues.push({
+        path: "complained_to_firm.date",
+        message: "That date is in the future — when did you contact them?",
+      });
+      delete patch.complained_to_firm.date;
     } else {
       patch.complained_to_firm.date = coerced;
     }
@@ -192,6 +213,9 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
     const coerced = coerceDate(patch.complainant.dob, today);
     if (coerced === "" && patch.complainant.dob.trim() !== "") {
       issues.push({ path: "complainant.dob", message: "Could not read that as a date." });
+      delete patch.complainant.dob;
+    } else if (isFuture(coerced, today)) {
+      issues.push({ path: "complainant.dob", message: "That date of birth is in the future." });
       delete patch.complainant.dob;
     } else {
       patch.complainant.dob = coerced;
