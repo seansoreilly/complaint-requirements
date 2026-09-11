@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChatPane, type Message } from "@/components/ChatPane";
+import { MainMenu } from "@/components/MainMenu";
 import { DraftCard } from "@/components/DraftCard";
 import { FormPane, type StageStatus } from "@/components/FormPane";
 import { ReviewPanel } from "@/components/ReviewPanel";
@@ -130,6 +131,14 @@ export default function Page() {
     ]);
   }, []);
 
+  const startOver = useCallback(() => {
+    setState(emptyState());
+    setMessages([{ role: "assistant", content: OPENER }]);
+    setNotes([]);
+    setFocusPath(null);
+    setShowReview(false);
+  }, []);
+
   const attach = useCallback((names: string[]) => {
     setState((previous) => ({
       ...previous,
@@ -164,6 +173,7 @@ export default function Page() {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-afca-blue/40 bg-afca-navy px-4 py-2.5">
         <p className="text-sm font-extrabold tracking-tight text-white">Complaint Concierge</p>
         <div className="flex items-center gap-2">
+          <MainMenu onStartOver={startOver} />
           {mode && (
             <span className="rounded-full bg-afca-blue/40 px-2.5 py-0.5 text-[10px] font-semibold text-afca-skylight ring-1 ring-afca-sky/40">
               {mode === "claude" ? "Claude" : "Offline demo brain"}
