@@ -28,10 +28,16 @@ html {
    give the receipt only. */
 @media print {
   .chat,
-  .banner,
   .rail,
   .no-print {
     display: none !important;
+  }
+
+  /* The disclaimer prints too — a printed summary must not look official. */
+  .banner {
+    border: 1px solid #000;
+    background: none !important;
+    color: #000 !important;
   }
   .review {
     border: none;

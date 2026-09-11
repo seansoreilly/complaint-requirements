@@ -158,11 +158,24 @@ describe("contact details can be given by talking", () => {
   it("fills name, email and address from one message", () => {
     const state = turn(
       emptyState(),
-      "I'm Priya Nair, sam@example.com, 4/88 Rathdowne Road, Carlton VIC 3053",
+      "My name is Priya Nair, sam@example.com, 4/88 Rathdowne Road, Carlton VIC 3053",
+      "complainant.first_name",
     ).state;
     expect(state.complainant.first_name).toBe("Priya");
     expect(state.complainant.email).toBe("sam@example.com");
     expect(state.complainant.address.postcode).toBe("3053");
+  });
+
+  it.each([
+    ["It's just for me.", "complainant.lodging_for"],
+    ["whatever happened, it's complicated", undefined],
+    ["it's with my super fund", undefined],
+  ])("does not read %s as someone's name", (message, focus) => {
+    // "I'm ..." and "it's ..." begin far too many ordinary sentences to be
+    // treated as a name unless we actually asked for one.
+    const state = turn(emptyState(), message, focus as string | undefined).state;
+    expect(state.complainant.first_name).toBe("");
+    expect(state.complainant.last_name).toBe("");
   });
 
   it("reaches zero missing fields through conversation alone", () => {
@@ -229,5 +242,98 @@ describe("the drafted narrative never invents", () => {
     expect(state.drafts.narrative).toContain("I raised this with");
     // final_reply is still null — say nothing about it.
     expect(state.drafts.narrative).not.toContain("final response");
+  });
+});
+
+describe("who contacted whom", () => {
+  it("does not claim the person complained when the firm rang them", () => {
+    let state = applyPatch(emptyState(), { firm: { name: "Commonwealth Bank of Australia" } });
+    state = turn(state, "They called me last week and told me my cover was gone.").state;
+    // The firm made contact. That is not a complaint to the firm.
+    expect(state.complained_to_firm.yes).not.toBe(true);
+    expect(state.complained_to_firm.how).toBe("");
+    expect(state.drafts.narrative).not.toContain("I raised this with");
+  });
+
+  it("still records a complaint the person made", () => {
+    const state = turn(emptyState(), "I emailed AustralianSuper on 3 Sept about my cover.").state;
+    expect(state.complained_to_firm.yes).toBe(true);
+    expect(state.complained_to_firm.how).toBe("Email");
+  });
+
+  it("does not record a channel when the firm was the one who wrote", () => {
+    let state = applyPatch(emptyState(), { firm: { name: "Westpac Banking Corporation" } });
+    state = turn(state, "The bank wrote to me saying my account was closed.").state;
+    expect(state.complained_to_firm.how).toBe("");
+  });
+});
+
+describe("reference numbers are not invented", () => {
+  it.each([
+    "I tried to make a claim after I hurt my back and they refused",
+    "they took money out of my account without permission",
+  ])("does not capture a stray word from %s", (message) => {
+    const state = turn(emptyState(), message).state;
+    expect(state.firm.reference).toBe("");
+  });
+
+  it.each([
+    ["my member number is 4471820", "4471820"],
+    ["account no. AB-99213", "AB-99213"],
+    ["reference number 12345", "12345"],
+  ])("captures a real identifier from %s", (message, expected) => {
+    const state = turn(emptyState(), message).state;
+    expect(state.firm.reference).toBe(expected);
+  });
+
+  it("does not read 'account no.' as having no account", () => {
+    const state = turn(emptyState(), "account no. AB-99213").state;
+    expect(state.firm.no_reference).toBe(false);
+  });
+});
+
+describe("consent can be given the way people actually say it", () => {
+  it.each(["I agree to both", "yes", "ok", "sure, that's fine", "happy to"])(
+    "accepts %s",
+    (message) => {
+      const state = turn(emptyState(), message, "consents.authority").state;
+      expect(state.consents.authority).toBe(true);
+      expect(state.consents.engagement_charter).toBe(true);
+    },
+  );
+
+  it("treats a refusal as an answer rather than asking again", () => {
+    const { state, reply } = turn(emptyState(), "no", "consents.authority");
+    expect(state.consents.authority).toBe(false);
+    expect(reply.length).toBeGreaterThan(0);
+  });
+});
+
+describe("a firm outside the demo directory does not freeze the conversation", () => {
+  it.each(["AusSuper", "Zorbo Financial", "Hi, I want to complain about my super fund, AusSuper."])(
+    "accepts %s and moves on",
+    (message) => {
+      const { state } = turn(emptyState(), message, "firm.name");
+      expect(state.firm.name).not.toBe("");
+      // Unknown to the directory, so no member number may be attached.
+      expect(state.firm.afca_member_no).toBe("");
+      expect(nextField(state)?.path).not.toBe("firm.name");
+    },
+  );
+
+  it("does not mistake a story for a firm name", () => {
+    const { state } = turn(
+      emptyState(),
+      "They cancelled my insurance without telling me and I am very upset",
+      "firm.name",
+    );
+    expect(state.firm.name).toBe("");
+  });
+
+  it("progresses past the firm question instead of repeating it", () => {
+    let state = turn(emptyState(), "AusSuper", "firm.name").state;
+    const first = nextField(state)?.path;
+    state = turn(state, "I don't have an account number", "firm.reference").state;
+    expect(nextField(state)?.path).not.toBe(first);
   });
 });

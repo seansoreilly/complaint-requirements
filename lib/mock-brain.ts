@@ -16,7 +16,7 @@ export interface BrainResult {
 }
 
 const NEGATIVE = /\b(no|nope|haven'?t|have not|didn'?t|did not|never|none)\b/i;
-const AFFIRMATIVE = /\b(yes|yeah|yep|correct|that'?s right|i did|i have)\b/i;
+const AFFIRMATIVE = /\b(yes|yeah|yep|yup|correct|that'?s right|i did|i have|agree|agreed|ok|okay|sure|fine|confirm|confirmed|consent|happy to|go ahead)\b/i;
 const UNSURE = /\b(not sure|unsure|don'?t know|dunno|no idea|maybe)\b/i;
 const SKIP = /\b(skip|later|rather not|prefer not|come back)\b/i;
 
@@ -30,6 +30,68 @@ const CHANNELS: [RegExp, string][] = [
   [/\b(website|online|web form|portal|chat)\b/i, "Online form"],
   [/\bin branch|in person\b/i, "In person"],
 ];
+
+const CONTACT_VERB = "complained|emailed|e-mailed|called|rang|phoned|wrote|lodged|raised|contacted|spoke to|got in touch|reached out";
+
+/**
+ * Did the PERSON contact the firm, or did the firm contact them?
+ *
+ * "I emailed them" and "they called me" both contain a contact verb; only the
+ * first is a complaint to the firm. Getting this backwards writes a false
+ * statement into a document someone signs their name to, so the subject is
+ * checked explicitly and anything ambiguous returns null rather than guessing.
+ */
+export function readContactStance(text: string): boolean | null {
+  // The firm as the actor: "they called me", "the bank wrote to me".
+  const firmActed = new RegExp(
+    `\\b(they|he|she|it|the (?:bank|firm|fund|insurer|company)|someone|a (?:rep|representative))\\b[^.!?]{0,30}?\\b(?:${CONTACT_VERB})\\b`,
+    "i",
+  );
+  // The person as the actor: "I emailed", "we complained", "I have written".
+  const userActed = new RegExp(
+    `\\b(i|we)\\b[^.!?]{0,24}?\\b(?:${CONTACT_VERB})\\b`,
+    "i",
+  );
+  const negated = new RegExp(
+    `\\b(no|not|never|haven'?t|have not|hadn'?t|didn'?t|did not|yet to)\\b[^.!?]{0,40}?\\b(?:complain|contact|email|call|rang|wrote|lodge|raise|speak|spoke)`,
+    "i",
+  );
+
+  if (negated.test(text)) return false;
+  if (userActed.test(text)) return true;
+  // The firm contacting them is not the person complaining to the firm. Say
+  // nothing rather than assert the opposite.
+  if (firmActed.test(text)) return null;
+
+  // A bare verb with no stated subject ("emailed them on the 3rd") reads as
+  // the person, since they are the one telling the story.
+  if (new RegExp(`\\b(?:${CONTACT_VERB})\\b`, "i").test(text)) return true;
+  return null;
+}
+
+/**
+ * A firm the directory does not know. Only trusted when we actually asked for
+ * a firm, and only when the message looks like a name rather than a story —
+ * a wrong guess here files the complaint against the wrong company.
+ */
+function namedFirmCandidate(text: string, asked: boolean): string | null {
+  if (!asked) return null;
+  const value = text.trim().replace(/[.!?]+$/, "");
+  const words = value.split(/\s+/);
+
+  // An explicit "with/about <Name>" is unambiguous however long the sentence,
+  // so it is checked before the length guard.
+  const trailing = /(?:with|about|against|fund,|bank,|called)\s+([A-Z][A-Za-z&'’.-]*(?:\s+[A-Z][A-Za-z&'’.-]*){0,3})$/.exec(value);
+  if (trailing) return trailing[1];
+
+  if (words.length > 6) return null;
+
+  // A bare name typed on its own.
+  if (/^[A-Z][A-Za-z&'’.-]*(\s+[A-Za-z&'’.-]+){0,3}$/.test(value) && words.length <= 4) {
+    return value;
+  }
+  return null;
+}
 
 function matchFirm(text: string): { name: string; member: string; serviceType: string } | null {
   for (const firm of FIRMS) {
@@ -185,22 +247,45 @@ export function mockBrain(
   const patch: ComplaintPatch = {};
   const text = message.trim();
   const captured: string[] = [];
+  const answerTargetIsFirm =
+    (focusPath ?? groupedWithNext(state)[0]?.path) === "firm.name";
 
   const firm = matchFirm(text);
   if (firm && !state.firm.name) {
     patch.firm = { name: firm.name };
     captured.push(`the firm (${firm.name})`);
+  } else if (!state.firm.name && !firm) {
+    // They may have named a firm this demo's directory does not carry. Take it
+    // at face value rather than asking the same question forever; the route
+    // will say plainly that there is no member number for it.
+    const named = namedFirmCandidate(text, answerTargetIsFirm);
+    if (named) {
+      patch.firm = { name: named };
+      captured.push(`the firm (${named})`);
+    }
   }
   // The sector of a firm named now, or one already on the form.
   const knownFirm = firm ?? (state.firm.name ? matchFirm(state.firm.name) : null);
 
-  if (/\b(no|don'?t have|haven'?t got|without)\b.{0,24}\b(reference|account|policy|member)\s*(number)?\b/i.test(text) ||
-      /\b(reference|account|policy|member)\s*(number)?\b.{0,24}\b(no|none|don'?t have)\b/i.test(text)) {
+  // "account no. AB-99213" is an account number, not an absence of one, so the
+  // no-reference test must not fire on the abbreviation "no."
+  const abbreviatedNumber = /\b(?:reference|account|policy|member|claim|complaint)\s*no\.?\s*[:#]?\s*[A-Za-z0-9]/i.test(text);
+  const saysNone =
+    !abbreviatedNumber &&
+    (/\b(no|don'?t have|haven'?t got|without|none)\b[^.!?]{0,24}\b(reference|account|policy|member)\s*(number)?\b/i.test(text) ||
+      /\b(reference|account|policy|member)\s*(number)?\b[^.!?]{0,24}\b(none|don'?t have|haven'?t got)\b/i.test(text));
+
+  if (saysNone) {
     patch.firm = { ...patch.firm, no_reference: true };
     captured.push("that you have no reference number");
   } else {
-    const ref = /\b(?:reference|account|policy|member|claim)\s*(?:number|no\.?|#)?\s*(?:is\s*)?([A-Z0-9][A-Z0-9-]{3,})\b/i.exec(text);
-    if (ref && !state.firm.reference) {
+    // Requires an explicit "number"/"no."/"#" cue and a token that actually looks
+    // like an identifier — at least one digit. Otherwise ordinary prose such as
+    // "make a claim after I hurt my back" captures "after" as a reference.
+    const ref =
+      /\b(?:reference|account|policy|member|claim|complaint)\s*(?:number|no\.?|#)\s*(?:is\s+)?[:#]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,})\b/i.exec(text) ??
+      /\b(?:reference|account|policy|member)\s*(?:is|:)\s*([A-Za-z0-9][A-Za-z0-9-]{3,})\b/i.exec(text);
+    if (ref && /\d/.test(ref[1]) && !state.firm.reference) {
       patch.firm = { ...patch.firm, reference: ref[1] };
       captured.push(`the reference number (${ref[1]})`);
     }
@@ -208,17 +293,11 @@ export function mockBrain(
 
   // Did they complain to the firm, and how?
   if (state.complained_to_firm.yes === null) {
-    const contactVerb = /\b(complained|emailed|called|rang|wrote|lodged|raised|contacted)\b/i;
-    // "No, I haven't complained yet" names the verb but denies it; a negation
-    // anywhere before the verb flips the meaning.
-    const negated = /\b(no|not|never|haven'?t|have not|hadn'?t|didn'?t|did not|yet to)\b[^.!?]{0,40}?\b(complain|contact|email|call|rang|wrote|lodge|raise)/i.test(text);
-    if (negated) {
-      patch.complained_to_firm = { yes: false };
-      captured.push("that you have not contacted the firm yet");
-    } else if (contactVerb.test(text)) {
+    const stance = readContactStance(text);
+    if (stance === true) {
       patch.complained_to_firm = { yes: true };
       captured.push("that you already contacted the firm");
-    } else if (NEGATIVE.test(text) && /\b(complain|contact|raise)/i.test(text)) {
+    } else if (stance === false) {
       patch.complained_to_firm = { yes: false };
       captured.push("that you have not contacted the firm yet");
     }
@@ -237,7 +316,9 @@ export function mockBrain(
     captured.push(`the date (${date[1]})`);
   }
 
-  if (!state.complained_to_firm.how) {
+  const contactedByUser =
+    patch.complained_to_firm?.yes === true || state.complained_to_firm.yes === true;
+  if (!state.complained_to_firm.how && contactedByUser) {
     for (const [pattern, channel] of CHANNELS) {
       if (pattern.test(text)) {
         patch.complained_to_firm = { ...patch.complained_to_firm, how: channel };
@@ -290,9 +371,12 @@ export function mockBrain(
 
   // Contact details tend to arrive in one breath ("I'm Sam Chen, 12 Ford St,
   // Brunswick VIC 3056"), so parse them wherever they show up.
+  // Only "my name is X" states a name outright. "I'm ..." and "it's ..." begin
+  // far too many ordinary sentences ("it's just for me") to treat as a name,
+  // unless we actually asked for one — that case is handled in applyDirectAnswer.
   if (!state.complainant.first_name) {
-    // Case-insensitive: people write "i'm sam" as often as "I'm Sam".
-    const named = /(?:^|\b)(?:i.?m|i am|my name.?s|my name is|this is|it.?s)\s+([A-Za-z][a-z'’-]+)(?:\s+([A-Za-z][a-z'’-]+))?/i.exec(text);
+    // Longest alternative first: "my name.?s" would otherwise swallow "my name is".
+    const named = /\b(?:my name is|my name'?s|name'?s)\s+([A-Za-z][a-z'’-]+)(?:\s+([A-Za-z][a-z'’-]+))?/i.exec(text);
     if (named) {
       patch.complainant = {
         ...patch.complainant,
@@ -455,6 +539,10 @@ function applyDirectAnswer(
     case "consents.engagement_charter":
       if (yes) {
         patch.consents = { authority: true, engagement_charter: true };
+      } else if (no) {
+        // A decline is a real answer. The form cannot proceed without both, so
+        // say so plainly rather than silently asking again.
+        patch.consents = { authority: false, engagement_charter: false };
       }
       break;
     case "complained_to_firm.final_reply":
@@ -462,13 +550,16 @@ function applyDirectAnswer(
       if (no) patch.complained_to_firm = { ...patch.complained_to_firm, final_reply: false };
       break;
     case "complainant.first_name": {
-      // A bare "Sam Chen" only reads as a name when we asked for one.
-      if (!patch.complainant?.first_name && /^[A-Za-z][A-Za-z'’-]*(\s+[A-Za-z][A-Za-z'’-]*)?$/.test(text.trim())) {
-        const [first, last] = text.trim().split(/\s+/);
+      if (patch.complainant?.first_name) break;
+      // We asked for a name, so an introduction or a bare name both count.
+      const intro = /(?:^|\b)(?:i'?m|i am|it'?s|this is|call me)\s+([A-Za-z][a-z'’-]+)(?:\s+([A-Za-z][a-z'’-]+))?/i.exec(text);
+      const bare = /^([A-Za-z][a-z'’-]+)(?:\s+([A-Za-z][a-z'’-]+))?$/.exec(text.trim());
+      const found = intro ?? bare;
+      if (found) {
         patch.complainant = {
           ...patch.complainant,
-          first_name: first,
-          ...(last ? { last_name: last } : {}),
+          first_name: titleCase(found[1]),
+          ...(found[2] ? { last_name: titleCase(found[2]) } : {}),
         };
       }
       break;

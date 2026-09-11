@@ -139,14 +139,30 @@ export default function Page() {
 
   return (
     <main className="flex h-dvh flex-col">
-      <header className="banner flex flex-wrap items-center justify-between gap-2 border-b-4 border-afca-yellow bg-afca-navy px-4 py-2.5">
-        <p className="text-xs text-white">
-          <strong className="font-extrabold tracking-tight">Complaint Concierge</strong>
-          <span className="mx-2 text-afca-sky">|</span>
-          <span className="text-afca-skylight">
-            Not affiliated with AFCA. Demo data only — nothing is submitted.
+      {/* Unmissable by design: this must never be mistaken for AFCA's own service. */}
+      <div className="banner flex items-center gap-3 bg-afca-yellow px-4 py-2.5 text-afca-ink">
+        <span aria-hidden className="text-lg leading-none">⚠️</span>
+        <p className="text-xs font-bold leading-snug sm:text-sm">
+          Demonstration only — this is not AFCA.
+          <span className="ml-1.5 font-normal">
+            Not affiliated with, endorsed by, or connected to the Australian Financial Complaints
+            Authority. Nothing you enter is submitted or sent anywhere, and the firm details are
+            invented. To make a real complaint, go to{" "}
+            <a
+              href="https://www.afca.org.au"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:no-underline"
+            >
+              afca.org.au
+            </a>
+            .
           </span>
         </p>
+      </div>
+
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-afca-blue/40 bg-afca-navy px-4 py-2.5">
+        <p className="text-sm font-extrabold tracking-tight text-white">Complaint Concierge</p>
         <div className="flex items-center gap-2">
           {mode && (
             <span className="rounded-full bg-afca-blue/40 px-2.5 py-0.5 text-[10px] font-semibold text-afca-skylight ring-1 ring-afca-sky/40">
