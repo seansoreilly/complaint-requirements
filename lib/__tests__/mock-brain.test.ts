@@ -193,3 +193,41 @@ describe("contact details can be given by talking", () => {
     expect(missingFor(state)).toEqual([]);
   });
 });
+
+describe("the drafted narrative never invents", () => {
+  it("writes dates the way a person says them, not as ISO", () => {
+    const { state } = turn(emptyState(), DEMO_STORY);
+    expect(state.drafts.narrative).toContain("3 September 2026");
+    expect(state.drafts.narrative).not.toContain("2026-09-03");
+  });
+
+  it("structures the first draft from facts found in the same message", () => {
+    const { state } = turn(emptyState(), DEMO_STORY);
+    expect(state.drafts.narrative).toContain("I raised this with AustralianSuper");
+    expect(state.drafts.narrative).toContain("I have not received a final response");
+  });
+
+  it("asserts nothing the person did not say", () => {
+    // Every sentence the draft adds must be traceable to an extracted field.
+    const { state } = turn(
+      emptyState(),
+      "Afterpay kept charging me late fees after I had already paid the whole thing off in June and nobody will explain why.",
+    );
+    const draft = state.drafts.narrative;
+    expect(draft).toContain("Afterpay Australia");
+    // No contact history was stated, so the draft must not claim any.
+    expect(draft).not.toContain("I raised this with");
+    expect(draft).not.toContain("final response");
+  });
+
+  it("never claims a final response either way without being told", () => {
+    let state = applyPatch(emptyState(), {
+      firm: { name: "Westpac Banking Corporation" },
+      complained_to_firm: { yes: true, date: "2026-08-01", how: "Phone" },
+    });
+    state = turn(state, "They took money out of my account twice for the same bill and I want it back.").state;
+    expect(state.drafts.narrative).toContain("I raised this with");
+    // final_reply is still null — say nothing about it.
+    expect(state.drafts.narrative).not.toContain("final response");
+  });
+});

@@ -6,7 +6,7 @@
  * should set ANTHROPIC_API_KEY — see lib/model.ts.
  */
 import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, findField } from "./schema";
-import { type ComplaintPatch } from "./patch";
+import { type ComplaintPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
 import { groupedWithNext, missingFor } from "./next";
 
@@ -146,13 +146,27 @@ function titleCase(value: string): string {
   return value.replace(/\b[a-z]/g, (c) => c.toUpperCase());
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "2026-09-03" reads like a database field; "3 September 2026" reads like a person. */
+function humanDate(iso: string): string {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!parts) return iso;
+  const month = MONTH_NAMES[Number(parts[2]) - 1];
+  if (!month) return iso;
+  return `${Number(parts[3])} ${month} ${parts[1]}`;
+}
+
 function draftNarrative(state: ComplaintState, text: string): string {
   const firmName = state.firm.name || "the financial firm";
   const parts: string[] = [];
   parts.push(`My complaint is about ${firmName}.`);
   parts.push(text.trim().replace(/\s+/g, " "));
   if (state.complained_to_firm.yes === true) {
-    const when = state.complained_to_firm.date ? ` on ${state.complained_to_firm.date}` : "";
+    const when = state.complained_to_firm.date ? ` on ${humanDate(state.complained_to_firm.date)}` : "";
     const how = state.complained_to_firm.how ? ` by ${state.complained_to_firm.how.toLowerCase()}` : "";
     parts.push(`I raised this with ${firmName}${when}${how}.`);
     if (state.complained_to_firm.final_reply === false) {
@@ -313,13 +327,24 @@ export function mockBrain(
   }
 
   // Once the story is in, offer a narrative draft.
+  // A story is a message that recounts something happening, not one that is
+  // merely long. Past-tense verbs and grievance words are the signal; the
+  // length floor only guards against drafting from a two-word reply.
   const words = text.split(/\s+/).length;
+  const recounts =
+    /\b(they|he|she|it|nobody|no one|someone)\b/i.test(text) &&
+    /\b(said|told|took|charged|cancelled|declined|denied|refused|ignored|failed|stopped|kept|never|wouldn'?t|won'?t|haven'?t|hasn'?t|didn'?t|couldn'?t)\b/i.test(text);
   const hasStory =
     !draftHandled &&
-    (words >= 18 || text.length > 110 || (state.complaint.issues.length > 0 && text.length > 60));
+    words >= 12 &&
+    (recounts || words >= 18 || text.length > 110 ||
+      (state.complaint.issues.length > 0 && text.length > 60));
   if (hasStory && !state.complaint.narrative && !state.drafts.narrative) {
-    const merged = { ...state, ...(patch.firm ? { firm: { ...state.firm, ...patch.firm } } : {}) };
-    patch.drafts = { narrative: draftNarrative(merged as ComplaintState, text) };
+    // Use the state as it will be once this turn's patch lands: a story that
+    // also supplies the dates should have them in its own draft.
+    const { patch: cleaned } = cleanPatch(patch);
+    const projected = projectState(state, cleaned);
+    patch.drafts = { ...patch.drafts, narrative: draftNarrative(projected, text) };
   }
 
   const reply = composeReply(state, patch, captured);
