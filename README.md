@@ -1,5 +1,7 @@
 # Complaint Concierge
 
+**Live: https://complaint-requirements.vercel.app**
+
 A chat that fills in a form. The AFCA complaint form is the schema; the
 conversation is the interface.
 
@@ -45,6 +47,11 @@ the directory" note rather than a plausible-looking number.
 **Drafts are held, not written.** When the assistant writes the complaint
 narrative or the outcome statement, it goes to `drafts.*` and appears as a card
 the person approves or edits. Only approval moves text onto the form.
+
+## Pages
+
+- `/` — the demo: chat on the left, the form filling itself on the right.
+- `/privacy` — what happens to what people type. Reachable from the menu.
 
 ## Scope
 
