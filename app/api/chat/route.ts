@@ -10,6 +10,7 @@ import { type ComplaintState, emptyState } from "@/lib/schema";
 import { applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
+import { ensureAsk } from "@/lib/continue";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
 import { patchSchema } from "@/lib/patch";
 
@@ -138,8 +139,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   const state = resolvedAfter.state;
 
   const note = resolvedAfter.note;
+  // The conversation must not dead-end while the form still needs something.
+  // Applied after the note is joined on, so an ambiguous-firm note that already
+  // asks "Which one is it?" counts as this turn's question.
+  const reply = ensureAsk(note ? `${turn.reply}\n\n${note}` : turn.reply, state);
+
   return NextResponse.json({
-    reply: note ? `${turn.reply}\n\n${note}` : turn.reply,
+    reply,
     state,
     missing: missingFor(state),
     next: nextField(state),
