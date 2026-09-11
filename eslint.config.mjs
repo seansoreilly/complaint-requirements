@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Remotion explainer is a separate project with its own deps.
+    "video/**",
   ]),
 ]);
 
