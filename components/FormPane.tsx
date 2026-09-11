@@ -133,8 +133,8 @@ function Field({
               onClick={() => onEdit(field.path, option)}
               className={
                 value === option
-                  ? "rounded-full bg-afca-navy px-3 py-1 text-xs font-semibold text-white"
-                  : "rounded-full bg-white px-3 py-1 text-xs text-afca-navy ring-1 ring-afca-line transition hover:bg-afca-skylight"
+                  ? "min-h-11 rounded-full bg-afca-navy px-5 py-2 text-sm font-semibold text-white"
+                  : "min-h-11 rounded-full bg-white px-5 py-2 text-sm text-afca-navy ring-1 ring-afca-line transition hover:bg-afca-skylight"
               }
             >
               {option ? "Yes" : "No"}

@@ -190,7 +190,7 @@ export default function Page() {
           <button
             type="button"
             onClick={() => setShowReview((previous) => !previous)}
-            className="rounded-full bg-afca-yellow px-4 py-2 text-xs font-bold text-afca-ink transition hover:brightness-95"
+            className="min-h-11 rounded-full bg-afca-yellow px-5 py-2 text-sm font-bold text-afca-ink transition hover:brightness-95"
           >
             {showReview ? "Form" : `Review${missing.length === 0 ? " ✓" : ""}`}
           </button>

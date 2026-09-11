@@ -57,13 +57,13 @@ export function MainMenu({ onStartOver }: { onStartOver: () => void }) {
         <div
           ref={panelRef}
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-afca-line bg-white shadow-lg"
+          className="absolute left-0 z-50 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-afca-line bg-white shadow-lg"
         >
           <Link
             href="/"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-4 py-2.5 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
+            className="block px-4 py-3 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
           >
             Complaint form
           </Link>
@@ -71,7 +71,7 @@ export function MainMenu({ onStartOver }: { onStartOver: () => void }) {
             href="/privacy"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-4 py-2.5 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
+            className="block px-4 py-3 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
           >
             Your data
           </Link>
@@ -81,7 +81,7 @@ export function MainMenu({ onStartOver }: { onStartOver: () => void }) {
             rel="noopener noreferrer"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-4 py-2.5 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
+            className="block px-4 py-3 text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
           >
             The real AFCA ↗
           </a>
@@ -93,7 +93,7 @@ export function MainMenu({ onStartOver }: { onStartOver: () => void }) {
                 setOpen(false);
                 onStartOver();
               }}
-              className="block w-full px-4 py-2.5 text-left text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
+              className="block w-full px-4 py-3 text-left text-sm font-semibold text-afca-navy transition hover:bg-afca-skylight"
             >
               Start over
             </button>

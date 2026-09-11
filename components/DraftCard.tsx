@@ -35,14 +35,14 @@ export function DraftCard({
         <button
           type="button"
           onClick={() => onApprove(text)}
-          className="rounded-full bg-afca-navy px-4 py-1.5 text-xs font-bold text-white transition hover:bg-afca-ink"
+          className="min-h-11 rounded-full bg-afca-navy px-5 py-2.5 text-sm font-bold text-white transition hover:bg-afca-ink"
         >
           Use this
         </button>
         <button
           type="button"
           onClick={onDiscard}
-          className="text-xs text-afca-navy/60 underline hover:text-afca-navy"
+          className="min-h-11 rounded-full px-4 py-2.5 text-sm text-afca-navy/70 underline underline-offset-2 transition hover:bg-white hover:text-afca-navy"
         >
           Discard
         </button>

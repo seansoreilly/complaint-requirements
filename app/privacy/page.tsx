@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-2xl px-5 py-10">
       <Link
         href="/"
-        className="text-xs font-bold text-afca-blue underline underline-offset-2 hover:text-afca-navy"
+        className="inline-block py-2.5 text-sm font-bold text-afca-blue underline underline-offset-2 hover:text-afca-navy"
       >
         ← Back to the demo
       </Link>
