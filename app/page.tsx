@@ -11,7 +11,7 @@ import { cleanPatch } from "@/lib/patch";
 import { missingFor, stageProgress } from "@/lib/next";
 // PROTOTYPE: avatar concepts, switchable via ?variant=A|B|C. Remove with
 // components/prototype-avatars.tsx and components/PrototypeSwitcher.tsx.
-import { AVATARS, VARIANT_NAMES } from "@/components/prototype-avatars";
+import { AVATARS, VARIANT_KEYS, VARIANT_NAMES } from "@/components/prototype-avatars";
 import { PrototypeSwitcher } from "@/components/PrototypeSwitcher";
 
 const OPENER =
@@ -44,7 +44,7 @@ export default function Page() {
     subscribeToVariant,
     () => {
       const fromUrl = new URLSearchParams(window.location.search).get("variant");
-      return fromUrl && fromUrl in AVATARS ? fromUrl : "A";
+      return fromUrl && VARIANT_KEYS.includes(fromUrl) ? fromUrl : "A";
     },
     () => "A",
   );
@@ -240,6 +240,7 @@ export default function Page() {
             onClearFocus={() => setFocusPath(null)}
             onSend={send}
             Avatar={AVATARS[variant]}
+            avatarOnlyWhenThinking={variant === "thinking-only"}
           />
         </div>
         <div className="flex min-h-[70vh] flex-col lg:min-h-0">

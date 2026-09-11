@@ -21,6 +21,7 @@ export function ChatPane({
   onClearFocus,
   onSend,
   Avatar,
+  avatarOnlyWhenThinking = false,
 }: {
   messages: Message[];
   pending: boolean;
@@ -30,6 +31,8 @@ export function ChatPane({
   onSend: (text: string) => void;
   /** PROTOTYPE: when set, assistant messages get an animated character. */
   Avatar?: (props: AvatarProps) => React.JSX.Element;
+  /** PROTOTYPE: show the character only while it is working, not on every message. */
+  avatarOnlyWhenThinking?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -50,20 +53,20 @@ export function ChatPane({
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
         {messages.map((message, index) => {
           const isUser = message.role === "user";
-          // Only the newest assistant message animates; a column of bobbing
-          // characters would be a circus, and it keeps the cost at one.
+          // Only the newest assistant message animates; older ones go fully
+          // still, so a long conversation isn't a column of bobbing characters.
           const isLatestAssistant =
             !isUser && index === messages.length - 1 && !pending;
           return (
             <div key={index} className={isUser ? "flex justify-end" : "flex justify-start gap-2"}>
-              {!isUser && Avatar && (
-                <Avatar state={isLatestAssistant ? "speaking" : "idle"} size={30} />
+              {!isUser && Avatar && !avatarOnlyWhenThinking && (
+                <Avatar state={isLatestAssistant ? "speaking" : "still"} size={30} />
               )}
               <div
                 className={
                   isUser
                     ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
-                    : `${Avatar ? "max-w-[calc(85%-2.5rem)]" : "max-w-[85%]"} whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
+                    : `${Avatar && !avatarOnlyWhenThinking ? "max-w-[calc(85%-2.5rem)]" : "max-w-[85%]"} whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
                 }
               >
                 {message.content}

@@ -87,10 +87,10 @@ html {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(-16deg); }
 }
-.pa-eye { animation: pa-blink 5s ease-in-out infinite; transform-origin: 25.5px 14.5px; }
+.pa-idle .pa-eye, .pa-thinking .pa-eye, .pa-speaking .pa-eye { animation: pa-blink 5s ease-in-out infinite; transform-origin: 25.5px 14.5px; }
 .pa-idle .pa-body { animation: pa-bob 3.4s ease-in-out infinite; }
 .pa-thinking .pa-head { animation: pa-dip 1.1s ease-in-out infinite; transform-origin: 24px 16px; }
-.pa-speaking .pa-wing-front { animation: pa-flap 0.9s ease-in-out infinite; transform-origin: 24px 26px; }
+.pa-speaking .pa-wing-front { animation: pa-flap 0.9s ease-in-out 3; transform-origin: 24px 26px; }
 
 /* --- B: Nib the pen nib --- */
 @keyframes pb-blink {
@@ -110,11 +110,11 @@ html {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(1.5); }
 }
-.pb-eye { animation: pb-blink 4.2s ease-in-out infinite; transform-origin: center; }
+.pb-idle .pb-eye, .pb-thinking .pb-eye, .pb-speaking .pb-eye { animation: pb-blink 4.2s ease-in-out infinite; transform-origin: center; }
 .pb-drop { opacity: 0; }
 .pb-idle .pb-body { animation: pb-tilt 4s ease-in-out infinite; transform-origin: 24px 32px; }
 .pb-thinking .pb-drop { animation: pb-drip 1.4s ease-in-out infinite; transform-origin: 24px 34px; }
-.pb-speaking .pb-smile { animation: pb-talk 0.7s ease-in-out infinite; transform-origin: 24px 17px; }
+.pb-speaking .pb-smile { animation: pb-talk 0.7s ease-in-out 3; transform-origin: 24px 17px; }
 
 /* --- C: Sunny the little sun --- */
 @keyframes pc-blink {
@@ -133,10 +133,10 @@ html {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
 }
-.pc-eye { animation: pc-blink 4.8s ease-in-out infinite; transform-origin: center; }
+.pc-idle .pc-eye, .pc-thinking .pc-eye, .pc-speaking .pc-eye { animation: pc-blink 4.8s ease-in-out infinite; transform-origin: center; }
 .pc-idle .pc-rays { animation: pc-pulse 3.2s ease-in-out infinite; transform-origin: 24px 24px; }
 .pc-thinking .pc-rays { animation: pc-spin 3.6s linear infinite; transform-origin: 24px 24px; }
-.pc-speaking .pc-face { animation: pc-beam 0.8s ease-in-out infinite; transform-origin: 24px 24px; }
+.pc-speaking .pc-face { animation: pc-beam 0.8s ease-in-out 3; transform-origin: 24px 24px; }
 
 /* The prototype switcher must never read as part of the design being judged. */
 .proto-bar { font-family: ui-monospace, "SF Mono", Menlo, monospace; }

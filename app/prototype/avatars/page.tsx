@@ -28,8 +28,9 @@ export default function AvatarGallery() {
         .
       </p>
 
-      {Object.keys(AVATARS).map((key) => {
+      {["A", "B", "C"].map((key) => {
         const Avatar = AVATARS[key];
+        if (!Avatar) return null;
         return (
           <section key={key} className="mt-10 border-t border-afca-line pt-6">
             <h2 className="text-base font-bold">

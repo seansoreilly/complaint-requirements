@@ -23,8 +23,12 @@ npm run dev
 
 - `http://localhost:3000/prototype/avatars` — contact sheet: all three characters, all
   three states, at blown-up and actual (30px) size, plus on the real bubble colour.
-- `http://localhost:3000/?variant=A` — the real chat with the character wired in.
-  Switch with the floating bar at the bottom, or `←`/`→`. `?variant=A|B|C`.
+- `http://localhost:3000/?variant=none` — **the baseline: today's chat, no character.**
+  Switch with the floating bar at the bottom, or `←`/`→`. The cycle is
+  `none → A → B → C → thinking-only`, baseline first, so "no character at all" is always
+  one keypress from every concept.
+  - `?variant=thinking-only` is the cheaper middle ground described below: Sunny appears
+    only while the assistant is working, and settled messages stay plain.
 
 ## The three concepts
 
@@ -75,10 +79,11 @@ The whole prototype is ~150 lines of SVG and ~60 lines of keyframes.
 - **Not AFCA.** `app/globals.css:6-9` deliberately avoids AFCA's logo. All three shapes are
   original — no shield, scales, crest, or anything resembling an official ombudsman mark.
   Sunny uses the sampled palette, which was already in use, but no borrowed form.
-- **Reduced motion — this had a real bug.** The existing clamp at `app/globals.css:44-51`
+- **Reduced motion — this surfaced a latent trap.** The existing clamp at `app/globals.css:44-51`
   zeroes `animation-duration` but leaves infinite animations looping, so they freeze on an
   arbitrary frame. Measured in the browser: Sunny's face froze at **scale 1.11** — a
-  permanently puffed-up sun for every reduced-motion user. Fixed by forcing
+  permanently puffed-up sun for every reduced-motion user. (Nothing in the repo looped
+  before these avatars, so nothing was visibly broken until now.) Fixed by forcing
   `animation-iteration-count: 1` for the avatars; re-measured, all three now rest at the
   neutral pose. **If any other looping animation is added later, it will hit this same
   trap** — worth considering the iteration-count rule for the global clamp, not just the
@@ -89,8 +94,11 @@ The whole prototype is ~150 lines of SVG and ~60 lines of keyframes.
   to compensate (`calc(85% - 2.5rem)`), measured at 294px total — no overflow, and the
   recent phone-layout fixes (b32479a, 8d4c6f3) stay intact.
 - **Print.** The avatar is inside `.chat`, which is already `display:none` in print.
-- **Only the newest assistant message animates.** A column of bobbing characters would be
-  a circus, and it keeps the animation cost at one element.
+- **Only the newest assistant message animates.** Older ones render in a `still` state
+  with no animation at all — verified in the browser, an older avatar reports zero running
+  animations — so a fifteen-turn conversation isn't fifteen pulsing suns. The speaking
+  animation also runs a finite three iterations and settles, rather than beaming
+  indefinitely while the user types their reply.
 
 ## Recommendation
 
@@ -115,7 +123,12 @@ rather than promote as-is:
    `app/prototype/avatars/page.tsx`, and the `?variant=` plumbing in `app/page.tsx`.
 2. Move the winning character to `components/Avatar.tsx`, keep the keyframes but drop the
    `pa-`/`pb-` rules.
-3. Keep the `animation-iteration-count` fix regardless — it's a genuine pre-existing bug
-   in the reduced-motion clamp, not prototype scaffolding.
-4. Optional follow-on: same mark in the header and as the favicon
-   (`app/favicon.ico` is currently the Next.js default).
+3. Keep the `animation-iteration-count` fix regardless — it's a latent trap in the
+   reduced-motion clamp rather than prototype scaffolding. Nothing else in the repo loops
+   today, so nothing was visibly broken before this; the next looping animation would have
+   hit it.
+4. `PrototypeSwitcher` guards its key handler on `NODE_ENV`, but don't rely on that —
+   the whole file goes. Note also that `/prototype/avatars` is a real route in the
+   production build, so a preview deploy of this branch exposes the contact sheet.
+5. Optional follow-on: same mark in the header and as the favicon (`app/favicon.ico`
+   appears to still be the Next.js default).

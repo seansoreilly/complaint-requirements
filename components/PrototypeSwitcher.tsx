@@ -19,6 +19,7 @@ export function PrototypeSwitcher({
   onChange: (variant: string) => void;
 }) {
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
     function onKey(event: KeyboardEvent): void {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;

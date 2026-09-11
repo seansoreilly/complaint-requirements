@@ -13,7 +13,9 @@
  * read as an official ombudsman mark (see the note at app/globals.css:6).
  */
 
-export type AvatarState = "idle" | "thinking" | "speaking";
+/** "still" = fully at rest, no animation: used for older messages so a long
+ *  conversation is not a column of pulsing characters. */
+export type AvatarState = "still" | "idle" | "thinking" | "speaking";
 
 export interface AvatarProps {
   state: AvatarState;
@@ -21,10 +23,16 @@ export interface AvatarProps {
 }
 
 export const VARIANT_NAMES: Record<string, string> = {
+  none: "No character (today)",
   A: "Pip — the paper crane",
   B: "Nib — the pen nib",
   C: "Sunny — the little sun",
+  "thinking-only": "Sunny, thinking state only",
 };
+
+/** Cycle order for the switcher: the baseline first, so "no character at all"
+ *  is one keypress away from every concept. */
+export const VARIANT_KEYS = ["none", "A", "B", "C", "thinking-only"];
 
 /* ------------------------------------------------------------------ *
  * A — Pip, a folded paper crane. Papercraft, calm, "we fold your
@@ -126,8 +134,10 @@ export function AvatarC({ state, size = 32 }: AvatarProps) {
   );
 }
 
-export const AVATARS: Record<string, (props: AvatarProps) => React.JSX.Element> = {
+export const AVATARS: Record<string, ((props: AvatarProps) => React.JSX.Element) | undefined> = {
+  none: undefined,
   A: AvatarA,
   B: AvatarB,
   C: AvatarC,
+  "thinking-only": AvatarC,
 };
