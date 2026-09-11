@@ -1,6 +1,6 @@
 # Three-minute demo
 
-Run `npm run dev`, open http://localhost:3000. No API key needed — the offline
+Live at https://complaint-requirements.vercel.app, or run `npm run dev` locally. No API key needed — the offline
 extractor covers every step below. The mode pill in the header says which brain
 is live.
 
