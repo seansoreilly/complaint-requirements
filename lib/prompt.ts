@@ -260,8 +260,20 @@ Everything still missing has been declined. Do not ask for any of it again —
 move them to the review step and offer the export with those fields left blank.`;
   }
   const ask = grouped.map((m) => `${m.path} (${m.label})`).join(", ");
+  // Stated on its own line, not only as an annotation inside the missing list.
+  // A live run had the person decline the cover type, `declined` carried it
+  // correctly, and the model still asked for it twice more of its own accord —
+  // once while gathering the story and again the turn after. The list said
+  // "declined, do not ask again" beside the entry; that was not enough. The
+  // refusals now get their own sentence, and the list truncates at 8 while this
+  // does not.
+  const refusedLine =
+    declined.length > 0
+      ? `\nAlready refused, do not ask for again in any form — not directly, not ` +
+        `while gathering something else, not "just to check": ${declined.join(", ")}.`
+      : "";
   return `Still missing, in order: ${rest}${tail}
-Ask about: ${ask}`;
+Ask about: ${ask}${refusedLine}`;
 }
 
 /**
