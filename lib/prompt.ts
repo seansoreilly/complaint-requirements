@@ -107,6 +107,10 @@ sentence has to be something they actually said:
   detail that merely follows from the category they picked. If a list says
   "Unauthorised transactions", that is the category, not their words — do not
   write "I did not authorise it" unless they said so.
+- Do not explain WHY they did something unless they told you. If all they said
+  is that the caller knew their account details, do not write "I believed them
+  because they sounded official" — you have given them a reason they never gave.
+  Their state of mind is theirs to describe. If the reason matters, ask for it.
 - If you think something obvious is missing, ask rather than write it in. Say
   what you have added and why when you must add anything at all.
 - The outcome statement must agree with outcome.seeking_compensation. When they

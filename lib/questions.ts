@@ -102,5 +102,22 @@ export function endsWithQuestion(reply: string): boolean {
   if (trimmed.length === 0) return false;
   const paragraphs = trimmed.split(/\n\s*\n/);
   const tail = paragraphs.slice(-2).join("\n");
-  return tail.includes("?");
+  if (tail.includes("?")) return true;
+  // An imperative is an ask too. "Just paste it in and I'll record it" invites a
+  // reply as plainly as a question mark does, and treating it as silence made
+  // the route stack its own wording of the same request underneath — the person
+  // was asked for one thing twice in a single turn.
+  //
+  // Only the last sentence counts. "You said you'd tell me about the fees, and
+  // you did" mentions the same words while asking for nothing.
+  const sentences = tail.split(/(?<=[.!])\s+/);
+  const last = sentences[sentences.length - 1] ?? "";
+  return IMPERATIVE_ASK.test(last);
 }
+
+/**
+ * Closing imperatives that invite an answer. Deliberately narrow: these are
+ * phrasings that hand the turn back, not any sentence containing "tell".
+ */
+const IMPERATIVE_ASK =
+  /\b(tell me|let me know|paste it|pop it in|type it|send it through|give me|say the word|go ahead and)\b/i;
