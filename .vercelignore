@@ -1,0 +1,40 @@
+# Files that never need to reach a Vercel build.
+#
+# Vercel already skips .gitignore'd paths for Git deployments, but `vercel deploy`
+# from the CLI uploads the working directory — which here includes multi-hundred-
+# megabyte agent worktrees. Listing them keeps uploads small and builds honest.
+
+# Claude Code working files: agent worktrees (full checkouts, with their own
+# node_modules), per-session scratch, and local agent config.
+.claude/
+
+# Version control
+.git/
+.gitignore
+
+# Tests and test config — not needed to build or serve the app.
+lib/__tests__/
+vitest.config.ts
+
+# Docs: the demo walkthrough and research notes are for humans, not the runtime.
+docs/
+README.md
+AGENTS.md
+CLAUDE.md
+
+# Local env files (never committed, and never wanted in a build).
+.env*
+!.env.example
+
+# Build output and dependencies are regenerated on Vercel.
+node_modules/
+.next/
+out/
+build/
+coverage/
+
+# Editor and OS noise
+.DS_Store
+.vscode/
+.idea/
+*.log
