@@ -223,19 +223,36 @@ function guessIssues(type: string, text: string): string[] {
 }
 
 const STATE_CODES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+/** State codes that are also ordinary words, so they need address context. */
+const AMBIGUOUS_STATE_CODES = ["ACT", "WA", "SA", "NT"];
+/** The words that make a string look like a street address. */
+const STREET_WORD =
+  /\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b/i;
 
 /**
  * Pull what we can from an Australian address written as one line. Partial
  * results are fine — whatever is found gets filled, the rest stays askable.
  */
-function parseAddress(text: string): Record<string, string> {
+/**
+ * `asked` means the address was the question, so a bare state code is an answer
+ * to it rather than a word that happens to look like one.
+ */
+function parseAddress(text: string, asked = false): Record<string, string> {
   const found: Record<string, string> = {};
   const value = text.trim();
 
   const postcode = /\b(\d{4})\b/.exec(value);
   const stateMatch = new RegExp(`\\b(${STATE_CODES.join("|")})\\b`, "i").exec(value);
 
-  if (stateMatch) found.state = stateMatch[1].toUpperCase();
+  // "ACT" is a state code and an ordinary word: "authority to act", "refused to
+  // act on my complaint". Taking it at face value writes an address nobody gave
+  // — the one thing this must never do — so an ambiguous code has to be earned
+  // by the text around it.
+  if (stateMatch) {
+    const code = stateMatch[1].toUpperCase();
+    const addressShaped = asked || STREET_WORD.test(value) || /\b\d{4}\b/.test(value);
+    if (!AMBIGUOUS_STATE_CODES.includes(code) || addressShaped) found.state = code;
+  }
   // A four-digit number is only a postcode in an address-shaped string.
   if (postcode && (stateMatch || /\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b/i.test(value))) {
     found.postcode = postcode[1];
@@ -661,7 +678,7 @@ function applyDirectAnswer(
     case "complainant.address.suburb":
     case "complainant.address.postcode":
     case "complainant.address.state": {
-      const address = parseAddress(text);
+      const address = parseAddress(text, true);
       if (Object.keys(address).length > 0) {
         patch.complainant = {
           ...patch.complainant,
