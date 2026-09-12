@@ -6,7 +6,7 @@ Phase 1 stopped because the Anthropic API key hit its spend limit; access return
 
 ## Where phase 1 ended
 
-- Ledger: `scores.md` — 18 rows, strict tally **0 passed / 0 cleared once**.
+- Ledger: `scores.md` — 21 rows, strict tally **0 passed / 0 cleared once**.
   **Read that as a stopped clock, not a verdict.** Nobody reached the two-sweep
   phase; the app was never measured against the bar. Every run on the ledger was
   on a build later changed, because each one found something and it was fixed.
@@ -14,11 +14,13 @@ Phase 1 stopped because the Anthropic API key hit its spend limit; access return
   LIVE in their headings. Three fixes this run passed tests and did nothing in
   production, which is why Step 0 exists.
 - Frozen build: **`39c38bb`** (2026-09-12 22:47 AEST) — the last commit that
-  changed behaviour. Documentation commits after it do not move the freeze and
-  do not restart any count; a code, prompt, schema or data change does. The
-  behaviour under test is
-  this commit. Any code, prompt or schema change after it restarts every count.
-- Personas never run: **1, 2, 4, 9, 10, 12, 13, 15**. The `declined` path has
+  changed behaviour, and the behaviour under test. Documentation commits after
+  it do not move the freeze and do not restart any count; a code, prompt, schema
+  or data change does.
+- Personas never run: **1, 4, 10, 13, 15**, plus **12**, whose only run skipped
+  its trap (the tester answered "Rest" where the sheet says "my super fund" —
+  the directory's ambiguous-match path has never fired in a browser). 2 ran
+  clean but without a state capture; 9 ran clean and scored 10. The `declined` path has
   never been scored from a browser on a build where it works. Two personas test
   it: 15 (a required field declined once, returned to with a reason, then given)
   and the rescripted 5 (a required field declined twice and left blank).
@@ -94,7 +96,7 @@ Order, most likely to find something first:
 | # | Persona | Why here |
 |---|---|---|
 | 1 | **15 skip-and-return** | Only test of the required-field return-once rule and `declined`. Watch item: between the first "I'd rather not" and the second, the field is still askable, so if any intervening reply trails off, `ensureAsk` re-asks it — count every raise of DOB and email and whether each carries a reason. |
-| 2 | **12 ambiguous-firm** | "my super fund" must produce the disambiguation note and no member number until "Rest" → 11540. |
+| 2 | **12 ambiguous-firm** | "my super fund" must produce the disambiguation note and no member number until "Rest" → 11540. Tester: answer the firm question with **"my super fund"**, exactly — the f1 run answered "Rest" straight away and tested nothing. |
 | 3 | **13 everything-at-once** | Multi-field extraction from one paragraph; fields must not be re-asked one by one. |
 | 4 | **9 negated-complaint** | "No, I haven't complained to them yet" as a direct answer → false; AFCA-first note once; keep going. |
 | 5 | **10 stray-reference** | "um I think so maybe" → nothing stored; `no_reference` true after "can't find it". |
@@ -124,7 +126,10 @@ Verbatim, in this order:
    line, or "clicked Use this" (a card click IS an approval; record it as one).
 4. The outcome question, the person's answer, the outcome draft, the approval.
 5. Every decline and every later raise of that field, with the app's wording.
-6. The final state JSON (`window.__state`).
+6. The final state JSON (`window.__state`). Capture it **after every turn**, not
+   only at the end — two f1 runs lost theirs to a closed tab and a failed fetch
+   overwriting the interceptor's value. A run without state cannot be scored on
+   field accuracy.
 7. A list of anything said in character that is not on the persona sheet. Do not
    improvise facts (dates, illnesses, phone numbers). If the sheet is silent, say
    "I don't know" in character.
@@ -178,17 +183,17 @@ No self-scoring. No summaries in place of transcript.
 | Persona | Runs | Last score | Status |
 |---|---|---|---|
 | 1 super-tpd | 0 | — | never run |
-| 2 credit-hardship | 0 | — | never run |
+| 2 credit-hardship | 1 | unscored | pre-freeze; clean transcript, no state capture |
 | 3 unauth-transactions | 1 | 10 | pre-freeze |
 | 4 bnpl-fees | 0 | — | never run |
 | 5 default-listing | 1 | 8 | pre-freeze; found defects 15, 16, card dead-end |
 | 6 general-insurance | 1 | 10 | pre-freeze; found defect 15 |
 | 7 firm-initiated-contact | 3 | 10 | pre-freeze |
 | 8 impossible-date | 3 | 10 | pre-freeze; sheet rewritten |
-| 9 negated-complaint | 0 | — | never run |
+| 9 negated-complaint | 1 | 10 | pre-freeze; negation → false, note once, kept going |
 | 10 stray-reference | 0 | — | never run |
 | 11 unknown-firm | 2 | 10 | pre-freeze |
-| 12 ambiguous-firm | 0 | — | never run |
+| 12 ambiguous-firm | 1 partial | unscored | trap skipped by tester; treat as never run |
 | 13 everything-at-once | 0 | — | never run |
 | 14 terse | 1 | 10 | pre-freeze; invention trigger not exercised |
 | 15 skip-and-return | 0 scored | — | never scored; tests `declined` |
