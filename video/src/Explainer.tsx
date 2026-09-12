@@ -59,7 +59,7 @@ const Beat: React.FC<{ scene: Scene; durationInFrames: number; index: number }> 
   return (
     <AbsoluteFill style={{ backgroundColor: INK, opacity }}>
       {/* A short beat of silence before Jess starts, so the cut lands first. */}
-      <Sequence from={Math.round(0.45 * FPS)}>
+      <Sequence from={Math.round(0.25 * FPS)}>
         <Audio src={staticFile(`voice/${scene.voice}.mp3`)} />
       </Sequence>
 
@@ -161,7 +161,7 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
         opacity,
       }}
     >
-      <Sequence from={Math.round(0.8 * FPS)}>
+      <Sequence from={Math.round(0.45 * FPS)}>
         <Audio src={staticFile("voice/title.mp3")} />
       </Sequence>
       <div
@@ -229,7 +229,7 @@ const Outro: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
         opacity,
       }}
     >
-      <Sequence from={Math.round(0.6 * FPS)}>
+      <Sequence from={Math.round(0.35 * FPS)}>
         <Audio src={staticFile("voice/outro.mp3")} />
       </Sequence>
       <div

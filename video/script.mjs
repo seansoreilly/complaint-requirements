@@ -33,7 +33,6 @@ export const BEATS = [
   { heading: "1", id: "01-empty", shot: "01-empty.png" },
   { heading: "2", id: "02-story-typed", shot: "02-story-typed.png" },
   { heading: "3", id: "03-form-filled", shot: "03-form-filled.png" },
-  { heading: "4", id: "12-review-export", shot: "12-review-export.png" },
   { heading: "Outro card", id: "outro", shot: null },
 ];
 

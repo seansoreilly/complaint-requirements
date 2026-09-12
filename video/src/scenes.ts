@@ -21,10 +21,10 @@ export type Scene = {
 };
 
 export const FPS = 30;
-export const TOTAL_SECONDS = 60;
+export const TOTAL_SECONDS = 40.3;
 
-export const TITLE_SECONDS = 4.3;
-export const OUTRO_SECONDS = 7.8;
+export const TITLE_SECONDS = 3.6;
+export const OUTRO_SECONDS = 6.8;
 
 export const SCENES: readonly Scene[] = [
   {
@@ -32,7 +32,7 @@ export const SCENES: readonly Scene[] = [
     voice: "01-empty",
     title: "Eight stages of questions",
     body: "A lot to face when you're already frustrated.",
-    seconds: 11.9,
+    seconds: 9.2,
     focus: [0.75, 0.4],
   },
   {
@@ -40,7 +40,7 @@ export const SCENES: readonly Scene[] = [
     voice: "02-story-typed",
     title: "So just say what happened",
     body: "One sentence, in your own words.",
-    seconds: 9.9,
+    seconds: 7.1,
     focus: [0.25, 0.9],
   },
   {
@@ -48,15 +48,7 @@ export const SCENES: readonly Scene[] = [
     voice: "03-form-filled",
     title: "The form fills itself in",
     body: "One sentence answered eight questions at once.",
-    seconds: 16.6,
+    seconds: 13.6,
     focus: [0.75, 0.5],
-  },
-  {
-    shot: "12-review-export.png",
-    voice: "12-review-export",
-    title: "Keep chatting until it's done",
-    body: "Then check it over, print it, take it to AFCA.",
-    seconds: 9.5,
-    focus: [0.72, 0.6],
   },
 ];

@@ -71,23 +71,12 @@ total exactly sixty seconds, and re-render.
 
 **Narration:**
 > And the form fills itself in. That one sentence answered eight questions at
-> once — the firm, the date, the service, the product, and what went wrong.
+> once — the firm, the date, the service, the product, and what went wrong. Keep
+> chatting, and the rest fills in the same way.
 
 **On screen:**
 - Title: `The form fills itself in`
 - Body: `One sentence answered eight questions at once.`
-
----
-
-## 4 — Keep going, or take it away
-
-**Narration:**
-> Keep chatting until it's done, then check it over, print it, and send it to
-> A F C A.
-
-**On screen:**
-- Title: `Keep chatting until it's done`
-- Body: `Then check it over, print it, take it to AFCA.`
 
 ---
 
@@ -121,8 +110,10 @@ ninety seconds for the filling-in point plus one of the above.
 
 ## Decisions carried over
 
-**Beat 4 says "send it to AFCA".** The app has no submission path — "Copy to
-AFCA form" puts plain text on the clipboard, which the person pastes into AFCA's
-real form themselves, and the page states twice that nothing is submitted. This
-was flagged on the two-minute version and you chose to keep the wording; it is
-kept here. The on-screen caption reads "take it to AFCA", which stays accurate.
+**The export beat is gone.** It used to end "check it over, print it, and send
+it to A F C A". The app has no submission path — Review offers only copy to
+clipboard, download JSON, and print, and the page states twice that nothing is
+submitted — so rather than describe printing, or claim a submission that does
+not exist yet, the video now stops at the form filling in. It makes no claim
+about what happens next, which stays true whether or not submission is built
+later. If it is built, the beat comes back as one line.
