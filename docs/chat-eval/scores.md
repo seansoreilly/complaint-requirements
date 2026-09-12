@@ -251,4 +251,37 @@ the list on the turn AFTER the decline, when the message is an unrelated answer
 so the regex never fires on the turn that matters. The commit's "verified on the
 exact failing shape" used the decline as the current message, which is a
 different shape. The required fix is state (`deferred`), with a two-turn
-regression test written to fail first. Freeze remains unset until then.
+regression test written to fail first.
+
+**Defect 24 fixed at b8fa2f6 — freeze: b8fa2f6.** `deferred: string[]` on state
+(schema, patch, .describe()), set by the model on a first refusal; askableFor
+(lib/next.ts:88-89) skips deferred paths while anything else is askable and
+surfaces them once when nothing is; a second refusal → `declined`; an answer
+clears it; reconcile unions and prunes. ensureAsk reads askableFor and no
+longer inspects the message — the regex and late-decline.test.ts are deleted,
+not kept as belt-and-braces. Two-turn test (deferred.test.ts) written first and
+watched failing on the old code; verified live across the gap with the regex
+removed. Closes finding 23 as well (the scheduled return carries the reason).
+Step 0 8/8 on b8fa2f6. The ninth check is not scriptable (a script cannot make
+the model's reply trail off) and lives in the unit suite; the browser evidence
+is personas 5 and 12, which both decline a required field early and then
+answer something unrelated.
+
+**Defect 25 — freeze moved to bac07c5.** Caught by the server monitor (ninth
+parse failure of the run, first of this shape): the model returned `patch` as a
+leaked tool-call fragment (a string) with `deferred: ["service.subtype"]` as a
+SIBLING of `patch`, and the reply "I'll come back to it later" still reached
+the person. parsePatch rejected the patch; the envelope reads only `reply` and
+`patch`, so the deferral was lost — the field back in askableFor with a promise
+made about it, which is defect 24's state reached through a malformed turn.
+Fixed at bac07c5: the envelope reads `deferred` and `declined` from the top
+level when the patch does not carry them (only those two — a lost refusal
+contradicts what the assistant just said; a lost date is a visible gap); valid
+patch wins; invented paths pruned; non-lists ignored. Test-first against the
+live payload; two-fields-deferred also pinned. Second defect found by the
+monitor rather than a persona; both were "the app just moved on" from the
+person's side.
+
+**Running strict tally on the sweep hash bac07c5**: passed 0 · cleared once 0.
+The p4 runs of 5, 12, 20 started on b8fa2f6 and finish as defect-finding
+rows; all three re-run on bac07c5 after Step 0.

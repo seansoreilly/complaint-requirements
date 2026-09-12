@@ -260,6 +260,31 @@ to flag, one legitimate first ask); run it after touching that function. The
 rule it encodes: **a green check you have never seen fail is not evidence** —
 the same finding as the app's own suite, three times this run.
 
+**Then 9ae75bf → b8fa2f6** (defect 24: a declined field re-asked by ensureAsk one
+turn later, because a first refusal left it askable; fixed with a `deferred`
+list in state that askableFor skips until the end and surfaces once, closing
+finding 23 too). Two lessons recorded on the way: a regex over the person's
+current sentence cannot close a gap between turns (6015627, rejected), and a
+test that puts the decline and the trail-off on one turn is green against the
+bug (late-decline.test.ts, deleted). Step 0 on b8fa2f6: eight scripted/browser
+checks plus the two-turn deferred test in the unit suite; personas 5 and 12 are
+the browser evidence for it.
+
+**Then b8fa2f6 → bac07c5** (defect 25, found by the server monitor mid-run: a
+malformed turn — `patch` returned as a leaked tool-call fragment with
+`deferred` beside it instead of inside — lost the deferral while the reply
+promising to "come back to it later" still reached the person; the envelope
+now salvages `deferred`/`declined` from the top level when the patch is
+broken). The p4 runs of 5, 12, 20 started on b8fa2f6 finish as defect-finding
+rows and re-run on bac07c5 after Step 0. Sweep hash: **bac07c5**.
+
+**Known edge, from defects 5 and 25:** two defects this run were found by the
+server-side monitor (`[turn-parse-failed]` logging) and not by any persona,
+because the person experiences both as "the app just moved on" — nothing
+visible is wrong on the turn it happens. Keep the monitor running during every
+sweep and read its log after each batch; a persona transcript cannot show a
+value that was never written.
+
 **A reusable idea from defect 19:** when a code guard is only reachable through
 a state the model never produces (it asks rather than guesses), reach it through
 the form panel — the panel is directly editable and the route resolves the

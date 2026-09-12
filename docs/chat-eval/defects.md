@@ -289,6 +289,25 @@ Measured over ~310 live turns across rounds 2 and 3: 2 occurrences before the
 fix, 1 after. That is roughly 2% down to roughly 1%, on a sample too small to
 call the difference real. The model still omits `reply` sometimes.
 
+A second failure MODE, distinct from the omitted `reply` above. On the ninth
+failure of the run the tool call came back as:
+
+    { "patch": "\n<parameter name=\"complaint\">{\"issues\": [...]}",
+      "deferred": ["service.subtype"],
+      "reply": "That's completely fine — I'll come back to it later..." }
+
+The patch is a leaked tool-call fragment rather than an object, and `deferred`
+sits beside `patch` rather than inside it. So this is not "the model omitted the
+reply" — the reply was fine. It is the model losing the shape of the call. Both
+end in `parsePatch` rejecting the turn, and the rate line above covers both, but
+they want different fixes: defect 5's is a fallback reply, this one's is the
+envelope salvage (defect 25) plus saying in the field descriptions where
+`deferred` and `declined` live, since "add the path here" did not.
+
+Worth watching whether the fragment shape recurs and whether it is always the
+same field. The raw envelope is logged on every parse failure, so the evidence
+will be there.
+
 Later observation, recorded with its boundaries rather than as a new rate: since
 log line 682 — before the phase-2 batch — **202 consecutive turns on 39c38bb
 with zero parse failures**, under nine-way concurrency, no non-200 responses,

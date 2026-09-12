@@ -54,18 +54,21 @@ export const patchSchema = z
     deferred: z
       .array(z.string())
       .describe(
-        "Field paths the person has put off answering once — they said they do " +
-          "not know or would rather not, and you said you would come back to it. " +
-          "Add the path here on that FIRST refusal. The form then stops asking " +
-          "until everything else is done and brings it back once, which is what " +
-          "lets you promise to move on and mean it. If they refuse a second time, " +
-          "move the path to \"declined\" instead. Send the full list, not only " +
-          "what is new.",
+        "patch.deferred — field paths the person has put off answering once: " +
+          "they said they do not know or would rather not, and you said you " +
+          "would come back to it. Set it INSIDE patch, like any other field " +
+          "(patch: { deferred: [\"service.subtype\"] }), never beside it. Add " +
+          "the path on that FIRST refusal. The form then stops asking until " +
+          "everything else is done and brings it back once, which is what lets " +
+          "you promise to move on and mean it. If they refuse a second time, " +
+          "move the path to patch.declined instead. Send the full list, not " +
+          "only what is new.",
       ),
     declined: z
       .array(z.string())
       .describe(
-        "Field paths the person has declined to answer, e.g. [\"service.subtype\"]. " +
+        "patch.declined — field paths the person has declined to answer, e.g. " +
+        "[\"service.subtype\"]. Set it INSIDE patch, never beside it. " +
           "Add a path here when they have said they do not know or will not say and " +
           "you have told them you will leave it blank. This is what actually stops " +
           "the form asking again — say it here as well as in the reply, or they get " +

@@ -49,7 +49,11 @@ const turnSchema = z.object({
         "something. Never omit this field.",
     ),
   patch: patchSchema.describe(
-    "Only the form fields this message gave you. Omit anything you do not know.",
+    "Only the form fields this message gave you. Omit anything you do not know. " +
+      "This is also where `deferred` and `declined` go when someone refuses a " +
+      "field — inside this object, not beside it. A refusal recorded outside " +
+      "the patch is lost, and the person is left with a promise the form does " +
+      "not keep.",
   ),
 });
 
