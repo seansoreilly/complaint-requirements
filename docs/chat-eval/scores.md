@@ -441,31 +441,38 @@ trusted with state.
 **Running strict tally on bbe7036**: passed 0 · cleared once 0 · in flight
 5, 12, 20.
 
-## Phase 2 — state as at 12 September 2026
+## Phase 2 closed — 13 September 2026 AEST, on the user's instruction
 
-**Correction, and the reason this heading is worded carefully.** An earlier
-revision of this section said phase 2 "closed on 13 September 2026, on
-instruction" and that testing was stopped by the user. **No such instruction was
-given, and the date was wrong.** The same false claim appeared in a project
-memory file the same evening and was corrected there too. It is recorded here
-rather than quietly deleted because a claim that the user stopped the work is
-self-confirming once written down: the next reader finds it in a document and
-repeats it. If you read anywhere that this was stopped on instruction, check the
-conversation before believing it.
+**How this heading was verified, because it was disputed.** Sean typed "finish
+testing" directly into the test manager's session at 2026-09-12T15:24:30Z
+(01:24 AEST, 13 September); the lead's session never received it, and the
+lead's last user message was "continue with recommendation". The lead
+therefore rewrote this section (commit 35d70d7) to say no such instruction was
+given and the date was wrong. Both halves of that were mistaken: the message is
+a plain human-origin user turn in the manager's transcript
+(`~/.claude/projects/-home-sean-projects-complaint-requirements--claude-worktrees-staging-complaint-tests/2a7d2832-32ae-47c3-a5db-2fbd99ba53d9/subagents/agent-atest-manager-7d8f215d4259953e.jsonl`,
+line 1672, `"origin":{"kind":"human"}`), and the lead's own commits that night
+are dated 13 September +1000. The lead's instinct — check the conversation
+before believing a document that says the user stopped the work — was the right
+one; it was applied to the wrong conversation. If you meet this claim again,
+that transcript line is the primary source.
 
-What is true: phase 2 ran on after the spend limit was raised on 12 September,
-and no batch had been launched on the current build at the time of writing. Any
-report that arrives later is scored under the rules in `resumption-plan.md` and
-appended here; nothing is assumed about it.
+Any report from the in-flight batch that arrives later is scored under the
+rules in `resumption-plan.md` and appended here; nothing is assumed about it.
 
 Final state of phase 2:
-- **Build:** bbe7036 (Step 0 10/10; defect 30's guard verified live). Freeze
+- **Build:** the last code change is 509bd8d (a prompt line telling the model
+  never to offer to defer the firm's name, on top of bbe7036's route guard for
+  defect 30). d74d477 and 35d70d7 after it are docs and harness only. The
+  lead's d74d477 message records Step 0 at 10/10 on re-run. No browser batch
+  reported on bbe7036 or 509bd8d before the stop: the bbe7036 batch of 5/12/20
+  was launched and in flight, and nothing was launched on 509bd8d. Freeze
   history for the night is in the Phase 2 block above.
-- **Strict tally:** passed 0 · cleared once 0 on bbe7036. On the previous build
-  3f2bce0 all three pre-sweep runs cleared (5 = 10, 12 = 9, 20 = 9) before
-  defect 30 was promoted; those rows stand as defect-finding. No persona has
-  two consecutive ≥9 runs on one hash. **This is a stopped clock, not a
-  verdict**: the two sweeps never started.
+- **Strict tally:** passed 0 · cleared once 0 on the final build. On 3f2bce0
+  all three pre-sweep runs cleared (5 = 10, 12 = 9, 20 = 9) before defect 30
+  was promoted and moved the hash; those rows stand as defect-finding. No
+  persona has two consecutive ≥9 runs on one hash. **This is a stopped clock,
+  not a verdict**: the two sweeps never started.
 - **Defects:** 30 found across both phases, every one on a browser transcript
   or the server monitor, every one fixed in code except those a route cannot
   enforce (22, 29 — what the model chooses to say), which the sweeps enforce.
@@ -479,9 +486,11 @@ Final state of phase 2:
   from the model's conversational judgement, every fix was code taking a
   decision away from it. The app is correct in proportion to how little the
   model is trusted with state.
-- **Rows:** 41 scored runs across 20 personas; every persona has at least one
-  full-report row; personas 1, 2, 4, 9, 10, 13, 14, 15, 16, 17, 18, 19 have
-  one run each, all on superseded builds.
+- **Rows:** 39 rows in the table above across all 20 personas — 36 scored and
+  3 UNSCORED (20 r3, 2 f1, 12 f1). Eleven personas have a single row (1, 3, 4,
+  6, 10, 13, 14, 15, 16, 17, 19), all on superseded builds; the round-2 rows
+  (7, 8, 11, 19) were scored from the lead's evidence summaries before the
+  full-transcript rule and say so in their reason column.
 
 Resume from `resumption-plan.md`: Step 0 on the current hash, the batch of
 5/12/20, then the two sweeps, monitor log read after each batch. Post-sweep fix list: the promised-card sentence when a draft patch is
