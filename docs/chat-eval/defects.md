@@ -339,6 +339,43 @@ flag set, must not re-emit it.
 
 ---
 
+## 15. Two fields are ticked as answered without ever being asked
+
+**Severity: low-medium. Deterministic. Found in round 5 (case 06). NOT FIXED —
+this is a design decision, not an oversight, and it is the owner's call.**
+
+`complainant.lodging_for` defaults to `"self"` and `complainant.notify_by` to
+`"email"` in `emptyState()` (`lib/schema.ts:82`). Both are required fields, and
+`missingFor()` therefore never lists them — verified: on a completely empty form
+both return `false` for "missing". The form panel shows a green ✓ against each
+from the moment the page loads.
+
+The consequence is that a person can complete the entire conversation, read the
+review, and export, having never been asked either question — while the document
+asserts answers to both. Observed in case 06: the tester noted both ticked
+without any chat turn asking them. They happened to be right for Rob.
+
+`notify_by` is largely benign — email is a safe default and the review lists it.
+`lodging_for` is not: someone lodging for a parent, or jointly with a spouse,
+gets a form that says they are lodging for themselves and is never asked
+otherwise. Nothing in `lib/` branches on the value, so a wrong answer is silent.
+
+This is the same family as the invented-value defects — the form asserting
+something on the person's behalf — but milder, because a default is a stated
+design choice rather than a model guess, and the value is visible on the review.
+
+**Options, not a recommendation:**
+1. Leave it. Defensible: the README scopes the demo to a single complainant, and
+   `lodging_for` is the field that would carry a scope the schema cannot model.
+2. Ask `lodging_for` once, early. Costs a turn; makes the answer real.
+3. Keep the default but drop the ✓ until it is confirmed, so the panel
+   distinguishes "defaulted" from "answered".
+
+Option 3 is the cheapest honest fix: it changes nothing about the flow and stops
+the panel claiming an answer nobody gave.
+
+---
+
 ## Context worth knowing
 
 The reason all of this survived to now: **the live path was completely broken and
