@@ -223,6 +223,42 @@ enough to extract fields from.
 
 ---
 
+## 6. The unmatched-firm note repeats once the history window slides
+
+**Severity: low. Deterministic given a long-enough conversation. Found in round 2.**
+
+`shouldSayNote` (`app/api/chat/route.ts:102`) suppresses the "not in this demo's
+firm directory" note by checking whether the assistant has already said it — but
+it can only check the history it is given, and `sanitiseHistory` caps that at
+`.slice(-20)` (`app/api/chat/route.ts:48`). Once the opening turn scrolls out of
+that window, the note looks unsaid and is emitted again.
+
+The code anticipates this in its own comment: *"in a very long conversation the
+note can surface once more after it scrolls out — rare, and harmless for a
+demo."* Round 2 shows the estimate is too optimistic. Case 11 (Bendigo Bank) was
+an ordinary completed complaint — about 11 user turns, ~22 history entries — and
+the note fired a second time, unprompted, at the export step:
+
+> **USER:** No attachments, please export as is
+> **ASSISTANT:** "Bendigo Bank" isn't in this demo's firm directory, so there's no member number to attach. The rest of the form still works.
+> Done — no attachments, and your complaint is finalised...
+
+So it is not a pathological-length edge case: any complaint that reaches review
+will exceed 20 history entries. It reads as the assistant forgetting what it has
+already told you, one turn after it said "I won't ask again" about something
+else.
+
+**Suggested fix:** record the fact in state rather than inferring it from a
+sliding window — a `firm_note_said` flag set when the note is emitted, cleared
+when `firm.name` changes. That is the same shape as the `sensitive_offered` fix
+for defect 2, and for the same reason: a fact about what was said belongs in
+state, not in a window that slides.
+
+**Regression test:** a state whose history no longer contains the note, with the
+flag set, must not re-emit it.
+
+---
+
 ## Context worth knowing
 
 The reason all of this survived to now: **the live path was completely broken and

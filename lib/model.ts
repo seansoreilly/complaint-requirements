@@ -32,10 +32,25 @@ export interface TurnResult {
   issues?: PatchIssue[];
 }
 
-/** The model returns a reply and a patch; `stage_complete` is computed in code. */
+/**
+ * The model returns a reply and a patch; `stage_complete` is computed in code.
+ *
+ * Both fields are described, not just typed. Undescribed, `reply` was omitted
+ * outright on roughly one turn in fifty — the tool call carried a patch and no
+ * reply at all — and the person saw "Sorry — I didn't catch that" for a message
+ * the model had understood well enough to extract fields from.
+ */
 const turnSchema = z.object({
-  reply: z.string(),
-  patch: patchSchema,
+  reply: z
+    .string()
+    .describe(
+      "What you say to the person this turn, in plain English. Always required, " +
+        "even when the patch is empty and even when you are only acknowledging " +
+        "something. Never omit this field.",
+    ),
+  patch: patchSchema.describe(
+    "Only the form fields this message gave you. Omit anything you do not know.",
+  ),
 });
 
 /**
@@ -102,9 +117,14 @@ export async function runTurn(args: {
     );
   }
   return {
+    // A missing reply is the model's slip, not the person's. Apologising for it
+    // reads as "you were unclear" when the same turn often extracted fields
+    // perfectly well, so say nothing and let ensureAsk supply the outstanding
+    // question — the person sees the conversation carry on. Only a finished
+    // form needs words of its own, since there is no question left to ask.
     reply: reply.success ? reply.data : missingFor(state).length === 0
       ? "You can review your completed form and export it now."
-      : "Sorry — I didn't catch that.",
+      : "",
     patch,
     issues,
     mode: "claude",
