@@ -1,10 +1,11 @@
 Step 0 evidence — scripted checks
-build: 59c4551
+build under test: 9ae75bf  (last commit that changed app behaviour)
+generated at:     59c4551  (docs-only commits do not move the freeze)
 app: http://localhost:3100  (mode claude, live brain)
 
-The two browser-only checks (card click, header wording) are not in this
-file — a card click never reaches the API. They were driven by hand and are
-quoted in the message to the test manager.
+The two browser-only checks (card click, header wording) are at the foot of
+this file — a card click never reaches the API, so they were driven by hand
+in a browser at this same hash.
 
 ======================================================================
 
@@ -179,3 +180,58 @@ Just so I record it correctly: was that email raising it with them as a complain
 Before I draft your complaint text, can you tell me a bit more about what happened? For example, roughly when you noticed the admin fees going up, what you saw on your statements, and whether AustralianSuper replied to your 5 August email.
     STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": "Fees and charges"}, "complained_to_firm": {"yes": false, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
 
+
+
+======================================================================
+VERDICTS — scripted checks
+======================================================================
+
+PASS  4  notify_by is not pre-ticked before anyone is asked
+PASS  3a declined accepted without re-offering the cover type
+PASS  6  drafts.narrative populated, complaint.narrative still empty
+PASS  3b the cover type is never raised again, in any wording
+PASS  5  no member number, name left unresolved, closest match named,
+         full name asked
+PASS  7a date and how stay empty while yes is undecided
+PASS  8  the clarification comes in its own turn, not with a draft
+PASS  7b no complaint date on a form that says she did not complain
+
+8/8 scripted checks passed
+turns: 12   transient timeouts: 0   timeout rate (solo): 0.0%
+
+Checks 3a/3b use `reoffers_cover_type` in step0.py, which tests for a QUESTION
+carrying the options rather than the options appearing — see
+harness/verify_predicate.py for the five replies that shape it.
+
+
+======================================================================
+BROWSER-ONLY CHECKS — driven by hand, same hash (9ae75bf)
+======================================================================
+
+CHECK 1 — approving a draft card does not dead-end.
+Clicked the button whose text is exactly "Use this" on the narrative card.
+The assistant's next message, verbatim:
+
+    "Added to your complaint. That's the part most people find hardest —
+     it's done.
+
+     Is there any court case or legal action going on about this?"
+
+PASS: the canned line is followed by a real question. This is the defect-20
+shape (case 5 and case 20 round 4 both ended in silence here).
+
+Card state at the moment of the click: both "Use this" AND "Discard" present,
+drafts.narrative 295 chars, complaint.narrative "".
+
+
+CHECK — the header when the only thing left is a declined field.
+After declining the cover type and completing every other required field:
+
+    HEADER: "Ready — 1 left blank ✓"
+    declined: ["service.subtype"]
+    service.subtype: ""
+
+PASS: the header reports the person is finished (green, the completion state)
+while the review panel still lists the product blank. The two answer different
+questions — "is anything blank" and "is there anything left for you to do" —
+and both answer honestly.

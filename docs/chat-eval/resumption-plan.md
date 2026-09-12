@@ -250,8 +250,15 @@ are the enforcement: an unprompted re-raise of a declined field is a C-2
 deduction.
 
 Step 0 evidence for the sweep hash: `docs/chat-eval/step0-9ae75bf.txt` (hash at
-the top, reply and state per check; fourth consecutive 8/8 when regenerated),
-committed at 59c4551 with the harness README tightened.
+the top, reply and state per check), regenerated at 6637d9d after the harness
+assertions were tightened. The original check 3b returned false against the
+real defect-22 reply — it would not have caught the thing it existed to catch —
+and the replacement took four attempts, each of which read fine. So:
+`docs/chat-eval/harness/verify_predicate.py` holds the five real replies the
+re-ask predicate must classify (two defects to catch, two correct replies not
+to flag, one legitimate first ask); run it after touching that function. The
+rule it encodes: **a green check you have never seen fail is not evidence** —
+the same finding as the app's own suite, three times this run.
 
 **A reusable idea from defect 19:** when a code guard is only reachable through
 a state the model never produces (it asks rather than guesses), reach it through
