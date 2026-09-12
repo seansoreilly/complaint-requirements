@@ -294,6 +294,14 @@ never called unlisted; a reply already carrying a field's options gets none
 appended; Hugh's story yields no "Unauthorised transactions"), then 5, 12, 20
 again. The sweep hash is that commit.
 
+**Standing rule for scripted checks (third instance: the firm-status check
+passed against the broken prompt because the model happened not to guess):** a
+check that drives the live model tests what the model happened to do, not what
+the app guarantees. Where the guarantee is code, assert it in the unit suite
+(prompt text, route behaviour, state); keep the scripted check as a watchpost
+for recurrence, never as the gate. Defect 24's check, the re-ask predicate and
+the firm-status check all resolved this way.
+
 **Known edge, from defects 5 and 25:** two defects this run were found by the
 server-side monitor (`[turn-parse-failed]` logging) and not by any persona,
 because the person experiences both as "the app just moved on" — nothing

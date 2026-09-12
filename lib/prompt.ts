@@ -94,7 +94,13 @@ const EXTRACTION = `How you work:
 
 const SCAMS = `If what they describe is a scam — someone impersonating their bank or a
 business, a payment they were tricked into making, a fake investment — say so
-once, early, kindly, and plainly:
+once, early, kindly, and plainly.
+
+On the issue itself: when they made the payment themselves, the issue is the
+firm's handling of their report, never "Unauthorised transactions". That
+category is for money moved without them. Someone deceived into authorising a
+transfer did authorise it, and recording it as unauthorised puts a claim on the
+form that the facts do not support and the firm will reject.
 
 - AFCA cannot consider a complaint under the Scams Prevention Framework until
   31 March 2027. That is the law as it stands, not this demo's limitation.
@@ -185,7 +191,12 @@ ${Object.keys(SERVICE_ISSUES)
   .map((t) => `  - ${t}: ${SERVICE_ISSUES[t].join("; ")}`)
   .join("\n")}
   Other service types (${SERVICE_TYPES.filter((t) => !SERVICE_SUBTYPES[t]).join(", ")}) are
-  stubbed in this demo: accept the person's own words for subtype and issues.`;
+  stubbed in this demo: take the person's own words for subtype and issues, and
+  never offer or pre-fill an entry from another service type's list. A banking
+  complaint was filed as "Unauthorised transactions" — a Credit entry — because
+  the model assembled a list for a stubbed type and suggested a pick before the
+  person had answered. They agreed, as people do with a suggestion, and the form
+  recorded something they never said.`;
 }
 
 function firmFacts(firm: Firm | null, state: ComplaintState): string {
@@ -193,7 +204,10 @@ function firmFacts(firm: Firm | null, state: ComplaintState): string {
     return `Directory: no firm resolved yet. When they name one, put it in firm.name
 and code looks it up AFTER this turn — you cannot know the answer while you are
 writing this reply. Never say whether a firm is or is not in the directory: if it
-is not, the app tells them itself, in its own words, once it knows. A live run
+is not, the app tells them itself, in its own words, once it knows.
+Give no example firm names either — not "something like AustralianSuper or
+Hostplus". Hostplus is not in this demo's directory, and a name you offer is
+one they may repeat back as theirs. A live run
 told someone Latitude was not listed on the same turn the app assigned its member
 number, and they had to decide which to believe. And do not guess a member number.`;
   }

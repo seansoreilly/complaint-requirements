@@ -327,6 +327,17 @@ route guard is possible (drop an issue that exactly matches another type's list
 entry when the current type is stubbed and the person did not type it), but the
 prompt line is the mechanism here and the sweeps are the enforcement.
 
+**945a894** — defects 26 and 27 fixed (no-firm branch no longer invites a
+directory-status claim; issues carry `personFacing` and only those reach the
+page — date/email coercion notes still do, schema failures do not); Step 0
+10/10 there, evidence at 81f825f. The added listed-firm check passed against
+the broken prompt too (the model happened not to guess), so the deterministic
+evidence is the unit test on the prompt text and the scripted check is a
+watchpost — see the plan's standing rule. Tenth parse failure of the run: a
+missing reply with a valid patch, defect 5's shape, handled by the mitigation.
+Superseded before use: 28 and 29 are not in it (continue.ts/questions.ts and
+the SCAMS/stubbed-types prompt text untouched).
+
 **Running strict tally**: passed 0 · cleared once 0 · sweep hash pending one
-commit carrying 26, 27, 28, 29. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+commit carrying 28 and 29 on top of 945a894. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
 defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.
