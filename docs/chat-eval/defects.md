@@ -23,11 +23,52 @@ than only the mocked suite.** 224 tests green.
 | 8 | Drafts added sentences the person never said | round 2 | `lib/prompt.ts` DRAFTING |
 | 9 | An outcome draft contradicted the compensation answer | round 2 | `lib/prompt.ts` DRAFTING |
 | 10 | A correction turn asked two questions at once | round 2 | `lib/prompt.ts` STYLE |
+| 11 | The model was never told today's date, and talked someone out of a correct one | round 3 | `lib/prompt.ts` `todayFact()` |
 
 Three of these — 3, 4 and 7 — share a shape worth naming. Each was a rule that
 read as enforced but was not: one lived in the mock brain production never runs,
 one in a markdown file, and one was a safety rule the model over-applied. A
 constraint is only enforced where the live path can see it.
+
+Defect 11 is the same shape again, and the sharpest example: the *code* knew
+today's date and the model did not, so the model dated things from its training
+data and argued with someone who had it right.
+
+---
+
+## 11. The model was never told today's date
+
+**Severity: high. Intermittent. Found in round 3.**
+
+`lib/prompt.ts` contained no date. `coerceDate` and `isFuture` in `lib/patch.ts`
+have always taken one (`today = new Date()`), so the *code* has never been
+confused — but nothing told the model, which therefore dated everything from its
+training data.
+
+Observed live (round 3, case 08). The person corrected an impossible "31
+February" to **28 February 2026**. The app told her that date was in the future
+and pressed her to change the year to 2025 — seven months *after* the date had
+actually passed. She pushed back in character and it conceded and stored
+`2026-02-28`, but she had to argue to keep her own correct date.
+
+This is worse than a rejected date. A refused date leaves a field empty and
+visible; a confident, authoritative-sounding correction gets accepted, and the
+wrong year is signed. The failure mode is the app persuading someone out of
+something true.
+
+**Fix:** `todayFact()` states the date in long form and ISO at the top of the
+prompt, with the rule that follows from it — check a date against today before
+calling it future, and never press someone to change a year that is already
+right. The date is injectable (`PromptContext.today`) so a test can pin it.
+
+**Verified both directions on the live brain:**
+- 28 February 2026 → accepted without argument, stored `2026-02-28`.
+- 15 December 2026 → still caught, now showing its working: *"15 December 2026
+  is still a few months away (today is 12 September 2026)"*, and the field left
+  empty rather than filled with a guess.
+
+**Regression tests:** `lib/__tests__/prompt.test.ts` pins both the date's
+presence (with an injected `today`) and the never-press-them rule.
 
 ---
 
