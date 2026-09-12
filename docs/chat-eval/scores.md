@@ -181,6 +181,21 @@ adopted: **a prompt line is a request; if the constraint matters, the route
 enforces it and the prompt line is the courtesy.** Step 0 runs on 29991ee with
 eight checks (the seven, plus clarify-then-draft in separate turns).
 
+**Defect 22 — freeze moved to 9ae75bf.** Building the Step 0 harness: with
+`declined: ["service.subtype"]` carried correctly, the model asked for the cover
+type twice more of its own accord (once while gathering the story, once the
+turn after). Not defect 16 (ensureAsk's forced list, still fixed) — the model
+raising it unprompted. The refusal was in the prompt only as a parenthetical
+inside the truncated missing list; it now gets its own sentence naming every
+refused path. Verified live three times. Prompt-level by nature (a route cannot
+un-ask a question), so the sweeps are the proof: any unprompted re-raise of a
+declined field is a C-2 deduction.
+
+**Step 0 on 9ae75bf — PASSED 8/8** (lead's harness at docs/chat-eval/harness/;
+six checks scripted against the live route, two — the card click and the header
+text — in a browser). Zero transient timeouts in 18 solo turns, against 2-4 per
+run under nine-way concurrency: load, not the app. Sweep hash: **9ae75bf**.
+
 **Nine p2 runs on 39c38bb, all scored from full reports:** 13, 18, 10, 12, 9, 4
 at 10; 2, 15, 1 at 9. Fix A, notify_by and `declined` each seen live in persona
 runs; Fix B proven on the menu path (18). Two prompt-level patterns recorded

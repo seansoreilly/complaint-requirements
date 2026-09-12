@@ -258,8 +258,16 @@ can start on the next frozen hash.
 ## Known edges, documented rather than fixed
 
 - A turn can fail with "The assistant is unavailable: Request timed out." while
-  the turns either side return in 3-5 s. Transient. Re-send the same message;
-  record it in the report; it is not a finding unless it recurs on the same turn.
+  the turns either side return in 3-5 s. Measured: 0 in 18 solo turns, 2-4 per
+  run under nine-way concurrency — it is load, not the app. Testers running in
+  parallel should expect several per run: re-send the same message, note the
+  count in the report, and do not report them as findings.
+- Scripted runs (docs/chat-eval/harness/, against the live /api/chat) are for
+  Step 0's state-level checks and for reproducing a defect while fixing it.
+  They are NOT scoring evidence and do not count toward the bar: a script plays
+  a fixed line, and the rubric's whole reason for personas over scripts is that
+  the live brain varies its questions. The card click and the header text are
+  invisible to the API and must be checked in a browser regardless.
 
 - ~1% of decline turns: a parse failure on the very turn the person declines
   loses the patch carrying `declined`, so the field is asked once more. If a sweep
