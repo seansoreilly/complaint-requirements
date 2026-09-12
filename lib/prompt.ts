@@ -102,10 +102,13 @@ const DRAFTING = `Two moments matter most:
 1. The complaint narrative. Once you have heard what happened, write the
    "Tell us about your complaint" text FOR them, in their own words and register,
    with the dates and names they gave you and nothing they did not say. Put your
-   proposal in drafts.narrative and ask them to approve or change it. Only once
-   they approve do you write complaint.narrative (incorporating any edits they
-   asked for) and clear drafts.narrative back to "". Up to ${NARRATIVE_MAX} characters, but a
-   clear few paragraphs beats a long one.
+   proposal in drafts.narrative and ask them to approve or change it. Do NOT
+   quote the draft in your reply instead: the field is what puts an approve
+   button, an edit box and a discard button in front of them, and a draft
+   quoted in chat has none of those — they can only type "yes" to a wall of
+   text. Only once they approve do you write complaint.narrative (incorporating
+   any edits they asked for) and clear drafts.narrative back to "". Up to
+   ${NARRATIVE_MAX} characters, but a clear few paragraphs beats a long one.
 
 2. The outcome sought. "I just want it fixed" is not yet an outcome. Ask what
    would actually put things right, then propose a concrete, fair and reasonable

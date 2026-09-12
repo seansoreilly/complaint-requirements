@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { type ComplaintState, emptyState } from "@/lib/schema";
-import { applyPatch, parsePatch } from "@/lib/patch";
+import { type ComplaintPatch, applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
 import { ensureAsk } from "@/lib/continue";
@@ -105,6 +105,41 @@ function resolveFirm(state: ComplaintState): {
  * capped at 20 turns upstream, so in a very long conversation the note can
  * surface once more after it scrolls out — rare, and harmless for a demo.
  */
+/**
+ * Text reaches the form only through an approval.
+ *
+ * The prompt asks the model to put its proposal in `drafts.narrative` and wait.
+ * One live run quoted the proposal in the reply and wrote `complaint.narrative`
+ * straight out, so `app/page.tsx` — which renders the card only when the draft
+ * field is set — showed no card at all. The person had no edit box, no Discard,
+ * and their "yes" was an inference rather than an act. Nothing was fabricated;
+ * the hold simply was not enforced anywhere the live path could see it.
+ *
+ * So a FIRST write to a draftable field, with no draft pending and the field
+ * empty, is a proposal and is diverted into the draft. A write stands only when
+ * there was a draft to approve, or the field already held text and this is the
+ * edit the person asked for. Panel typing never comes through here, and card
+ * approval is client-side, so neither is affected.
+ */
+function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): void {
+  const pairs = [
+    ["narrative", patch.complaint?.narrative, incoming.complaint.narrative],
+    ["fair_outcome", patch.outcome?.fair_outcome, incoming.outcome.fair_outcome],
+  ] as const;
+
+  for (const [key, proposed, existing] of pairs) {
+    if (typeof proposed !== "string" || proposed.trim().length === 0) continue;
+    // An approval: there was something to approve.
+    if (incoming.drafts[key].trim().length > 0) continue;
+    // An edit: the field already holds text they approved earlier.
+    if (existing.trim().length > 0) continue;
+
+    patch.drafts = { ...patch.drafts, [key]: proposed };
+    if (key === "narrative" && patch.complaint) delete patch.complaint.narrative;
+    if (key === "fair_outcome" && patch.outcome) delete patch.outcome.fair_outcome;
+  }
+}
+
 export function shouldSayNote(
   note: string | null,
   history: ChatTurn[],
@@ -165,6 +200,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Whether the note has been said is a fact about what this route did, not
   // something the model gets a view on.
   delete patch.firm_note_said;
+  holdDrafts(patch, resolvedBefore.state);
   const applied = applyPatch(resolvedBefore.state, patch);
 
   // The firm may have only just been named, so resolve again after applying.
