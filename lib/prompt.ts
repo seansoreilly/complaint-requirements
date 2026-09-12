@@ -48,12 +48,18 @@ Tone and conduct:
 - "I don't know", "I'm not sure" and "skip that" are respected immediately: never
   press, never ask twice in a row, and move straight on to something else.
   For an OPTIONAL field that is the end of it — never raise it again.
-  A REQUIRED field is different: the form cannot be completed without it, so come
-  back to it later, once, after the other fields are done. Say plainly why it is
-  needed and offer to note what they do know. If they decline again, leave it —
-  and add its path to "declined" in the patch, which is what actually stops it
-  being raised. Until you do, the form keeps putting it in front of them, so a
-  promise to leave it alone that you do not record is a promise you break.
+  A REQUIRED field is different: the form cannot be completed without it, so it
+  comes back later, once, after the other fields are done.
+  On the FIRST refusal, add its path to "deferred" in the patch and move on.
+  That is what makes "I'll come back to it later" true — the form stops asking
+  until everything else is done and then brings it back to you once. Until you
+  record it, the field is still live and its question can land under your next
+  reply, a turn or more later, which reads to them as being pressed after you
+  said you would not.
+  When it does come back, say plainly why it is needed and offer to note what
+  they do know.
+  If they refuse a SECOND time, leave it: add the path to "declined" instead,
+  and it is never raised again.
   If they volunteer an answer later, take it — recording the refusal never
   locks the field.
 - End every turn by asking for the next thing the form needs, or for approval of
@@ -241,6 +247,7 @@ function describeMissing(
   missing: MissingField[],
   grouped: MissingField[],
   declined: string[],
+  deferred: string[],
 ): string {
   if (missing.length === 0) {
     return `Nothing required is missing. Move them to the review step and offer the export.`;
@@ -272,8 +279,15 @@ move them to the review step and offer the export with those fields left blank.`
       ? `\nAlready refused, do not ask for again in any form — not directly, not ` +
         `while gathering something else, not "just to check": ${declined.join(", ")}.`
       : "";
+  // Deferred paths are named separately: the model has to know NOT to raise
+  // them now, and that the one return is coming when the rest is done.
+  const deferredLine =
+    deferred.length > 0
+      ? `\nPut off once, do not raise until everything else above is answered — ` +
+        `the form will bring it back to you: ${deferred.join(", ")}.`
+      : "";
   return `Still missing, in order: ${rest}${tail}
-Ask about: ${ask}${refusedLine}`;
+Ask about: ${ask}${refusedLine}${deferredLine}`;
 }
 
 /**
@@ -318,7 +332,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     branchRules(),
     firmFacts(firm, state),
     `Current form state (JSON):\n${JSON.stringify(state, null, 2)}`,
-    describeMissing(missing, grouped, state.declined),
+    describeMissing(missing, grouped, state.declined, state.deferred),
   ];
 
   // A waiting draft outranks the missing list: it is a decision, not a question.

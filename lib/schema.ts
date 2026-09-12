@@ -46,6 +46,25 @@ export interface ComplaintState {
    * counter still counts it and the review still shows it blank; it is only
    * removed from what gets asked. An answer volunteered later clears it.
    */
+  /**
+   * Required fields the person refused ONCE, held back until everything else
+   * has been asked.
+   *
+   * `declined` is a final refusal; this is the step before it. The README
+   * promises a skipped required field is "returned to later rather than
+   * quietly dropped", and prompt.ts reserves `declined` for a SECOND refusal —
+   * so between the two there was nothing in state saying "not now", the field
+   * stayed askable, and `ensureAsk` appended its bare option list underneath
+   * the next reply that happened to trail off. That was observed one turn after
+   * the app had said "I won't press you on it".
+   *
+   * Deferring is not answering: the field stays in `missingFor`, stays blank on
+   * the review, and comes back once nothing else is askable — which is how the
+   * return-once becomes something code schedules rather than something the
+   * model has to remember. An answer clears it; a second refusal moves it to
+   * [[declined]].
+   */
+  deferred: string[];
   declined: string[];
   firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
   open_afca_complaint: boolean | null;
@@ -84,6 +103,7 @@ export function emptyState(): ComplaintState {
   return {
     sensitive_offered: false,
     firm_note_said: "",
+    deferred: [],
     declined: [],
     firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
     open_afca_complaint: null,

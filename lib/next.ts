@@ -78,7 +78,16 @@ export function stageProgress(state: ComplaintState): { id: string; title: strin
  */
 export function askableFor(state: ComplaintState): MissingField[] {
   const declined = new Set(state.declined);
-  return missingFor(state).filter((m) => !declined.has(m.path));
+  const open = missingFor(state).filter((m) => !declined.has(m.path));
+
+  // A field refused once waits for the others. It is not dropped — when it is
+  // all that is left it comes back, which is the return-once the README
+  // promises, scheduled here rather than remembered by the model. Holding it
+  // back is also what stops `ensureAsk` appending its option list underneath
+  // some later reply that trails off, a turn or more after the refusal.
+  const deferred = new Set(state.deferred);
+  const ready = open.filter((m) => !deferred.has(m.path));
+  return ready.length > 0 ? ready : open;
 }
 
 /** The single next thing worth asking about, or null when the form is done. */

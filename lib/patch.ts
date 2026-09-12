@@ -47,6 +47,21 @@ export const patchSchema = z
      * the system prompt did not reach it. A live decline produced the right
      * reply and an empty list — the model had nowhere obvious to put it.
      */
+    /**
+     * Paths refused once and held back. Described for the same reason as
+     * `declined`: a bare array among 49 fields is not an instruction.
+     */
+    deferred: z
+      .array(z.string())
+      .describe(
+        "Field paths the person has put off answering once — they said they do " +
+          "not know or would rather not, and you said you would come back to it. " +
+          "Add the path here on that FIRST refusal. The form then stops asking " +
+          "until everything else is done and brings it back once, which is what " +
+          "lets you promise to move on and mean it. If they refuse a second time, " +
+          "move the path to \"declined\" instead. Send the full list, not only " +
+          "what is new.",
+      ),
     declined: z
       .array(z.string())
       .describe(
@@ -382,7 +397,27 @@ export function reconcile(
   // before it — and the person would be asked again for something they had
   // already refused twice. The field description tells the model to send the
   // whole list; this makes it not matter if it does not.
+  next.deferred = [...new Set([...previous.deferred, ...next.deferred])];
   next.declined = [...new Set([...previous.declined, ...next.declined])];
+  const stillBlank = (path: string): boolean => {
+    const value = getPath(next, path);
+    if (typeof value === "string") return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    return value === null || value === undefined;
+  };
+
+  // Same treatment as `declined`: real required paths only, no duplicates, and
+  // dropped the moment the field holds a value. A path in both lists is a
+  // second refusal, so `declined` wins and the deferral is spent.
+  const deferredSeen = new Set<string>();
+  next.deferred = next.deferred.filter((path) => {
+    if (!requiredPaths.has(path)) return false;
+    if (deferredSeen.has(path)) return false;
+    deferredSeen.add(path);
+    if (next.declined.includes(path)) return false;
+    return stillBlank(path);
+  });
+
   const seen = new Set<string>();
   next.declined = next.declined.filter((path) => {
     if (!requiredPaths.has(path)) return false;
