@@ -193,6 +193,26 @@ turns_total += len(s.turns)
 timeouts += s.timeouts
 save(s, "step0_d.json")
 
+# ------------------------------------------------------------------- check 9
+banner("CHECK 9 a decline is honoured before the model records it (defect 24)")
+# NOT tested here, deliberately, and this note is the check.
+#
+# The defect: the person declines, the model says it will leave the field blank
+# but does not add the path to `declined` until a turn later, and in that gap
+# `ensureAsk` appends the canonical bare list underneath an otherwise good
+# reply. Two instances were sitting in this file's own evidence.
+#
+# It cannot be driven from here. `ensureAsk` only appends when the model's reply
+# does NOT already end with a question, and whether it does is the model's
+# choice, not something the API lets us set. Driving the failing state through
+# /api/chat on the BROKEN build produced a reply that ended in a question, so
+# the append never fired and a check written here PASSED against the defect —
+# which is the exact failure this harness's README warns about.
+#
+# So it lives in the unit suite, where the trailing reply is an input:
+# lib/__tests__/late-decline.test.ts. Verified to fail without the fix.
+print("     (covered by lib/__tests__/late-decline.test.ts — see note in source)")
+
 banner("RESULT")
 print(f"{sum(results)}/{len(results)} scripted checks passed")
 print(f"turns: {turns_total}   transient timeouts: {timeouts}")

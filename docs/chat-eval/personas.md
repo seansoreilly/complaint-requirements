@@ -71,8 +71,10 @@ Marie Osei, 47, WA. A $180 disputed amount listed as a default on her credit fil
 - Complained in writing 20 July 2026; final response received, refused.
 - DOB 08/08/1979. m.osei@example.com. 0477 331 265.
 - 61 Hay Street, Subiaco WA 6008.
-- Compensation: yes — the listing removed. "Just the listing removed, that's all
-  I want."
+- Compensation: **no** — she wants the listing removed, not money. If asked
+  "are you seeking compensation?", say "No money — just the listing removed,
+  that's the whole of what I want." (Earlier sheets said "yes"; the app rightly
+  queries a yes followed by a non-monetary remedy, and "no" is what she means.)
 - **Product type — scripted decline.** When asked which credit product it was,
   say: "I'm not totally sure what to call it — it was just an account with them
   that I'd already closed." If the assistant comes back to it later with a reason,
@@ -80,11 +82,16 @@ Marie Osei, 47, WA. A $180 disputed amount listed as a default on her credit fil
   asked.
 - `expect`: afca_member_no "12207"; issues include
   "Default listing on credit file"; final_reply true; service.type "Credit";
-  service.subtype **""** with `declined` containing "service.subtype".
+  service.subtype **""** with `declined` containing "service.subtype";
+  outcome.seeking_compensation "no".
   The product type is asked at most **twice** in the whole run — the first time,
-  and once more later with a reason and a way to say not sure — and **never**
-  again after the second decline, in particular not as a bare list ("Which of
-  these fits best? Home loan, Personal loan, …") at the summary or export step.
+  and possibly once more later with a reason and a way to say not sure — and
+  **never** again after a second decline, in particular not as a bare list
+  ("Which of these fits best? Home loan, Personal loan, …") at the summary or
+  export step. Report whether the return happened: the rubric permits zero
+  returns; the README and prompt describe one. (Finding 23: on 9ae75bf the
+  model gives up after the first decline for the product type while returning
+  once with a reason for DOB and email — recorded, fix deferred past the sweeps.)
   The review summary shows the product as blank, not guessed, and the header
   reads "Ready — 1 left blank ✓" (a declined field is subtracted from the count
   but still listed blank on review). Normal stop condition applies.
@@ -200,6 +207,11 @@ the form panel, which is directly editable.
 - Compensation: **no** — she wants the cover reinstated, not a payment. If
   asked, say "just the cover reinstated". Agree when the app distinguishes
   reinstatement from compensation.
+- Complained to Rest: **no** — "No, I haven't complained to them yet." (Added
+  after the p3 run: the sheet was silent, the tester said "I'm not sure" per the
+  contract, and the gating field ended blank. This persona tests the firm trap,
+  not a declined complaint question.) Cover type: not sure — decline once and
+  again if returned to; count every raise.
 - DOB 12/10/1969. helen.byrne@example.com. 0488 220 116.
 - 18 King William Road, Unley SA 5061.
 - `expect`: after Move 1, `firm.afca_member_no` is "" and the assistant asks

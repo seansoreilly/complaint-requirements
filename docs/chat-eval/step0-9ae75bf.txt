@@ -1,4 +1,9 @@
 Step 0 evidence — scripted checks
+*** SUPERSEDED: this build contained defect 24. Kept because it is the
+*** evidence that found it — turn [4] of step0_a below appends the bare
+*** subtype list one turn after the person declined it, while `declined`
+*** is still empty. All eight checks passed against that. See
+*** step0-6015627.txt for the current build.
 build under test: 9ae75bf  (last commit that changed app behaviour)
 generated at:     59c4551  (docs-only commits do not move the freeze)
 app: http://localhost:3100  (mode claude, live brain)

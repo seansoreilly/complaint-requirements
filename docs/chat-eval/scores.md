@@ -34,16 +34,21 @@ per round; rounds are appended, never rewritten.
 | p2 | 15 skip-and-return | 9/10 (39c38bb — defect-finding) | **The return-once rule held exactly**: email and DOB each declined once ("I'll leave it blank and won't push"), then raised together once — "I'll only ask this once" — each with its own reason (no way to reach you by email / used to confirm identity), then given; no third raise; `declined: []` correct because both were answered. Complaint-vs-query asked and recorded as a query (defect 14's fix on the asking side, first time seen). −1 (A): final state has `complained_to_firm {yes: false, date: "2026-08-05", how: "email"}` — a complaint date and channel on a form that says she did not complain. reconcile (lib/patch.ts:340-343) clears branch fields only on an applicable→not-applicable transition; here date/how were written while `yes` was still null, so the branch was never open and nothing cleared them. Export would carry the contradiction. |
 | p2 | 9 negated-complaint | 10/10 (39c38bb — defect-finding) | "No, I haven't complained to them yet" → {yes: false, date "", how "", final_reply null}, captured live right after the exchange; AFCA-first note once with ANZ's directory contact; "we can keep going here either way" and it did. ANZ 10101, Card ending 8890, Credit card, Incorrect fees or interest; narrative "I am not sure of the exact amount charged or the date of the call" — his unknowns kept as unknowns; outcome his ask. Cards followed by questions; optional once. Two transient timeouts. Finding, no deduction: the story request carried the canonical "Tell me what happened…" appended under the model's own "Take as much space as you need — I'll then draft…" — endsWithQuestion still misses a closing promise sentence. |
 | p2 | 1 super-tpd | 9/10 (39c38bb — defect-finding) | AustralianSuper 10657, 8842317, Superannuation / Insurance in superannuation (TPD) — not General insurance — Denial of insurance claim, {yes, 2026-09-03, phone, final_reply false}, all contact fields exact. Narrative every clause hers. seeking_compensation "no": she said "I'm not after anything extra on top of that" and the app recorded that; the persona sheet says "yes" — a sheet/brief conflict to settle (is "pay the benefit I'm owed" compensation?), not a product fault. −1 (C-3): the proposal turn bundled "was that a formal complaint or chasing?" with the draft and its approval question; the draft was re-presented a turn later. Three transient timeouts. |
+| p3 | 5 default-listing | 10/10 (**9ae75bf — counts; cleared once**) | Scripted decline: product type asked once, "I won't press you on it", `declined: ["service.subtype"]`, subtype "", never raised again, summary "Credit — product type left blank, as you preferred", header "Ready — 1 left blank ✓"; no bare list anywhere. The app queried her "yes" to compensation followed by a non-monetary remedy rather than recording either, and recorded "no" on her answer (sheet amended to "no"). Both drafts on cards with "use it as it is, edit it, or discard it" (the 29991ee correction), every clause hers, approved by click; Latitude 12207, 552-118-904, in writing 2026-07-20, final_reply true. No return-once for the product type — finding 23, no deduction. Caveat: the state dump was truncated before the complainant block; contact fields rest on the assistant's echoed confirmations, which match the sheet. |
+| p3 | 20 scam-complaint | 10/10 (**9ae75bf — counts; cleared once**) | Scope stated once, in turn 7 only: 31 March 2027 "the law as it currently stands, not a limitation of this demo", the one-firm shape attributed to the demo, redirect to what AFCA can look at (the bank's handling), a real choice to continue or stop, no prediction. Both round-3 defects gone: no motive anywhere ("They knew my account details" is all), "Around 15 August 2026" from "around the 15th of August" is the single year resolution (ruled normalisation). The app asked whether the 20 August call was a complaint or a scam report before recording yes (defect 14 asking side); clarification in its own turn, draft the next (clarify-first live). Cards with "use it as it is, edit it, or discard it", approved by click; CBA 10099, "Account ending 7781", {yes, 2026-08-20, phone, false}, compensation yes, "I want the $12,000 back.", all contact fields exact; sensitive offered once, declined. State: final JSON full; intermediate turns not captured. |
+| p3 | 12 ambiguous-firm | 9/10 (9ae75bf) | **The trap finally fired, and held**: after "my super fund" firm.name "" / number ""; after panel-typed "super fund" firm.name "super fund" / number "" (not 11902) and the reply named Hesta as closest match and asked for the full name (19b wording, live); after "Rest" → 11540. Compensation "no" after her "not money on top"; drafts on cards, hers word for word; Rest's contact never invented. −1 (C-2): one turn after "I won't press you on it" the reply ended with the canonical list "Which of these fits best? Account balance / contributions, … Rollover / transfer delay." — ensureAsk appended the subtype question because the first decline does not set `declined` (the model defers; the field stays askable) and the model's reply ended on a promise, not a question. Asked twice in a row, the README's exact prohibition. **Defect 24.** Same criterion, second fault: complained_to_firm.yes returned to once ("I'll come back to it") but the return carried no reason. complained_to_firm.yes ended null/declined after two "not sure"s — an honest blank ("—" on export); sheet gap: Helen's sheet does not say whether she complained. "Hostplus" offered as an example fund again. |
 | p2 | 4 bnpl-fees | 10/10 (39c38bb — defect-finding) | "I don't have one" → `no_reference: true`, reference "", "it won't be asked about again" — and it was not, through to the summary ("No account or reference number"). Cancellation date unknown → left out of the draft, never pressed. Afterpay Australia 38393, Credit / Buy now pay later, Incorrect fees or interest (suggested from the list, confirmed by him), {yes, 2026-09-01, "Through the Afterpay app", false}, compensation yes, outcome his words, all contact fields exact. Cards followed by questions; optional once. Two transient timeouts. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
 frozen final build. Freeze history: f0f7154 (22:06:38) → 456abb2 (22:16:16, chasing is
 not complaining) → 399b680 (22:29, declined required fields believed; notify_by no
 longer pre-answered — VOID: the declined fix did not work live, the model never set the
-field) → **2fa9d4f** (`declined` given a .describe(); verified live). Runs started before
-the current freeze count as defect-finding, not as clearances. If code changes, every count
-restarts. Probes driven at the API by the lead are not evidence; only a browser
-transcript against the frozen hash is.
+field) → 2fa9d4f (`declined` given a .describe(); verified live) → phase 2: 39c38bb →
+3bfdd51 → 9966b2e → 1d49493 → 862a8c9 → 29991ee → **9ae75bf** (sweep hash; full
+history in the Phase 2 block below). Runs started before the current freeze count as
+defect-finding, not as clearances. If code changes, every count restarts. Probes driven
+at the API by the lead are not evidence; only a browser transcript against the frozen
+hash is.
 
 ## Phase 1 closed — 12 September 2026, 22:40 AEST
 
@@ -196,8 +201,54 @@ six checks scripted against the live route, two — the card click and the heade
 text — in a browser). Zero transient timeouts in 18 solo turns, against 2-4 per
 run under nine-way concurrency: load, not the app. Sweep hash: **9ae75bf**.
 
+**Finding 23 — return-once not applied to the product type (cases 18 and 5).**
+Twice now the model has put `service.subtype` into `declined` on the person's
+FIRST decline ("I won't press you on it") and never returned to it, while for
+DOB and email (case 15) it returned once with a reason as lib/prompt.ts:51-53
+asks. Ruling: not a scoring defect — the rubric's C-2 says "returned to at most
+once", a ceiling with no floor; nothing was invented, blocked, or exported
+wrongly, and the summary says the product was left blank as preferred. It IS a
+gap against the README's promise ("returned to later rather than quietly
+dropped") and the prompt's own rule. Recorded as a finding; the fix is deferred
+until after the two sweeps so the clock can start on 9ae75bf, because the fix
+needs both prompt and route (a first decline should defer the field, not
+declare it declined, without letting ensureAsk force the list again — defect
+16's shape) and that is not a change to make with the sweep build named.
+Persona 5's expect now asks the tester to report whether the return happened.
+
 **Nine p2 runs on 39c38bb, all scored from full reports:** 13, 18, 10, 12, 9, 4
 at 10; 2, 15, 1 at 9. Fix A, notify_by and `declined` each seen live in persona
 runs; Fix B proven on the menu path (18). Two prompt-level patterns recorded
 without a code defect: a clarifying question asked in the same turn as the
 draft (1, 2), and endsWithQuestion missing a closing promise sentence (9).
+
+**Defect 24 — a declined field re-asked the very next turn (case 12, 9ae75bf).**
+Helen declined the cover type; the model said "I won't press you on it" and,
+following prompt.ts:51-53, did not set `declined` (that is for a second
+decline). The field therefore stayed in askableFor; the model's next reply ended
+on "I'll shape it into the complaint text for you to check", endsWithQuestion
+saw no ask, and ensureAsk appended `questionFor("service.subtype")` — the bare
+seven-item list — one turn after the promise not to press. This is the watch
+item raised when `declined` was designed (the seam between first and second
+decline) and it is the README's "never pressed twice in a row" broken in code.
+Finding 23 and defect 24 are one design gap with two symptoms — no state
+distinguishes "deferred after one decline" from "askable" — and one fix: a
+`deferred` list the model sets on the first decline (with .describe()), which
+askableFor skips until every other askable field is done and then surfaces once
+(the prompt supplies the reason), after which a second decline moves the path
+to `declined`. ensureAsk inherits the behaviour through askableFor. Ninth Step 0
+check: decline a required field, and the next reply must contain no list for it.
+
+**Running strict tally on the sweep hash 9ae75bf**: passed 0 · cleared once 2
+(5, 20) · 12 at 9 (clears) — but defect 24 is a person-meets-it defect, so the
+freeze moves when it is fixed and these clearances become defect-finding rows.
+
+**6015627 — NOT accepted as a freeze.** It passes the person's current message
+to ensureAsk and suppresses the field when that message matches a decline
+regex. The observed defect (step0-9ae75bf.txt turns [3]-[4]; case 12) appends
+the list on the turn AFTER the decline, when the message is an unrelated answer
+("Account administration error — they just cancelled it without telling me."),
+so the regex never fires on the turn that matters. The commit's "verified on the
+exact failing shape" used the decline as the current message, which is a
+different shape. The required fix is state (`deferred`), with a two-turn
+regression test written to fail first. Freeze remains unset until then.
