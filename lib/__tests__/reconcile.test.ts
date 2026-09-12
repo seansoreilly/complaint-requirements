@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { applyPatch, cleanPatch, emptyState, reconcile } from "../patch";
+import { applyServerDelta } from "../merge-state";
 import { missingFor } from "../next";
 import { exportJson, summarise } from "../export";
 import type { ComplaintState } from "../schema";
@@ -153,5 +154,36 @@ describe("reconcile on a direct form edit", () => {
     const result = reconcile(previous, next, (p) => p === "complained_to_firm.yes");
     expect(result.complained_to_firm.date).toBe("");
     expect(result.complained_to_firm.how).toBe("");
+  });
+});
+
+describe("a reconciled clear surviving the in-flight merge", () => {
+  it("carries the server's cleared subtype through to the client", () => {
+    // The clear is a real change (a value becoming ""), so it has to reach
+    // the client like any other server write, not read as "nothing happened".
+    const snapshot = apply(emptyState(), {
+      service: { type: "Superannuation", subtype: "Fees and charges" },
+    });
+    const server = apply(snapshot, { service: { type: "Credit" } });
+    expect(server.service.subtype).toBe("");
+
+    const merged = applyServerDelta(snapshot, snapshot, server);
+    expect(merged.service.subtype).toBe("");
+    expect(merged.service.type).toBe("Credit");
+  });
+
+  it("still keeps an unrelated in-flight edit alongside that clear", () => {
+    const snapshot = apply(emptyState(), {
+      service: { type: "Superannuation", subtype: "Fees and charges" },
+    });
+    const server = apply(snapshot, { service: { type: "Credit" } });
+
+    // Meanwhile the person typed their first name into the form panel.
+    const live = structuredClone(snapshot);
+    live.complainant.first_name = "Sam";
+
+    const merged = applyServerDelta(live, snapshot, server);
+    expect(merged.complainant.first_name).toBe("Sam");
+    expect(merged.service.subtype).toBe("");
   });
 });
