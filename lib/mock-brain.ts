@@ -6,7 +6,7 @@
  * should set ANTHROPIC_API_KEY — see lib/model.ts.
  */
 import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, STAGES, findField } from "./schema";
-import { type ComplaintPatch, cleanPatch } from "./patch";
+import { type ComplaintPatch, applyPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
 import { groupedWithNext, missingFor } from "./next";
 
@@ -771,21 +771,14 @@ function questionFor(path: string, label: string, state: ComplaintState): string
   }
 }
 
+/**
+ * What the state will look like once this patch lands, used to decide what to
+ * ask next. It has to agree with the real thing exactly, so it defers to
+ * `applyPatch` rather than keeping a second merge of its own — including the
+ * reconciliation that clears answers the patch has just made inapplicable.
+ */
 function projectState(state: ComplaintState, patch: ComplaintPatch): ComplaintState {
-  const next = structuredClone(state);
-  const merge = (target: Record<string, unknown>, source: Record<string, unknown>): void => {
-    for (const [key, value] of Object.entries(source)) {
-      if (value === undefined || !(key in target)) continue;
-      const current = target[key];
-      if (value && typeof value === "object" && !Array.isArray(value) && current && typeof current === "object" && !Array.isArray(current)) {
-        merge(current as Record<string, unknown>, value as Record<string, unknown>);
-      } else {
-        target[key] = value;
-      }
-    }
-  };
-  merge(next as unknown as Record<string, unknown>, patch as Record<string, unknown>);
-  return next;
+  return applyPatch(state, patch);
 }
 
 function listOut(items: string[]): string {

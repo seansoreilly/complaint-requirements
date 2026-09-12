@@ -7,7 +7,7 @@ import { DraftCard } from "@/components/DraftCard";
 import { FormPane, type StageStatus } from "@/components/FormPane";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, setPath } from "@/lib/schema";
-import { cleanPatch } from "@/lib/patch";
+import { cleanPatch, reconcile } from "@/lib/patch";
 import { applyServerDelta } from "@/lib/merge-state";
 import { missingFor, stageProgress } from "@/lib/next";
 
@@ -114,7 +114,10 @@ export default function Page() {
           if (coerced) setPath(next, path, coerced);
         }
       }
-      return next;
+      // Changing a field here can close a branch or switch the service type
+      // just as a chat turn can, so it gets the same reconciliation. The field
+      // the person just edited is theirs and is never cleared.
+      return reconcile(previous, next, (p) => p === path);
     });
   }, []);
 

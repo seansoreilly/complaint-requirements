@@ -11,8 +11,12 @@ import {
   NARRATIVE_MAX,
   SERVICE_SUBTYPES,
   SERVICE_TYPES,
+  STAGES,
   emptyState,
+  getPath,
+  setPath,
 } from "./schema";
+import { applies } from "./next";
 
 const addressPatch = z
   .object({
@@ -276,11 +280,79 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Clear answers that the latest change has just made inapplicable.
+ *
+ * Two ways an answer can go stale, and both produce a document that
+ * contradicts itself if left alone:
+ *
+ * 1. A branch closes. `showIf` hides the field, so the review panel stops
+ *    showing it — but the value is still in the state and still ships in the
+ *    JSON export. Saying "no, I never complained to them" should not leave
+ *    "I complained by email on 3 September" in the exported file.
+ *
+ * 2. The service type changes. `service.subtype` and `complaint.issues` are
+ *    drawn from lists that belong to a specific service type, but neither
+ *    field has a `showIf` guard — their validity depends on a sibling's
+ *    *value*, which `applies()` cannot express. Switching Superannuation to
+ *    Credit would otherwise leave "Credit / Insurance in superannuation
+ *    (TPD)" on the form, counted as answered and shown as complete.
+ *
+ * Anything the same change explicitly set is kept: the demo paragraph fills
+ * type, subtype and issues in one patch, and that must survive.
+ */
+export function reconcile(
+  previous: ComplaintState,
+  next: ComplaintState,
+  touched: (path: string) => boolean = () => false,
+): ComplaintState {
+  const blank = emptyState();
+
+  for (const stage of STAGES) {
+    for (const field of stage.fields) {
+      if (!field.showIf) continue;
+      if (touched(field.path)) continue;
+      // Only clear on the transition: applicable before, not applicable now.
+      if (applies(field, previous) && !applies(field, next)) {
+        setPath(next, field.path, getPath(blank, field.path));
+      }
+    }
+  }
+
+  // The service type's dependants. Presence in the change is the only reliable
+  // signal here: four of the six service types are unmodelled and take free
+  // text, so an old subtype would pass any "is this valid now?" check.
+  const typeChanged =
+    previous.service.type !== "" && previous.service.type !== next.service.type;
+  if (typeChanged) {
+    if (!touched("service.subtype")) next.service.subtype = "";
+    if (!touched("complaint.issues")) next.complaint.issues = [];
+  }
+
+  return next;
+}
+
+/** Which leaves a patch actually sets, as dotted paths. */
+function touchedPaths(patch: ComplaintPatch): Set<string> {
+  const paths = new Set<string>();
+  const walk = (node: Record<string, unknown>, prefix: string): void => {
+    for (const [key, value] of Object.entries(node)) {
+      if (value === undefined) continue;
+      const path = prefix === "" ? key : `${prefix}.${key}`;
+      if (isPlainObject(value)) walk(value, path);
+      else paths.add(path);
+    }
+  };
+  walk(patch as Record<string, unknown>, "");
+  return paths;
+}
+
 /** Deep merge, replacing arrays wholesale and ignoring undefined. */
 export function applyPatch(state: ComplaintState, patch: ComplaintPatch): ComplaintState {
   const next = structuredClone(state);
   merge(next as unknown as Record<string, unknown>, patch as Record<string, unknown>);
-  return next;
+  const touched = touchedPaths(patch);
+  return reconcile(state, next, (path) => touched.has(path));
 }
 
 function merge(target: Record<string, unknown>, patch: Record<string, unknown>): void {
