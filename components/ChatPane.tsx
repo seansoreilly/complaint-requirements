@@ -16,6 +16,7 @@ export function ChatPane({
   messages,
   pending,
   notes,
+  missingCount,
   focusField,
   onClearFocus,
   onSend,
@@ -23,6 +24,8 @@ export function ChatPane({
   messages: Message[];
   pending: boolean;
   notes: string[];
+  /** Required fields still unanswered — shown as a counter above the input. */
+  missingCount: number;
   focusField: FieldDef | null;
   onClearFocus: () => void;
   onSend: (text: string) => void;
@@ -85,19 +88,36 @@ export function ChatPane({
       </div>
 
       <div className="border-t border-afca-line bg-white p-3">
-        {focusField && (
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-afca-skylight px-3 py-1 text-xs font-semibold text-afca-blue ring-1 ring-afca-sky/50">
-            Answering: {focusField.label}
-            <button
-              type="button"
-              onClick={onClearFocus}
-              className="text-afca-blue hover:text-afca-ink"
-              aria-label="Stop answering this field"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {focusField && (
+            <div className="inline-flex items-center gap-2 rounded-full bg-afca-skylight px-3 py-1 text-xs font-semibold text-afca-blue ring-1 ring-afca-sky/50">
+              Answering: {focusField.label}
+              <button
+                type="button"
+                onClick={onClearFocus}
+                className="text-afca-blue hover:text-afca-ink"
+                aria-label="Stop answering this field"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {/* The assistant used to append "(N things left after this.)" to every
+              reply. The count belongs in the UI, where it updates with the form
+              and does not repeat itself down the transcript. */}
+          <p
+            aria-live="polite"
+            className={
+              missingCount === 0
+                ? "ml-auto text-xs font-semibold text-emerald-600"
+                : "ml-auto text-xs font-semibold text-afca-blue"
+            }
+          >
+            {missingCount === 0
+              ? "All answers in ✓"
+              : `${missingCount} ${missingCount === 1 ? "answer" : "answers"} left`}
+          </p>
+        </div>
         <div className="flex gap-2">
           <textarea
             value={draft}

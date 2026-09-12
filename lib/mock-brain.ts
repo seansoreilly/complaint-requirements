@@ -8,7 +8,8 @@
 import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, STAGES, findField } from "./schema";
 import { type ComplaintPatch, applyPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
-import { groupedWithNext, missingFor } from "./next";
+import { groupedWithNext } from "./next";
+import { questionFor } from "./questions";
 
 export interface BrainResult {
   reply: string;
@@ -31,12 +32,12 @@ type HistoryTurn = { role: string; content: string };
  * assistant's text against it verbatim. That keeps the lookup honest as the
  * templates change, instead of hand-copying question strings that would rot.
  *
- * `composeReply` joins the question in with an acknowledgement line and a
- * "N things left" footer (see composeReply below), so the question is rarely
- * the whole message — it is matched line by line instead. A grouped question
- * ("could you give me your X, Y?") or a draft-approval message has no single
- * field behind it, so those turns are left unmatched and fall through to the
- * groupedWithNext fallback, same as the first turn.
+ * A reply can still carry more than the question itself (a draft proposal, the
+ * closing review message, or a question ensureAsk appended), so it is matched
+ * line by line rather than whole. A grouped question ("could you give me your
+ * X, Y?") or a draft-approval message has no single field behind it, so those
+ * turns are left unmatched and fall through to the groupedWithNext fallback,
+ * same as the first turn.
  */
 function askedAboutPath(history: HistoryTurn[] | undefined, state: ComplaintState): string | undefined {
   if (!history || history.length === 0) return undefined;
@@ -344,7 +345,6 @@ export function mockBrain(
 ): BrainResult {
   const patch: ComplaintPatch = {};
   const text = message.trim();
-  const captured: string[] = [];
   // What the assistant actually asked about last turn, when the message
   // doesn't carry its own focus. This must win over "whatever the form still
   // needs" — otherwise an answer to an already-satisfied field gets rerouted
@@ -379,9 +379,6 @@ export function mockBrain(
     // The old firm's member number must not survive the name change; the route
     // re-resolves and fills the right one.
     if (state.firm.afca_member_no) patch.firm.afca_member_no = "";
-    captured.push(
-      state.firm.name ? `the firm (now ${firm.name})` : `the firm (${firm.name})`,
-    );
   } else if (!state.firm.name && !firm) {
     // They may have named a firm this demo's directory does not carry. Take it
     // at face value rather than asking the same question forever; the route
@@ -389,7 +386,6 @@ export function mockBrain(
     const named = namedFirmCandidate(text, answerTargetIsFirm);
     if (named) {
       patch.firm = { name: named };
-      captured.push(`the firm (${named})`);
     }
   }
   // The sector of a firm named now, or one already on the form.
@@ -405,7 +401,6 @@ export function mockBrain(
 
   if (saysNone) {
     patch.firm = { ...patch.firm, no_reference: true };
-    captured.push("that you have no reference number");
   } else {
     // Requires an explicit "number"/"no."/"#" cue and a token that actually looks
     // like an identifier — at least one digit. Otherwise ordinary prose such as
@@ -415,7 +410,6 @@ export function mockBrain(
       /\b(?:reference|account|policy|member)\s*(?:is|:)\s*([A-Za-z0-9][A-Za-z0-9-]{3,})\b/i.exec(text);
     if (ref && /\d/.test(ref[1]) && !state.firm.reference) {
       patch.firm = { ...patch.firm, reference: ref[1] };
-      captured.push(`the reference number (${ref[1]})`);
     }
   }
 
@@ -424,10 +418,8 @@ export function mockBrain(
     const stance = readContactStance(text);
     if (stance === true) {
       patch.complained_to_firm = { yes: true };
-      captured.push("that you already contacted the firm");
     } else if (stance === false) {
       patch.complained_to_firm = { yes: false };
-      captured.push("that you have not contacted the firm yet");
     }
   }
 
@@ -441,7 +433,6 @@ export function mockBrain(
     state.complained_to_firm.yes !== false
   ) {
     patch.complained_to_firm = { ...patch.complained_to_firm, date: date[1] };
-    captured.push(`the date (${date[1]})`);
   }
 
   const contactedByUser =
@@ -450,7 +441,6 @@ export function mockBrain(
     for (const [pattern, channel] of CHANNELS) {
       if (pattern.test(text)) {
         patch.complained_to_firm = { ...patch.complained_to_firm, how: channel };
-        captured.push(`how you contacted them (${channel.toLowerCase()})`);
         break;
       }
     }
@@ -459,7 +449,6 @@ export function mockBrain(
   if (state.complained_to_firm.final_reply === null &&
       /\b(haven'?t replied|no reply|no response|still waiting|heard nothing|never got back)\b/i.test(text)) {
     patch.complained_to_firm = { ...patch.complained_to_firm, final_reply: false };
-    captured.push("that they have not given a final response");
   }
 
   if (!state.service.type) {
@@ -467,7 +456,6 @@ export function mockBrain(
     if (type) {
       const subtype = guessSubtype(type, text);
       patch.service = { type, ...(subtype ? { subtype } : {}) };
-      captured.push(`the service type (${type}${subtype ? ` — ${subtype}` : ""})`);
     }
   }
 
@@ -476,7 +464,6 @@ export function mockBrain(
     const issues = guessIssues(serviceType, text);
     if (issues.length > 0) {
       patch.complaint = { issues };
-      captured.push(`what went wrong (${issues.join(", ").toLowerCase()})`);
     }
   }
 
@@ -484,17 +471,14 @@ export function mockBrain(
   if (state.outcome.seeking_compensation === null) {
     if (UNSURE.test(text) && /\b(compensat|money|refund|out of pocket)\b/i.test(text)) {
       patch.outcome = { seeking_compensation: "not_sure" };
-      captured.push("that you are not sure about compensation");
     } else if (/\b(compensat|refund|reimburse|money back|out of pocket)\b/i.test(text) && !NEGATIVE.test(text)) {
       patch.outcome = { seeking_compensation: "yes" };
-      captured.push("that you are seeking compensation");
     }
   }
 
   const email = /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/.exec(text);
   if (email && !state.complainant.email) {
     patch.complainant = { ...patch.complainant, email: email[0] };
-    captured.push("your email address");
   }
 
   // Contact details tend to arrive in one breath ("I'm Sam Chen, 12 Ford St,
@@ -511,7 +495,6 @@ export function mockBrain(
         first_name: titleCase(named[1]),
         ...(named[2] ? { last_name: titleCase(named[2]) } : {}),
       };
-      captured.push(`your name (${[named[1], named[2]].filter(Boolean).join(" ")})`);
     }
   }
 
@@ -521,21 +504,14 @@ export function mockBrain(
       ...patch.complainant,
       address: { ...patch.complainant?.address, ...address },
     };
-    captured.push("your address");
   }
 
   // Approving or editing a held draft takes precedence over anything else.
-  const draftHandled = handleDraftReply(patch, text, state, captured);
+  const draftHandled = handleDraftReply(patch, text, state);
 
   // Direct answers to the field the person was just asked about.
   if (!draftHandled && answerTarget) {
-    const before = JSON.stringify(patch);
     applyDirectAnswer(patch, answerTarget, text, state);
-    // A short answer that lands should still be acknowledged by name.
-    if (JSON.stringify(patch) !== before && captured.length === 0) {
-      const field = findField(answerTarget);
-      if (field && !patch.drafts?.fair_outcome) captured.push(`your answer for ${field.label.toLowerCase()}`);
-    }
   }
 
   // Once the story is in, offer a narrative draft.
@@ -559,7 +535,7 @@ export function mockBrain(
     patch.drafts = { ...patch.drafts, narrative: draftNarrative(projected, text) };
   }
 
-  const reply = composeReply(state, patch, captured);
+  const reply = composeReply(state, patch);
   return { reply, patch };
 }
 
@@ -572,7 +548,6 @@ function handleDraftReply(
   patch: ComplaintPatch,
   text: string,
   state: ComplaintState,
-  captured: string[],
 ): boolean {
   const pending = state.drafts.narrative
     ? ("narrative" as const)
@@ -588,11 +563,9 @@ function handleDraftReply(
     if (pending === "narrative") {
       patch.complaint = { ...patch.complaint, narrative: held };
       patch.drafts = { ...patch.drafts, narrative: "" };
-      captured.push("your complaint description");
     } else {
       patch.outcome = { ...patch.outcome, fair_outcome: held };
       patch.drafts = { ...patch.drafts, fair_outcome: "" };
-      captured.push("the outcome you are seeking");
     }
     return true;
   }
@@ -602,11 +575,9 @@ function handleDraftReply(
     if (pending === "narrative") {
       patch.complaint = { ...patch.complaint, narrative: text.trim() };
       patch.drafts = { ...patch.drafts, narrative: "" };
-      captured.push("your edited complaint description");
     } else {
       patch.outcome = { ...patch.outcome, fair_outcome: text.trim() };
       patch.drafts = { ...patch.drafts, fair_outcome: "" };
-      captured.push("your edited outcome");
     }
     return true;
   }
@@ -761,12 +732,8 @@ function applyDirectAnswer(
   }
 }
 
-function composeReply(state: ComplaintState, patch: ComplaintPatch, captured: string[]): string {
+function composeReply(state: ComplaintState, patch: ComplaintPatch): string {
   const lines: string[] = [];
-
-  if (captured.length > 0) {
-    lines.push(`Got it — I've noted ${listOut(captured)}.`);
-  }
 
   if (patch.drafts?.fair_outcome) {
     lines.push(
@@ -790,6 +757,13 @@ function composeReply(state: ComplaintState, patch: ComplaintPatch, captured: st
     return lines.join("\n");
   }
 
+  // Changing the firm is the one correction worth saying out loud: it silently
+  // discards the old member number, and someone who mis-heard their own
+  // correction would otherwise have no way to notice.
+  if (patch.firm?.name && state.firm.name && patch.firm.name !== state.firm.name) {
+    lines.push(`Changed the firm to ${patch.firm.name}.`);
+  }
+
   // Ask for the next thing, using the state as it will be after this patch.
   const projected = projectState(state, patch);
   const next = groupedWithNext(projected);
@@ -804,60 +778,7 @@ function composeReply(state: ComplaintState, patch: ComplaintPatch, captured: st
     lines.push(questionFor(next[0].path, next[0].label, projected));
   }
 
-  const remaining = missingFor(projected).length;
-  if (remaining > 0 && captured.length > 0) {
-    lines.push(`(${remaining} ${remaining === 1 ? "thing" : "things"} left after this.)`);
-  }
   return lines.join("\n");
-}
-
-function questionFor(path: string, label: string, state: ComplaintState): string {
-  switch (path) {
-    case "firm.name":
-      return `Which financial firm is your complaint about? A name, ABN or ACN all work.`;
-    case "firm.reference":
-      return `Do you have an account, policy or reference number for this? If you don't have one to hand, just say so — it's not required.`;
-    case "open_afca_complaint":
-      return `Do you already have a complaint open with AFCA?`;
-    case "complainant.lodging_for":
-      return `Is this complaint for yourself, or are you lodging it for someone else?`;
-    case "consents.authority":
-      return `Before we go further, I need two quick confirmations: that AFCA can act on your complaint, and that you accept the engagement charter. Happy to tick both?`;
-    case "service.type":
-      return `What kind of financial service is this about — superannuation, credit, insurance, banking?`;
-    case "service.subtype": {
-      const options = SERVICE_SUBTYPES[state.service.type];
-      if (options) return `Which of these fits best? ${options.join(", ")}.`;
-      return `What product or service specifically?`;
-    }
-    case "complaint.issues": {
-      const options = SERVICE_ISSUES[state.service.type];
-      if (options) return `What went wrong? For example: ${options.slice(0, 4).join(", ")}.`;
-      return `In a few words, what went wrong?`;
-    }
-    case "complaint.narrative":
-      return `Tell me what happened, in your own words — as much or as little as you like. I'll write it up for you afterwards.`;
-    case "complained_to_firm.yes":
-      return `Have you complained to the firm directly yet?`;
-    case "complained_to_firm.date":
-      return `Roughly when did you contact them? An approximate date is fine.`;
-    case "complained_to_firm.how":
-      return `How did you get in touch — phone, email, letter, their website?`;
-    case "complained_to_firm.final_reply":
-      return `Have they given you a final response to that complaint?`;
-    case "legal_proceedings":
-      return `Is there any court case or legal action going on about this?`;
-    case "outcome.seeking_compensation":
-      return `Are you looking for compensation — money back for a loss? Yes, no, or not sure are all fine answers.`;
-    case "outcome.fair_outcome":
-      return `What would actually put this right for you? Even roughly — I'll help turn it into something concrete.`;
-    case "complainant.dob":
-      return `What's your date of birth? AFCA uses it to confirm your identity.`;
-    case "complainant.notify_by":
-      return `How would you prefer AFCA to contact you — email, post or SMS?`;
-    default:
-      return `Could you tell me your ${label.toLowerCase()}?`;
-  }
 }
 
 /**
@@ -868,11 +789,6 @@ function questionFor(path: string, label: string, state: ComplaintState): string
  */
 function projectState(state: ComplaintState, patch: ComplaintPatch): ComplaintState {
   return applyPatch(state, patch);
-}
-
-function listOut(items: string[]): string {
-  if (items.length === 1) return items[0];
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 export { lookupFirm };

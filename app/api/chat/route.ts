@@ -10,6 +10,7 @@ import { type ComplaintState, emptyState } from "@/lib/schema";
 import { applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
+import { ensureAsk } from "@/lib/continue";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
 import { patchSchema } from "@/lib/patch";
 
@@ -155,9 +156,20 @@ export async function POST(request: Request): Promise<NextResponse> {
   const state = resolvedAfter.state;
 
   const note = resolvedAfter.note;
+  // The note is context, so it goes above the reply rather than after it: tacked
+  // on the end it lands below the question and the turn closes on a statement,
+  // leaving the person with nothing to answer.
   const sayNote = shouldSayNote(note, history);
+  const withNote = sayNote ? `${note}\n\n${turn.reply}` : turn.reply;
+
+  // The conversation must not dead-end while the form still needs something.
+  // Applied to the text actually being sent, so an ambiguous-firm note that asks
+  // "Which one is it?" counts as this turn's question — but only when the note is
+  // genuinely included, since a note suppressed as a repeat asks nothing.
+  const reply = ensureAsk(withNote, state);
+
   return NextResponse.json({
-    reply: sayNote ? `${turn.reply}\n\n${note}` : turn.reply,
+    reply,
     state,
     missing: missingFor(state),
     next: nextField(state),
