@@ -33,6 +33,12 @@ const addressPatch = z
 export const patchSchema = z
   .object({
     sensitive_offered: z.boolean(),
+    /**
+     * Carried through `sanitiseState` so the flag survives the round trip, but
+     * the route recomputes it every turn from whether it actually said the
+     * note — the model proposing one here changes nothing.
+     */
+    firm_note_said: z.string(),
     firm: z
       .object({
         name: z.string(),

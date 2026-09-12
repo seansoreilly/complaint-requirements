@@ -20,6 +20,19 @@ export interface Address {
 export interface ComplaintState {
   /** Persists an optional-question offer even when every answer is declined. */
   sensitive_offered: boolean;
+  /**
+   * The firm name, lowercased, that the "not in this demo's directory" note was
+   * last said for; "" when it has not been said. Kept in state for the same
+   * reason as `sensitive_offered`: the route is stateless and history is
+   * trimmed to 20 turns, so a conversation that reaches review outlives any
+   * record of having said it and says it a second time.
+   *
+   * It stores the name rather than a flag because the note quotes the firm. A
+   * correction to a different unrecognised firm is a different note and has to
+   * be said again, so comparing names is what makes "already said" mean
+   * "already said about this firm".
+   */
+  firm_note_said: string;
   firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
   open_afca_complaint: boolean | null;
   complained_to_firm: {
@@ -56,6 +69,7 @@ export interface ComplaintState {
 export function emptyState(): ComplaintState {
   return {
     sensitive_offered: false,
+    firm_note_said: "",
     firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
     open_afca_complaint: null,
     complained_to_firm: { yes: null, date: "", how: "", final_reply: null },
