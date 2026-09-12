@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 150 unit tests
+npm test         # 188 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -68,7 +68,7 @@ records nothing when it is ambiguous.
 npm test
 ```
 
-150 tests across eight files, covering the parts where being wrong matters:
+188 tests across twelve files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
 the in-flight merge, reconciliation, and the full six-step demo script end to
 end. Most of them exist because they caught a real bug — a super fund's
@@ -85,6 +85,17 @@ Insurance in superannuation (TPD)", counted as answered and exported that way �
 because `subtype` has no `showIf` guard: its validity depends on a sibling's
 *value*, which `applies()` cannot express. `reconcile` in `lib/patch.ts` is
 the one gate every write now passes through.
+
+The second group — `address-guard`, `freetext-guard`, `firm-correction`,
+`firm-name-words` — came out of driving the app in a browser, and covers a
+different class: **text landing in a field it was never about.** "I agree to
+the authority to act" set the address state to ACT and the assistant said it
+had noted an address; a consent sentence typed while the product was the
+question was filed as the product name. Both write something into a document
+someone signs that they never said, which is the same failure
+`readContactStance` exists to prevent. The firm was also unchangeable once
+set, so a misheard or mistyped name could never be corrected — the worst
+field in the form to be stuck with.
 
 ## Scope
 
