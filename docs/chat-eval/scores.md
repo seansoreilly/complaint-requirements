@@ -361,6 +361,15 @@ commit, one Step 0, then the re-runs. Testers in the sweeps check the panel
 after each answer and re-send if a value did not land, reporting it as a
 dropped turn, not a defect.
 
+**0a8dc9b** — IMPERATIVE_ASK extended as well: run against the three real
+replies, case 8's "tell me and I'll mark it on the form" carries no options and
+no label, so `alreadyAsks` cannot see it and only the phrasing can; the two
+mechanisms are complementary, both pinned. Case 9's "I'll then draft the
+complaint text for you to check" is deliberately left uncovered — it invites
+nothing, and the lead's own fixture uses a near-identical trail-off that MUST
+get a question appended; no phrasing rule separates them. Agreed: recorded as
+cosmetic, no rule.
+
 **Running strict tally**: passed 0 · cleared once 0 · sweep hash pending the
-retry commit on top of 5490982. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+retry commit on top of 0a8dc9b. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
 defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.
