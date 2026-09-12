@@ -181,6 +181,17 @@ describe("the length cap applies whichever way the text arrives", () => {
     expect(result.outcome.fair_outcome.length).toBe(NARRATIVE_MAX);
   });
 
+  it("caps an over-long draft the person approves", () => {
+    // The draft card is a textarea the person can edit before approving, so
+    // an approved draft is typed text like any other.
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.complaint.narrative = tooLong;
+    next.drafts.narrative = "";
+    const result = reconcile(previous, next, (p) => p === "complaint.narrative");
+    expect(result.complaint.narrative.length).toBe(NARRATIVE_MAX);
+  });
+
   it("leaves text within the limit alone", () => {
     const previous = emptyState();
     const next = structuredClone(previous);

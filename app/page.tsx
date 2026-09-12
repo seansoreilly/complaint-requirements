@@ -131,7 +131,10 @@ export default function Page() {
         next.outcome.fair_outcome = text;
         next.drafts.fair_outcome = "";
       }
-      return next;
+      // The person can rewrite a draft before approving it, so what lands here
+      // is typed text and gets the same treatment as the form panel's.
+      const path = kind === "narrative" ? "complaint.narrative" : "outcome.fair_outcome";
+      return reconcile(previous, next, (p) => p === path);
     });
     setMessages((previous) => [
       ...previous,

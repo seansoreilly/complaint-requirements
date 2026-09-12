@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { NARRATIVE_MAX } from "@/lib/schema";
 
 /**
  * A proposal held for approval. The assistant writes here; only the person's
@@ -29,6 +30,9 @@ export function DraftCard({
         value={text}
         onChange={(event) => setText(event.target.value)}
         rows={7}
+        // The card invites rewriting, so the same limit the form panel keeps
+        // applies here.
+        maxLength={NARRATIVE_MAX}
         className="w-full rounded-xl border border-afca-line bg-white px-3 py-2.5 text-xs leading-relaxed text-afca-navy outline-none focus:border-afca-blue"
       />
       <div className="mt-2 flex items-center gap-2">

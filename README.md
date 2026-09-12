@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 125 unit tests
+npm test         # 150 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -30,7 +30,7 @@ it, applies it, and decides what is still missing.
 | File | Role |
 |---|---|
 | `lib/schema.ts` | The form as data — stages, fields, branch rules. The prompt and the UI both derive from this, so they cannot drift. |
-| `lib/patch.ts` | Zod validation, date/enum coercion, deep merge. Nothing reaches the state unvalidated. |
+| `lib/patch.ts` | Zod validation, date/enum coercion, deep merge, and `reconcile` — the one gate every write passes through, clearing answers a later change has made inapplicable. Nothing reaches the state unvalidated. |
 | `lib/next.ts` | What is missing and what to ask next, honouring branches. Never gates progress. |
 | `lib/directory.ts` | Fuzzy firm lookup in code. The model proposes a name; code assigns the member number. |
 | `lib/prompt.ts` | System prompt, generated from the schema. |
@@ -68,12 +68,23 @@ records nothing when it is ambiguous.
 npm test
 ```
 
-125 tests across seven files, covering the parts where being wrong matters:
+150 tests across eight files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
-the in-flight merge, and the full six-step demo script end to end. Most of them
-exist because they caught a real bug — a super fund's insurance filed as
-"General insurance", "No, I haven't complained" read as *yes*, `31 February`
-accepted as a date, a stray word stored as an account number.
+the in-flight merge, reconciliation, and the full six-step demo script end to
+end. Most of them exist because they caught a real bug — a super fund's
+insurance filed as "General insurance", "No, I haven't complained" read as
+*yes*, `31 February` accepted as a date, a stray word stored as an account
+number.
+
+`reconcile.test.ts` is the newest group, and it covers one class in
+particular: **a rule enforced where the model writes but not where the person
+does.** The model's patches pass through `cleanPatch`; text typed into the form
+panel or a draft card does not, so limits held on one path and not the other.
+Switching the service type left the old product on the form — "Credit /
+Insurance in superannuation (TPD)", counted as answered and exported that way —
+because `subtype` has no `showIf` guard: its validity depends on a sibling's
+*value*, which `applies()` cannot express. `reconcile` in `lib/patch.ts` is
+the one gate every write now passes through.
 
 ## Scope
 
