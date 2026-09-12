@@ -136,9 +136,17 @@ function namedFirmCandidate(text: string, asked: boolean): string | null {
   const words = value.split(/\s+/);
 
   // An explicit "with/about <Name>" is unambiguous however long the sentence,
-  // so it is checked before the length guard.
-  const trailing = /(?:with|about|against|fund,|bank,|called)\s+([A-Z][A-Za-z&'’.-]*(?:\s+[A-Z][A-Za-z&'’.-]*){0,3})$/.exec(value);
-  if (trailing) return trailing[1];
+  // so it is checked before the length guard. The name starts with a
+  // capitalised word; the words after it may be connectors, because most real
+  // firm names have one — "Bank of Queensland", "Bendigo and Adelaide Bank".
+  // Demanding a capital on every word rejected those outright, and the person
+  // was simply asked the same question again with no reason given.
+  const NAME_WORD = "[A-Z][A-Za-z&'’.-]*";
+  const CONNECTOR = "(?:of|and|the|for)(?:\\s+(?:of|and|the|for))*";
+  const trailing = new RegExp(
+    `(?:with|about|against|fund,|bank,|called)\\s+(${NAME_WORD}(?:\\s+${CONNECTOR}\\s+${NAME_WORD}|\\s+${NAME_WORD}){0,3})$`,
+  ).exec(value);
+  if (trailing) return trailing[1].trim();
 
   if (words.length > 6) return null;
 
@@ -308,11 +316,15 @@ function humanDate(iso: string): string {
 }
 
 function draftNarrative(state: ComplaintState, text: string): string {
-  const firmName = state.firm.name || "the financial firm";
+  const firmName = state.firm.name;
   const parts: string[] = [];
-  parts.push(`My complaint is about ${firmName}.`);
+  // No opening line at all when the firm is not known yet. The placeholder it
+  // used to fall back to — "My complaint is about the financial firm." — read
+  // as an unfilled template in a draft the person is invited to approve onto
+  // their own complaint.
+  if (firmName) parts.push(`My complaint is about ${firmName}.`);
   parts.push(text.trim().replace(/\s+/g, " "));
-  if (state.complained_to_firm.yes === true) {
+  if (state.complained_to_firm.yes === true && firmName) {
     const when = state.complained_to_firm.date ? ` on ${humanDate(state.complained_to_firm.date)}` : "";
     const how = state.complained_to_firm.how ? ` by ${state.complained_to_firm.how.toLowerCase()}` : "";
     parts.push(`I raised this with ${firmName}${when}${how}.`);

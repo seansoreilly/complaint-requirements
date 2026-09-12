@@ -71,6 +71,28 @@ describe("a skip is not a product name", () => {
   });
 });
 
+describe("a draft written before the firm is known", () => {
+  it("does not open with an unfilled placeholder", () => {
+    // "My complaint is about the financial firm." is template text, and the
+    // draft card invites the person to approve it onto their own complaint.
+    const { state } = turn(
+      emptyState(),
+      "I was charged a fee I never agreed to and nobody will explain it to me",
+    );
+    expect(state.drafts.narrative).not.toContain("the financial firm");
+  });
+
+  it("still opens with the firm once there is one", () => {
+    const withFirm = emptyState();
+    withFirm.firm.name = "AustralianSuper";
+    const { state } = turn(
+      withFirm,
+      "I was charged a fee I never agreed to and nobody will explain it to me",
+    );
+    expect(state.drafts.narrative).toContain("AustralianSuper");
+  });
+});
+
 describe("a real answer still lands", () => {
   const history = [{ role: "assistant", content: SUBTYPE_QUESTION }];
 
