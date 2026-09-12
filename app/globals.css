@@ -53,3 +53,56 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* ------------------------------------------------------------------ *
+ * The assistant's character (components/Assistant.tsx).
+ *
+ * Every keyframe rests at its neutral pose at 0% and 100%, so the
+ * reduced-motion rule below lands on the resting frame rather than an
+ * arbitrary mid-animation one.
+ * ------------------------------------------------------------------ */
+.assistant {
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+}
+
+@keyframes assistant-blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  97% { transform: scaleY(0.1); }
+}
+@keyframes assistant-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes assistant-beam {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+/* `still` deliberately has no rules: older messages sit completely at rest. */
+.assistant-thinking .assistant-eye,
+.assistant-speaking .assistant-eye {
+  animation: assistant-blink 4.8s ease-in-out infinite;
+  transform-origin: center;
+}
+.assistant-thinking .assistant-rays {
+  animation: assistant-spin 3.6s linear infinite;
+  transform-origin: 24px 24px;
+}
+/* Finite: the greeting settles instead of pulsing while a reply is typed. */
+.assistant-speaking .assistant-face {
+  animation: assistant-beam 0.8s ease-in-out 3;
+  transform-origin: 24px 24px;
+}
+
+/* The clamp above zeroes duration but leaves looping animations running, so
+   they freeze on an arbitrary frame — a scaled or half-rotated pose that never
+   resolves. Forcing a single iteration lands them on the resting pose. */
+@media (prefers-reduced-motion: reduce) {
+  .assistant * {
+    animation-iteration-count: 1 !important;
+    animation-fill-mode: none !important;
+  }
+}

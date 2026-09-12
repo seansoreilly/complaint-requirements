@@ -108,6 +108,21 @@ describe("ensureAsk", () => {
     expect(ensureAsk(reply, emptyState())).toBe(reply);
   });
 
+  it("does not count a question stranded above a trailing note", () => {
+    // The unmatched-firm note used to be appended after the reply, pushing the
+    // question out of the tail so the turn closed on a statement. The note now
+    // goes above the reply; this guards the case either way.
+    const stranded = [
+      "Which financial firm is your complaint about?",
+      "",
+      `"Bogus Ltd" isn't in this demo's firm directory, so there's no member number.`,
+      "",
+      "The rest of the form still works.",
+    ].join("\n");
+    expect(endsWithQuestion(stranded)).toBe(false);
+    expect(ensureAsk(stranded, emptyState())).toContain("Which financial firm");
+  });
+
   it("asks for approval rather than a field when a draft is waiting", () => {
     const state = applyPatch(emptyState(), { drafts: { narrative: "A write-up." } });
     const result = ensureAsk("Here's how I'd put it.", state);

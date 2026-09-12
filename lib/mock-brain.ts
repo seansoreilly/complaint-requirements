@@ -5,7 +5,7 @@
  * script and common phrasings so the UI is fully clickable offline. Real runs
  * should set ANTHROPIC_API_KEY — see lib/model.ts.
  */
-import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, findField } from "./schema";
+import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, STAGES, findField } from "./schema";
 import { type ComplaintPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
 import { groupedWithNext, missingFor } from "./next";
@@ -14,6 +14,43 @@ import { questionFor } from "./questions";
 export interface BrainResult {
   reply: string;
   patch: ComplaintPatch;
+}
+
+/**
+ * A structural stand-in for `ChatTurn` (declared in lib/model.ts, which
+ * imports this module). Duplicating the shape here avoids a circular type
+ * dependency between the two files.
+ */
+type HistoryTurn = { role: string; content: string };
+
+/**
+ * Which field, if any, did the assistant's last message ask about?
+ *
+ * `questionFor` is a deterministic per-field template, so this is an exact
+ * reverse lookup rather than a fuzzy guess: build the map by generating the
+ * question for every known field against the current state and matching the
+ * assistant's text against it verbatim. That keeps the lookup honest as the
+ * templates change, instead of hand-copying question strings that would rot.
+ *
+ * `composeReply` joins the question in with an acknowledgement line and a
+ * "N things left" footer (see composeReply below), so the question is rarely
+ * the whole message — it is matched line by line instead. A grouped question
+ * ("could you give me your X, Y?") or a draft-approval message has no single
+ * field behind it, so those turns are left unmatched and fall through to the
+ * groupedWithNext fallback, same as the first turn.
+ */
+function askedAboutPath(history: HistoryTurn[] | undefined, state: ComplaintState): string | undefined {
+  if (!history || history.length === 0) return undefined;
+  const lastAssistant = [...history].reverse().find((turn) => turn.role === "assistant");
+  if (!lastAssistant) return undefined;
+  const lines = lastAssistant.content.split("\n").map((line) => line.trim());
+
+  for (const stage of STAGES) {
+    for (const field of stage.fields) {
+      if (lines.includes(questionFor(field.path, field.label, state))) return field.path;
+    }
+  }
+  return undefined;
 }
 
 const NEGATIVE = /\b(no|nope|haven'?t|have not|didn'?t|did not|never|none)\b/i;
@@ -244,12 +281,18 @@ export function mockBrain(
   state: ComplaintState,
   message: string,
   focusPath?: string,
+  history?: HistoryTurn[],
 ): BrainResult {
   const patch: ComplaintPatch = {};
   const text = message.trim();
   const captured: string[] = [];
+  // What the assistant actually asked about last turn, when the message
+  // doesn't carry its own focus. This must win over "whatever the form still
+  // needs" — otherwise an answer to an already-satisfied field gets rerouted
+  // to whatever question happens to be next, and lands on the wrong path.
+  const historyTarget = askedAboutPath(history, state);
   const answerTargetIsFirm =
-    (focusPath ?? groupedWithNext(state)[0]?.path) === "firm.name";
+    (focusPath ?? historyTarget ?? groupedWithNext(state)[0]?.path) === "firm.name";
 
   const firm = matchFirm(text);
   if (firm && !state.firm.name) {
@@ -304,7 +347,7 @@ export function mockBrain(
     }
   }
 
-  const answerTarget = focusPath ?? groupedWithNext(state)[0]?.path;
+  const answerTarget = focusPath ?? historyTarget ?? groupedWithNext(state)[0]?.path;
 
   const date = DATE_PATTERN.exec(text);
   if (

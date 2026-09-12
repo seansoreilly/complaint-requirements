@@ -11,8 +11,13 @@ import { missingFor, nextField } from "../next";
 const TODAY = new Date("2026-09-11T00:00:00Z");
 
 /** One turn: run the brain, clean the patch, apply it — exactly as the route does. */
-function turn(state: ComplaintState, message: string, focus?: string): { state: ComplaintState; reply: string } {
-  const { reply, patch } = mockBrain(state, message, focus);
+function turn(
+  state: ComplaintState,
+  message: string,
+  focus?: string,
+  history?: { role: string; content: string }[],
+): { state: ComplaintState; reply: string } {
+  const { reply, patch } = mockBrain(state, message, focus, history);
   const { patch: cleaned } = cleanPatch(patch, TODAY);
   return { state: applyPatch(state, cleaned), reply };
 }
@@ -335,5 +340,113 @@ describe("a firm outside the demo directory does not freeze the conversation", (
     const first = nextField(state)?.path;
     state = turn(state, "I don't have an account number", "firm.reference").state;
     expect(nextField(state)?.path).not.toBe(first);
+  });
+});
+
+describe("answers route to the field just asked about, not to whatever is still missing", () => {
+  it("applies 'no' to the AFCA question the assistant just asked, even though the form panel already answered it", () => {
+    // The person clicked "Yes" on the AFCA toggle in the form panel, which
+    // satisfies open_afca_complaint and advances "what's still missing" to
+    // consents.authority. But the assistant's last message in the transcript
+    // was still asking about AFCA, and the person's "no" is answering THAT
+    // question, not the consents one groupedWithNext would now point at.
+    //
+    // The history content is a REAL prior reply (not a hand-typed question):
+    // composeReply wraps the question inside an acknowledgement line and a
+    // "N things left" footer, so a bare-string match against the whole
+    // message would never fire in the real app. Building history from an
+    // actual mockBrain() reply is what makes this test catch that.
+    let state = applyPatch(emptyState(), {
+      firm: { name: "AustralianSuper", no_reference: true },
+      service: { type: "Superannuation" },
+    });
+    const asked = mockBrain(state, "", "open_afca_complaint");
+    expect(asked.reply).toContain("Do you already have a complaint open with AFCA?");
+    const history = [{ role: "assistant", content: asked.reply }];
+
+    // Now the form panel answers AFCA directly, moving "still missing" on to
+    // consents.authority — reproducing the state the browser bug needs.
+    state = applyPatch(state, { open_afca_complaint: true });
+
+    const { patch, reply } = mockBrain(state, "no", undefined, history);
+    expect(patch.open_afca_complaint).toBe(false);
+    // The acknowledgement must name the AFCA field that was actually
+    // answered, not misattribute the "no" to consents (the wrong-field
+    // symptom the bug produced: "I've noted your answer for authority to
+    // act consent").
+    expect(reply.toLowerCase()).not.toContain("noted your answer for authority to act consent");
+    expect(patch.consents).toBeUndefined();
+  });
+
+  it("falls back to groupedWithNext's field when history has no matching question (empty history)", () => {
+    // Same setup, but with no history at all — today's behaviour: the "no"
+    // has nowhere else to go but whatever groupedWithNext currently points at
+    // (consents.authority, since open_afca_complaint is already satisfied).
+    const state = applyPatch(emptyState(), {
+      firm: { name: "AustralianSuper", no_reference: true },
+      open_afca_complaint: true,
+    });
+    const { patch } = mockBrain(state, "no", undefined, []);
+    expect(patch.open_afca_complaint).toBeUndefined();
+    expect(patch.consents?.authority).toBe(false);
+  });
+
+  it("falls back to groupedWithNext's field when history is entirely absent (undefined)", () => {
+    const state = applyPatch(emptyState(), {
+      firm: { name: "AustralianSuper", no_reference: true },
+      open_afca_complaint: true,
+    });
+    const { patch } = mockBrain(state, "no");
+    expect(patch.open_afca_complaint).toBeUndefined();
+    expect(patch.consents?.authority).toBe(false);
+  });
+
+  it("prefers an explicit focusPath over the history-derived path", () => {
+    // The UI still knows better than a text-matched guess when it has an
+    // explicit focus (e.g. the person is typing directly into a form field's
+    // chat affordance for a different question than the last assistant turn).
+    const state = applyPatch(emptyState(), {
+      firm: { name: "AustralianSuper", no_reference: true },
+      open_afca_complaint: true,
+    });
+    const history = [
+      { role: "assistant", content: "Do you already have a complaint open with AFCA?" },
+    ];
+    const { patch } = mockBrain(state, "no", "legal_proceedings", history);
+    expect(patch.open_afca_complaint).toBeUndefined();
+    expect(patch.legal_proceedings).toBe(false);
+  });
+
+  it("does not treat a bare name as a firm when history shows a different question was asked (answerTargetIsFirm site)", () => {
+    // This is the discriminating case for the derivation at line 251
+    // (`answerTargetIsFirm`), which gates whether a bare name is trusted as
+    // a firm at all — namedFirmCandidate only fires when we actually asked
+    // for a firm. firm.name is left empty here on purpose: with an empty
+    // firm.name, groupedWithNext(state)[0].path is ALWAYS "firm.name" (it is
+    // the first required field in form order), so that alone would make
+    // this test pass whether or not line 251 consults history. What
+    // actually exercises the fix is that history's last question was about
+    // something else entirely (legal_proceedings) — if line 251 correctly
+    // prefers that history-derived path over groupedWithNext's fallback,
+    // "Zorbo Financial" is not recognised as an answer to "which firm" and
+    // is left uncaptured.
+    const state = emptyState();
+    const history = [
+      { role: "assistant", content: "Is there any court case or legal action going on about this?" },
+    ];
+    const { patch } = mockBrain(state, "Zorbo Financial", undefined, history);
+    expect(patch.firm).toBeUndefined();
+  });
+
+  it("does treat a bare name as a firm when history shows the firm question was asked (answerTargetIsFirm site)", () => {
+    // The positive counterpart: history's last question was "which firm",
+    // via a real prior mockBrain() reply, so the bare name is trusted.
+    const state = emptyState();
+    const asked = mockBrain(state, "", "firm.name");
+    expect(asked.reply).toContain("Which financial firm is your complaint about?");
+    const history = [{ role: "assistant", content: asked.reply }];
+
+    const { patch } = mockBrain(state, "Zorbo Financial", undefined, history);
+    expect(patch.firm?.name).toBe("Zorbo Financial");
   });
 });

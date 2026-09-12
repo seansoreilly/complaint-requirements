@@ -87,6 +87,23 @@ function resolveFirm(state: ComplaintState): {
   };
 }
 
+/**
+ * Should this turn's reply carry the unmatched-firm note?
+ *
+ * The note describes the state, not the turn, so it is recomputed every time —
+ * left alone it gets appended to every reply for the rest of the conversation.
+ * The route is stateless, so the only record of having said it is what the
+ * assistant has already said: repeat it only if it is not already in history.
+ *
+ * A user echoing the text back does not count as having been told. History is
+ * capped at 20 turns upstream, so in a very long conversation the note can
+ * surface once more after it scrolls out — rare, and harmless for a demo.
+ */
+export function shouldSayNote(note: string | null, history: ChatTurn[]): boolean {
+  if (!note) return false;
+  return !history.some((turn) => turn.role === "assistant" && turn.content.includes(note));
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   let body: ChatRequest;
   try {
@@ -139,10 +156,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const state = resolvedAfter.state;
 
   const note = resolvedAfter.note;
+  // The note is context, so it goes above the reply rather than after it: tacked
+  // on the end it lands below the question and the turn closes on a statement,
+  // leaving the person with nothing to answer.
+  const sayNote = shouldSayNote(note, history);
+  const withNote = sayNote ? `${note}\n\n${turn.reply}` : turn.reply;
+
   // The conversation must not dead-end while the form still needs something.
-  // Applied after the note is joined on, so an ambiguous-firm note that already
-  // asks "Which one is it?" counts as this turn's question.
-  const reply = ensureAsk(note ? `${turn.reply}\n\n${note}` : turn.reply, state);
+  // Applied to the text actually being sent, so an ambiguous-firm note that asks
+  // "Which one is it?" counts as this turn's question — but only when the note is
+  // genuinely included, since a note suppressed as a repeat asks nothing.
+  const reply = ensureAsk(withNote, state);
 
   return NextResponse.json({
     reply,

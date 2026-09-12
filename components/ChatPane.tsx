@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { type FieldDef } from "@/lib/schema";
+import { Assistant } from "@/components/Assistant";
 
 export interface Message {
   role: "user" | "assistant";
@@ -43,24 +44,31 @@ export function ChatPane({
   return (
     <section className="chat flex h-full min-h-0 flex-col bg-white">
       <div className="flex-1 space-y-4 overflow-y-auto p-5">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
-          >
-            <div
-              className={
-                message.role === "user"
-                  ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
-                  : "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy"
-              }
-            >
-              {message.content}
+        {messages.map((message, index) => {
+          const isUser = message.role === "user";
+          // Only the newest assistant message animates; older ones go fully
+          // still, so a long conversation isn't a column of bobbing characters.
+          const isLatestAssistant =
+            !isUser && index === messages.length - 1 && !pending;
+          return (
+            <div key={index} className={isUser ? "flex justify-end" : "flex justify-start gap-2"}>
+              {!isUser && <Assistant state={isLatestAssistant ? "speaking" : "still"} />}
+              <div
+                className={
+                  isUser
+                    ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
+                    : `max-w-[calc(85%-2.5rem)] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
+                }
+              >
+                {message.content}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {pending && (
-          <div className="flex justify-start">
+          <div className="flex justify-start gap-2">
+            <Assistant state="thinking" />
+            {/* The pose is decorative; the word stays as the accessible signal. */}
             <div className="rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm text-afca-blue">
               Thinking…
             </div>
