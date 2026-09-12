@@ -56,6 +56,9 @@ const NEGATIVE = /\b(no|nope|haven'?t|have not|didn'?t|did not|never|none)\b/i;
 const AFFIRMATIVE = /\b(yes|yeah|yep|yup|correct|that'?s right|i did|i have|agree|agreed|ok|okay|sure|fine|confirm|confirmed|consent|happy to|go ahead)\b/i;
 const UNSURE = /\b(not sure|unsure|don'?t know|dunno|no idea|maybe)\b/i;
 const SKIP = /\b(skip|later|rather not|prefer not|come back)\b/i;
+/** Someone putting right something they or the assistant got wrong. */
+const CORRECTION =
+  /\b(actually|sorry,?|i meant|i mean|no,? it'?s|not that|instead of|rather than|correction|my mistake|wrong|should (?:be|have been)|change (?:it|that) to|it'?s not)\b/i;
 
 const DATE_PATTERN =
   /\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s+\d{2,4})?|\d{1,2}[/\-.]\d{1,2}(?:[/\-.]\d{2,4})?|\d{4}-\d{2}-\d{2})\b/i;
@@ -130,8 +133,20 @@ function namedFirmCandidate(text: string, asked: boolean): string | null {
   return null;
 }
 
-function matchFirm(text: string): { name: string; member: string; serviceType: string } | null {
+/**
+ * The first directory firm named in the text.
+ *
+ * `exclude` skips one firm by name, for a correction: "actually it was Westpac,
+ * not CBA" names both, and the one being corrected away from is the one already
+ * on the form. Without that, the old name matches first and the correction
+ * silently does nothing.
+ */
+function matchFirm(
+  text: string,
+  exclude?: string,
+): { name: string; member: string; serviceType: string } | null {
   for (const firm of FIRMS) {
+    if (exclude && firm.name === exclude) continue;
     const names = [firm.name, ...firm.aliases];
     for (const candidate of names) {
       const pattern = new RegExp(`\\b${candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
@@ -293,10 +308,33 @@ export function mockBrain(
   const answerTargetIsFirm =
     (focusPath ?? historyTarget ?? groupedWithNext(state)[0]?.path) === "firm.name";
 
-  const firm = matchFirm(text);
-  if (firm && !state.firm.name) {
+  // A firm already on the form is only replaced on a clear signal: the person
+  // correcting themselves, or answering a question about the firm. Without
+  // that, "I also bank with CBA" would hijack a complaint about a super fund.
+  // With no exception at all, though, a misheard or mistyped firm could never
+  // be put right in chat — and the wrong firm is the worst field to be stuck
+  // with, so an explicit correction has to win.
+  const correcting = CORRECTION.test(text);
+  // A stored name the directory does not recognise is provisional: it is either
+  // a typo or a firm this demo does not carry, and the route has just asked
+  // which one was meant. Naming a real firm next answers that question, so it
+  // replaces the guess rather than sitting alongside it.
+  const storedFirmIsProvisional =
+    Boolean(state.firm.name) && matchFirm(state.firm.name) === null;
+  const replacingFirm =
+    Boolean(state.firm.name) && (correcting || answerTargetIsFirm || storedFirmIsProvisional);
+  // While correcting, the firm being corrected away from is not a candidate:
+  // "actually it was Westpac, not CBA" names the old firm only to reject it.
+  const firm = matchFirm(text, replacingFirm ? state.firm.name : undefined);
+
+  if (firm && (!state.firm.name || (replacingFirm && firm.name !== state.firm.name))) {
     patch.firm = { name: firm.name };
-    captured.push(`the firm (${firm.name})`);
+    // The old firm's member number must not survive the name change; the route
+    // re-resolves and fills the right one.
+    if (state.firm.afca_member_no) patch.firm.afca_member_no = "";
+    captured.push(
+      state.firm.name ? `the firm (now ${firm.name})` : `the firm (${firm.name})`,
+    );
   } else if (!state.firm.name && !firm) {
     // They may have named a firm this demo's directory does not carry. Take it
     // at face value rather than asking the same question forever; the route

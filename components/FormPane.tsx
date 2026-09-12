@@ -203,6 +203,26 @@ function Field({
               ))}
             </select>
           )}
+          {/* Only Superannuation and Credit have a suggestion list, but "What
+              went wrong" is required for all six service types — without this
+              the field is unfillable, and the form uncompletable, for the other
+              four. Free text here mirrors what the subtype field already does
+              for the service types that are not modelled in full. */}
+          {!suggestions && (
+            <input
+              type="text"
+              placeholder="Type what went wrong, then press Enter"
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                const entry = event.currentTarget.value.trim();
+                if (entry === "") return;
+                onEdit(field.path, [...new Set([...list, entry])]);
+                event.currentTarget.value = "";
+              }}
+              className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
+            />
+          )}
         </div>
       );
     }
