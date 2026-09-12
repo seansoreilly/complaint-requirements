@@ -61,3 +61,26 @@ known hash. It is a legitimate way to FIND a defect and to prove a fix — defec
 Both failures were the harness being wrong, not the app. That is the failure
 mode to expect from a script: it asserts the shape of a conversation, and the
 conversation is allowed to change shape.
+
+## Two things to know about the code
+
+`verify_predicate.py` checks `reoffers_cover_type` against five real replies —
+the two defects it must catch (16's bare list, 22's paraphrased re-ask) and the
+two correct replies it must not flag (naming the options while declining to
+press, and the issue-category question). Run it after touching that function:
+
+```
+python3 docs/chat-eval/harness/verify_predicate.py
+```
+
+It took four attempts to get that predicate right, and every wrong version
+passed a casual reading. An options-only count flagged a correct reply; adding a
+"not sure" guard then missed both defects, because both said "or if you're not
+sure, that's fine" in the very sentence that asked; a per-sentence test still
+missed the bare list, where the question and the options are separate sentences.
+The working version reads a two-sentence window and asks whether it contains a
+question.
+
+The timeout counter accumulates per stretch, not per `Chat`. If you add a
+`Chat` before the mid-script `timeouts +=` lines, check the arithmetic — it is
+easy to make it silently undercount.

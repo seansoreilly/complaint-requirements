@@ -242,7 +242,16 @@ the draft in a later one.
 ignored — date, chasing, `declined`, "saved"):** a prompt line is a request; if
 the constraint matters, the route enforces it and the prompt line is the
 courtesy. When a fix is proposed as "one prompt line", ask what the route does
-if the model ignores it.
+if the model ignores it. Boundary: the route can enforce what it composes or
+writes — a question it appends (defect 16), text reaching the form (20), a false
+"saved" sentence (the 29991ee correction) — but it cannot stop the model raising
+a subject (defect 22). For that class the prompt is all there is and the sweeps
+are the enforcement: an unprompted re-raise of a declined field is a C-2
+deduction.
+
+Step 0 evidence for the sweep hash: `docs/chat-eval/step0-9ae75bf.txt` (hash at
+the top, reply and state per check; fourth consecutive 8/8 when regenerated),
+committed at 59c4551 with the harness README tightened.
 
 **A reusable idea from defect 19:** when a code guard is only reachable through
 a state the model never produces (it asks rather than guesses), reach it through
