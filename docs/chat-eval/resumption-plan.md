@@ -193,11 +193,31 @@ No self-scoring. No summaries in place of transcript.
 - `lodging_for: "self"` pre-ticked is by design (single-complainant scope); not a
   deduction. Note it if a panel screenshot is reviewed.
 
+## Status update — 12 September 2026, phase 2 opened early
+
+The spend limit was raised the same night. Step 0 ran on 39c38bb and all four
+checks passed (see the Phase 2 block in `scores.md`); 39c38bb is the sweep hash.
+Fix B's Step 0 check was weak (no coaching menu was offered), so persona 18 is
+the real test and runs early in Step 1.
+
 ## Known edges, documented rather than fixed
+
+- A turn can fail with "The assistant is unavailable: Request timed out." while
+  the turns either side return in 3-5 s. Transient. Re-send the same message;
+  record it in the report; it is not a finding unless it recurs on the same turn.
 
 - ~1% of decline turns: a parse failure on the very turn the person declines
   loses the patch carrying `declined`, so the field is asked once more. If a sweep
-  shows it, score it and the lead adds the heuristic.
+  shows it, score it and the lead adds the heuristic. Count N in DECLINE TURNS as
+  batches accumulate; do not close it on a clean batch of two declining personas
+  (four to six decline turns is far too small for "not observed" to mean
+  anything). See defects.md under defect 16.
+
+- Concurrency does not slow the app. Measured on 12 September with nine testers
+  running at once: turn latency 3-4 s, identical to single-user, no non-200
+  responses, and 202 consecutive turns with zero parse failures. So a slow or
+  failed turn during a sweep is not "the other testers" — investigate it as
+  itself.
 - The assistant sometimes speaks for AFCA's process ("AFCA can sort that out with
   Latitude from the account number"). Not a prediction of a decision; watch that
   it never becomes one.

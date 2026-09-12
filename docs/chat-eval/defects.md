@@ -289,6 +289,15 @@ Measured over ~310 live turns across rounds 2 and 3: 2 occurrences before the
 fix, 1 after. That is roughly 2% down to roughly 1%, on a sample too small to
 call the difference real. The model still omits `reply` sometimes.
 
+Later observation, recorded with its boundaries rather than as a new rate: since
+log line 682 — before the phase-2 batch — **202 consecutive turns on 39c38bb
+with zero parse failures**, under nine-way concurrency, no non-200 responses,
+turn latency unchanged at 3-4s. That is a good sign and not a new number. Zero
+in 202 bounds the rate at roughly under 1.5% with any confidence, which is not
+distinguishable from the ~1% above, so the figure stands. The whole-run total
+(8 failures in 673 turns) must NOT be quoted as the current rate: it spans
+pre-fix builds and would flatter this one.
+
 What did change is what the person sees. With the reply empty, `ensureAsk`
 returns the outstanding question on its own — verified: a mid-form omission now
 renders as "Which financial firm is your complaint about? A name, ABN or ACN all
@@ -463,6 +472,19 @@ to have `ensureAsk` skip a field whose `questionFor` text already appears in
 the last assistant turn — the same shape as `shouldSayNote` in the route. Not
 worth the code on current evidence; noted so the next person does not have to
 rediscover it.
+
+**How to close it, and how not to.** Count N in DECLINE TURNS, not personas: a
+persona that declines twice contributes two. Record "not observed in N decline
+turns" as the batches accumulate. Do not close it because a batch of personas
+that decline came back clean — two such personas are perhaps four to six decline
+turns, and at anything near 1% the expected number of failures in that sample is
+well under one, so "not observed" there is evidence of nothing. It closes as
+observed-not-reproduced only once N is large enough that a 1%-ish edge would
+probably have shown, which means a few hundred decline turns — more than the two
+sweeps will produce. In practice it stays open and documented through phase 2.
+That is the right outcome: it is a known, bounded, rare re-ask rather than a
+data-integrity risk, and the heuristic above is cheap to add the moment a
+transcript actually shows it.
 
 **Verification note.** The first regression test passed with the fix reverted.
 Its reply ended *"Shall we move on to the review step?"*, so `endsWithQuestion`
