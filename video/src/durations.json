@@ -1,13 +1,13 @@
 {
-  "title": 6.296,
-  "01-empty": 10.998,
-  "02-story-typed": 4.676,
-  "03-form-filled": 14.158,
-  "05-draft-card": 6.113,
-  "06-draft-approved": 8.725,
-  "07-dont-know": 8.594,
+  "title": 4.127,
+  "01-empty": 8.96,
+  "02-story-typed": 5.669,
+  "03-form-filled": 11.546,
+  "05-draft-card": 7.837,
+  "06-draft-approved": 9.509,
+  "07-dont-know": 7.941,
   "09-skipped": 7.236,
-  "11-review": 11.598,
-  "12-review-export": 5.564,
-  "outro": 11.285
+  "11-review": 10.762,
+  "12-review-export": 5.016,
+  "outro": 3.762
 }

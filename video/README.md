@@ -12,13 +12,24 @@ npm run capture                 # drives the app, writes public/shots/*.png
 npm run render                  # writes out/explainer.mp4
 ```
 
-The narration mp3s are committed, so a render needs no API key. Only regenerate
-them if you change the script:
+### Changing what it says
+
+Edit `SCRIPT.md`, then:
 
 ```bash
-ELEVENLABS_API_KEY=... node voice.mjs --force        # all clips
-ELEVENLABS_API_KEY=... node voice.mjs 01-empty       # just one
+node show-script.mjs                                 # check it parses, see the word count
+ELEVENLABS_API_KEY=... node voice.mjs --force        # regenerate narration
+node retime.mjs                                      # rebalance beats back to 120s
+node recaption.mjs                                   # push captions into scenes.ts
+npm run render
 ```
+
+Pass clip ids to `voice.mjs` to regenerate only what changed (`node voice.mjs
+01-empty outro`) — it is much cheaper than `--force`. The mp3s are committed, so
+a plain render needs no API key.
+
+The two cards' on-screen text lives in `Explainer.tsx`, not in `scenes.ts`; the
+audio for them comes from `SCRIPT.md` like everything else.
 
 `npm run studio` opens the Remotion preview if you want to retime a beat.
 
@@ -26,8 +37,12 @@ ELEVENLABS_API_KEY=... node voice.mjs 01-empty       # just one
 
 | File | Role |
 |---|---|
+| `SCRIPT.md` | **The words.** Narration and on-screen captions per beat — the one file to edit to change what the video says. |
+| `script.mjs` | Parses `SCRIPT.md`. Everything else reads the words from here, so nothing is retyped into code. |
 | `capture.mjs` | Drives the running app through `docs/demo-script.md` with Playwright and saves a numbered screenshot at each beat. |
-| `voice.mjs` | The narration script. Generates it with ElevenLabs and measures each clip into `src/durations.json`. |
+| `voice.mjs` | Generates the narration with ElevenLabs and measures each clip into `src/durations.json`. |
+| `retime.mjs` | Recomputes beat durations from the measured clips so the total stays exactly 120s. |
+| `recaption.mjs` | Copies the on-screen captions from `SCRIPT.md` into `scenes.ts`. |
 | `src/scenes.ts` | The storyboard — shot, caption, narration clip and duration per beat. The single place to edit pacing or wording. |
 | `src/Explainer.tsx` | Title card, the captioned beats with a slow push, and the closing card. |
 | `src/Root.tsx` | Registers the composition, asserts the storyboard totals exactly 120s, and asserts no beat is shorter than its narration. |

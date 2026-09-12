@@ -183,7 +183,7 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
             marginBottom: 34,
           }}
         >
-          A chat that fills in a form
+          A complaint form you can talk your way through
         </div>
         <div
           style={{
@@ -207,7 +207,7 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
             lineHeight: 1.4,
           }}
         >
-          The complaint form is the schema. The conversation is the interface.
+          Nobody should give up on a complaint because the form asked too much.
         </div>
       </div>
     </AbsoluteFill>
@@ -243,29 +243,18 @@ const Outro: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
         <div
           style={{
             fontFamily: FONT,
-            fontSize: 66,
+            fontSize: 58,
             fontWeight: 800,
-            letterSpacing: -1.8,
+            letterSpacing: -1.6,
             color: "#ffffff",
-            lineHeight: 1.14,
-          }}
-        >
-          The model never owns the state.
-        </div>
-        <div
-          style={{
-            fontFamily: FONT,
-            fontSize: 31,
-            fontWeight: 400,
-            color: "rgba(255,255,255,0.82)",
-            marginTop: 28,
-            lineHeight: 1.5,
-            maxWidth: 1250,
+            lineHeight: 1.18,
+            maxWidth: 1440,
             marginLeft: "auto",
             marginRight: "auto",
           }}
         >
-          It proposes a patch. Code validates it and decides what to ask next.
+          Nobody should have to give up on a complaint because the form asked too much of
+          them.
         </div>
         <div
           style={{
