@@ -21,7 +21,7 @@
  * field already held text and this is an edit.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { POST } from "../../app/api/chat/route";
+import { POST, correctSavedClaim } from "../../app/api/chat/route";
 import { emptyState } from "../schema";
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
@@ -112,5 +112,74 @@ describe("a proposal cannot skip the card", () => {
     expect(body.state.legal_proceedings).toBe(false);
     expect(body.state.drafts.narrative).toBe("");
     expect(body.state.complaint.narrative).toBe("");
+  });
+});
+
+/**
+ * A reply must not claim text is on the form while it waits on the card.
+ *
+ * With the guard in place the model still said "I've saved that as your
+ * complaint description" — it believed it had written the field, because it had
+ * tried to. The prompt asks it not to; live, it said it anyway. The route knows
+ * it diverted the write, so the route corrects the sentence.
+ */
+describe("correcting a false saved claim", () => {
+  beforeEach(() => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    create.mockReset();
+  });
+
+  it("replaces the claim and keeps the rest of the turn", () => {
+    const reply =
+      "Thanks — I've saved that as your complaint description.\n\n" +
+      "Next: have you raised this with AustralianSuper as a complaint yourself?";
+    const out = correctSavedClaim(reply);
+    expect(out).toContain("on the card for you to check");
+    expect(out).not.toMatch(/saved/i);
+    // The question it asked next must survive untouched.
+    expect(out).toContain("have you raised this with AustralianSuper");
+  });
+
+  it("handles the other ways it says the same thing", () => {
+    for (const claim of [
+      "I've added that to your complaint.",
+      "Locked that in.",
+      "I've recorded that as your complaint description.",
+    ]) {
+      const out = correctSavedClaim(`${claim} What happened next?`);
+      expect(out, claim).toContain("on the card for you to check");
+      expect(out, claim).toContain("What happened next?");
+    }
+  });
+
+  it("prepends the correction when the reply makes no claim at all", () => {
+    // Better a redundant sentence than a person who does not know a card is
+    // waiting for them.
+    const reply = "Does that read right to you?";
+    const out = correctSavedClaim(reply);
+    expect(out).toContain("on the card for you to check");
+    expect(out).toContain("Does that read right to you?");
+  });
+
+  it("is only applied on a turn that was actually diverted", async () => {
+    // An ordinary turn keeps its wording — the route only calls this when
+    // holdDrafts moved something.
+    const state = emptyState();
+    state.drafts.narrative = "They cancelled my cover without telling me.";
+    toolResponse({
+      reply: "Thanks — I've saved that as your complaint description. Anything else?",
+      patch: {
+        complaint: { narrative: "They cancelled my cover without telling me." },
+        drafts: { narrative: "" },
+      },
+    });
+    const body = await turn(state, "Yes that looks right");
+    expect(body.reply).toContain("saved");
+    expect(body.state.complaint.narrative).toBe("They cancelled my cover without telling me.");
   });
 });

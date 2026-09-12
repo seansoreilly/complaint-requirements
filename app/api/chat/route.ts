@@ -121,12 +121,13 @@ function resolveFirm(state: ComplaintState): {
  * edit the person asked for. Panel typing never comes through here, and card
  * approval is client-side, so neither is affected.
  */
-function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): void {
+function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): boolean {
   const pairs = [
     ["narrative", patch.complaint?.narrative, incoming.complaint.narrative],
     ["fair_outcome", patch.outcome?.fair_outcome, incoming.outcome.fair_outcome],
   ] as const;
 
+  let diverted = false;
   for (const [key, proposed, existing] of pairs) {
     if (typeof proposed !== "string" || proposed.trim().length === 0) continue;
     // An approval: there was something to approve.
@@ -137,7 +138,32 @@ function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): void {
     patch.drafts = { ...patch.drafts, [key]: proposed };
     if (key === "narrative" && patch.complaint) delete patch.complaint.narrative;
     if (key === "fair_outcome" && patch.outcome) delete patch.outcome.fair_outcome;
+    diverted = true;
   }
+  return diverted;
+}
+
+/**
+ * A reply that claims text is saved when it is only proposed.
+ *
+ * When `holdDrafts` diverts a write, the model believed it had put the text on
+ * the form and says so — "I've saved that as your complaint description" —
+ * while the text is actually sitting on the card awaiting approval. The prompt
+ * asks it not to; on the live path it said it anyway, which is the usual result
+ * of asking rather than enforcing. The route knows what it did, so the route
+ * corrects the claim. Only the false sentence is replaced; the rest of the
+ * reply, including whatever it asks next, is left alone.
+ */
+const SAVED_CLAIM =
+  /\b(?:I(?:'ve| have)?\s+)?(?:saved|added|recorded|locked(?:\s+that)?\s+in|put)\b[^.!?]*\b(?:that|this|it)\b[^.!?]*[.!?]/i;
+
+export function correctSavedClaim(reply: string): string {
+  const replacement =
+    "I've put that on the card for you to check — use it, edit it, or discard it.";
+  if (!SAVED_CLAIM.test(reply)) {
+    return `${replacement}\n\n${reply}`.trim();
+  }
+  return reply.replace(SAVED_CLAIM, replacement);
 }
 
 export function shouldSayNote(
@@ -200,7 +226,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Whether the note has been said is a fact about what this route did, not
   // something the model gets a view on.
   delete patch.firm_note_said;
-  holdDrafts(patch, resolvedBefore.state);
+  const heldForApproval = holdDrafts(patch, resolvedBefore.state);
   const applied = applyPatch(resolvedBefore.state, patch);
 
   // The firm may have only just been named, so resolve again after applying.
@@ -225,7 +251,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Applied to the text actually being sent, so an ambiguous-firm note that asks
   // "Which one is it?" counts as this turn's question — but only when the note is
   // genuinely included, since a note suppressed as a repeat asks nothing.
-  const reply = ensureAsk(withNote, state);
+  const corrected = heldForApproval ? correctSavedClaim(withNote) : withNote;
+  const reply = ensureAsk(corrected, state);
 
   return NextResponse.json({
     reply,
