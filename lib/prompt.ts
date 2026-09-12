@@ -118,12 +118,23 @@ code will look it up. If it is not in the demo directory, say so plainly — do 
 guess a member number.`;
   }
   const lines = [
-    `Directory facts for the resolved firm (these are the ONLY firm details you may state):`,
+    `Directory facts for the firm resolved so far. These are the only ABN, member`,
+    `number or contact details you may state — never any others, and never ones you`,
+    `have worked out for yourself:`,
     `- Name: ${firm.name}`,
     `- ABN: ${firm.abn}`,
     `- AFCA member number: ${firm.afca_member_no}`,
     `- Complaints phone: ${firm.complaint_contact.phone}`,
     `- Complaints email: ${firm.complaint_contact.email}`,
+    ``,
+    // The rule above exists to stop invented member numbers, and was being read
+    // as "this firm is now fixed". Someone who names the wrong bank and corrects
+    // themselves must be able to: put the new NAME in the patch and code looks it
+    // up, exactly as it did for this one.
+    `This does NOT lock the complaint to ${firm.name}. If they say they named the`,
+    `wrong firm, put the corrected name in firm.name — code resolves it and supplies`,
+    `the new number. Never refuse a correction, and never carry the old firm's`,
+    `number across to it.`,
   ];
   if (state.complained_to_firm.yes === false) {
     lines.push(
