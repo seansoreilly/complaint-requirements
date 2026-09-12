@@ -329,6 +329,17 @@ export function reconcile(
     if (!touched("complaint.issues")) next.complaint.issues = [];
   }
 
+  // The long free-text boxes. cleanPatch caps these on the way in from the model,
+  // but a person typing or pasting into the form panel never goes through it,
+  // so the cap has to live here too — otherwise the limit the schema declares
+  // holds on one write path and not the other.
+  if (next.complaint.narrative.length > NARRATIVE_MAX) {
+    next.complaint.narrative = next.complaint.narrative.slice(0, NARRATIVE_MAX);
+  }
+  if (next.outcome.fair_outcome.length > NARRATIVE_MAX) {
+    next.outcome.fair_outcome = next.outcome.fair_outcome.slice(0, NARRATIVE_MAX);
+  }
+
   return next;
 }
 

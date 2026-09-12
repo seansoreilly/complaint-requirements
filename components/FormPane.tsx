@@ -3,6 +3,7 @@
 import {
   type ComplaintState,
   type FieldDef,
+  NARRATIVE_MAX,
   SERVICE_ISSUES,
   SERVICE_SUBTYPES,
   STAGES,
@@ -209,6 +210,9 @@ function Field({
           value={typeof value === "string" ? value : ""}
           onChange={(event) => onEdit(field.path, event.target.value)}
           rows={4}
+          // Stops the typing at the limit rather than letting someone write
+          // past it and silently losing the tail on the way into the state.
+          maxLength={NARRATIVE_MAX}
           className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
         />
       );

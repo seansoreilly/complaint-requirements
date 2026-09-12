@@ -7,7 +7,7 @@ import { applyPatch, cleanPatch, emptyState, reconcile } from "../patch";
 import { applyServerDelta } from "../merge-state";
 import { missingFor } from "../next";
 import { exportJson, summarise } from "../export";
-import type { ComplaintState } from "../schema";
+import { NARRATIVE_MAX, type ComplaintState } from "../schema";
 
 function apply(state: ComplaintState, raw: Parameters<typeof cleanPatch>[0]): ComplaintState {
   return applyPatch(state, cleanPatch(raw).patch);
@@ -154,6 +154,39 @@ describe("reconcile on a direct form edit", () => {
     const result = reconcile(previous, next, (p) => p === "complained_to_firm.yes");
     expect(result.complained_to_firm.date).toBe("");
     expect(result.complained_to_firm.how).toBe("");
+  });
+});
+
+describe("the length cap applies whichever way the text arrives", () => {
+  const tooLong = "x".repeat(NARRATIVE_MAX + 500);
+
+  it("caps a narrative that arrives through a patch", () => {
+    const state = apply(emptyState(), { complaint: { narrative: tooLong } });
+    expect(state.complaint.narrative.length).toBe(NARRATIVE_MAX);
+  });
+
+  it("caps a narrative typed straight into the form", () => {
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.complaint.narrative = tooLong;
+    const result = reconcile(previous, next, (p) => p === "complaint.narrative");
+    expect(result.complaint.narrative.length).toBe(NARRATIVE_MAX);
+  });
+
+  it("caps a fair outcome typed straight into the form", () => {
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.outcome.fair_outcome = tooLong;
+    const result = reconcile(previous, next, (p) => p === "outcome.fair_outcome");
+    expect(result.outcome.fair_outcome.length).toBe(NARRATIVE_MAX);
+  });
+
+  it("leaves text within the limit alone", () => {
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.complaint.narrative = "They cancelled my cover without telling me.";
+    const result = reconcile(previous, next, (p) => p === "complaint.narrative");
+    expect(result.complaint.narrative).toBe("They cancelled my cover without telling me.");
   });
 });
 
