@@ -343,6 +343,37 @@ export function reconcile(
   return next;
 }
 
+/**
+ * Validate a date the person typed, once they have finished typing it.
+ *
+ * This cannot live in `reconcile`: the form panel fires on every keystroke, and
+ * "3 Sept 2025" passes through "3", "3 ", "3 S" on the way. Coercing eagerly
+ * would blank the field under the person's cursor. So the form commits a date
+ * on blur instead, and this is what it calls — the same rules `cleanPatch`
+ * applies to the model's dates, with the same message when the answer cannot
+ * be used, rather than silently discarding what someone typed.
+ */
+export function commitDate(
+  value: string,
+  path: string,
+  today = new Date(),
+): { value: string; issue: PatchIssue | null } {
+  if (value.trim() === "") return { value: "", issue: null };
+
+  const coerced = coerceDate(value, today);
+  if (coerced === "") {
+    return { value: "", issue: { path, message: "Could not read that as a date." } };
+  }
+  if (isFuture(coerced, today)) {
+    const message =
+      path === "complainant.dob"
+        ? "That date of birth is in the future."
+        : "That date is in the future — when did you contact them?";
+    return { value: "", issue: { path, message } };
+  }
+  return { value: coerced, issue: null };
+}
+
 /** Which leaves a patch actually sets, as dotted paths. */
 function touchedPaths(patch: ComplaintPatch): Set<string> {
   const paths = new Set<string>();

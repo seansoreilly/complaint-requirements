@@ -3,7 +3,7 @@
  * exported document. Each of these produced a form that contradicted itself.
  */
 import { describe, expect, it } from "vitest";
-import { applyPatch, cleanPatch, emptyState, reconcile } from "../patch";
+import { applyPatch, cleanPatch, commitDate, emptyState, reconcile } from "../patch";
 import { applyServerDelta } from "../merge-state";
 import { missingFor } from "../next";
 import { exportJson, summarise } from "../export";
@@ -198,6 +198,69 @@ describe("the length cap applies whichever way the text arrives", () => {
     next.complaint.narrative = "They cancelled my cover without telling me.";
     const result = reconcile(previous, next, (p) => p === "complaint.narrative");
     expect(result.complaint.narrative).toBe("They cancelled my cover without telling me.");
+  });
+});
+
+describe("committing a date typed into the form panel", () => {
+  // edit() wrote the raw string and only overwrote it when coercion succeeded,
+  // so an impossible date stayed exactly as typed. These are the rules
+  // cleanPatch applies to the model's dates, now applied to typed ones — on
+  // blur, because a keystroke-time check would blank the field mid-word.
+  const today = new Date("2026-09-12T00:00:00Z");
+  const DATE = "complained_to_firm.date";
+
+  it("refuses 31 February and says why", () => {
+    const result = commitDate("31/02/2025", DATE, today);
+    expect(result.value).toBe("");
+    expect(result.issue?.message).toBe("Could not read that as a date.");
+  });
+
+  it("refuses a date of birth in the future", () => {
+    const result = commitDate("3 March 2099", "complainant.dob", today);
+    expect(result.value).toBe("");
+    expect(result.issue?.message).toBe("That date of birth is in the future.");
+  });
+
+  it("refuses free text", () => {
+    const result = commitDate("sometime last winter", DATE, today);
+    expect(result.value).toBe("");
+    expect(result.issue).not.toBeNull();
+  });
+
+  it("normalises a real date that was typed loosely", () => {
+    expect(commitDate("3 Sept 2025", DATE, today).value).toBe("2025-09-03");
+  });
+
+  it("leaves an already-ISO date alone", () => {
+    expect(commitDate("2025-09-03", DATE, today).value).toBe("2025-09-03");
+  });
+
+  it("treats an emptied field as cleared, not as an error", () => {
+    const result = commitDate("", DATE, today);
+    expect(result.value).toBe("");
+    expect(result.issue).toBeNull();
+  });
+});
+
+describe("reconcile is safe to run on every keystroke", () => {
+  // The form panel calls edit() per character, so reconcile must never touch a
+  // date that is only half typed. "3 S" on the way to "3 Sept 2025" would
+  // coerce to nothing, and clearing it there would blank the field under the
+  // person's cursor. Validation waits for blur; see commitDate.
+  it("leaves a half-typed date exactly as it is", () => {
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.complained_to_firm.date = "3 S";
+    const result = reconcile(previous, next, (p) => p === "complained_to_firm.date");
+    expect(result.complained_to_firm.date).toBe("3 S");
+  });
+
+  it("leaves a half-typed date of birth alone too", () => {
+    const previous = emptyState();
+    const next = structuredClone(previous);
+    next.complainant.dob = "14/0";
+    const result = reconcile(previous, next, (p) => p === "complainant.dob");
+    expect(result.complainant.dob).toBe("14/0");
   });
 });
 

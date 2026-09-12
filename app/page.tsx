@@ -6,8 +6,8 @@ import { MainMenu } from "@/components/MainMenu";
 import { DraftCard } from "@/components/DraftCard";
 import { FormPane, type StageStatus } from "@/components/FormPane";
 import { ReviewPanel } from "@/components/ReviewPanel";
-import { type ComplaintState, emptyState, findField, setPath } from "@/lib/schema";
-import { cleanPatch, reconcile } from "@/lib/patch";
+import { type ComplaintState, emptyState, findField, getPath, setPath } from "@/lib/schema";
+import { commitDate, reconcile } from "@/lib/patch";
 import { applyServerDelta } from "@/lib/merge-state";
 import { missingFor, stageProgress } from "@/lib/next";
 
@@ -94,30 +94,32 @@ export default function Page() {
     setState((previous) => {
       const next = structuredClone(previous);
       setPath(next, path, value);
-      // Re-run coercion so a typed date still normalises.
-      if (typeof value === "string" && findField(path)?.kind === "date") {
-        const segments = path.split(".");
-        const container = segments.slice(0, -1).join(".");
-        const key = segments[segments.length - 1];
-        const probe =
-          container === "complained_to_firm"
-            ? { complained_to_firm: { [key]: value } }
-            : container === "complainant"
-              ? { complainant: { [key]: value } }
-              : null;
-        if (probe) {
-          const { patch } = cleanPatch(probe);
-          const coerced =
-            container === "complained_to_firm"
-              ? patch.complained_to_firm?.date
-              : patch.complainant?.dob;
-          if (coerced) setPath(next, path, coerced);
-        }
-      }
       // Changing a field here can close a branch or switch the service type
       // just as a chat turn can, so it gets the same reconciliation. The field
-      // the person just edited is theirs and is never cleared.
+      // the person just edited is theirs and is never cleared. Dates are left
+      // alone until blur — see commitDate — because this runs per keystroke.
       return reconcile(previous, next, (p) => p === path);
+    });
+  }, []);
+
+  /**
+   * A typed date, once the person has finished typing it. Held to the same
+   * rules as a date the model proposes: normalised if it is real, cleared with
+   * a note if it is not, rather than left on the form as typed.
+   */
+  const commit = useCallback((path: string) => {
+    if (findField(path)?.kind !== "date") return;
+    setState((previous) => {
+      const current = getPath(previous, path);
+      if (typeof current !== "string") return previous;
+      const { value, issue } = commitDate(current, path);
+      if (value === current) return previous;
+      const next = structuredClone(previous);
+      setPath(next, path, value);
+      // Queued rather than set inside the updater: React may run an updater
+      // twice, and a note is a side effect.
+      queueMicrotask(() => setNotes(issue ? [issue.message] : []));
+      return next;
     });
   }, []);
 
@@ -233,6 +235,7 @@ export default function Page() {
             focusPath={focusPath}
             onFocusField={setFocusPath}
             onEdit={edit}
+            onCommit={commit}
             onAttach={attach}
           >
             {showReview && (

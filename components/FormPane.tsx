@@ -98,12 +98,15 @@ function Field({
   focused,
   onFocusField,
   onEdit,
+  onCommit,
 }: {
   field: FieldDef;
   state: ComplaintState;
   focused: boolean;
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
+  /** Called when the person leaves a field, for checks too eager per keystroke. */
+  onCommit: (path: string) => void;
 }) {
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
@@ -223,6 +226,7 @@ function Field({
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onEdit(field.path, event.target.value)}
+        onBlur={() => onCommit(field.path)}
         placeholder={field.kind === "date" ? "e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
@@ -263,6 +267,7 @@ export function FormPane({
   focusPath,
   onFocusField,
   onEdit,
+  onCommit,
   onAttach,
   children,
 }: {
@@ -272,6 +277,7 @@ export function FormPane({
   focusPath: string | null;
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
+  onCommit: (path: string) => void;
   onAttach: (names: string[]) => void;
   children?: React.ReactNode;
 }) {
@@ -300,6 +306,7 @@ export function FormPane({
                     focused={focusPath === field.path}
                     onFocusField={onFocusField}
                     onEdit={onEdit}
+                    onCommit={onCommit}
                   />
                 ))}
               {stage.id === "attachments" && (
