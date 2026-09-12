@@ -72,6 +72,44 @@ function toolInputSchema(): Anthropic.Tool["input_schema"] {
   return schema as Anthropic.Tool["input_schema"];
 }
 
+/**
+ * Rescue a refusal the model put outside the patch.
+ *
+ * Seen live, in a turn whose patch was a leaked tool-call fragment rather than
+ * an object:
+ *
+ *   { "patch": "\n<parameter name=\"complaint\">{...}",
+ *     "deferred": ["service.subtype"],
+ *     "reply": "That's completely fine — I'll come back to it later..." }
+ *
+ * `parsePatch` rejected the patch, so the whole turn's extraction went, and
+ * `deferred` sat where the envelope was not looking. The reply still reached
+ * the person: they were told the field would wait, and the form forgot. That is
+ * exactly the state defect 24 needed — the field back in `askableFor` with a
+ * promise made about it.
+ *
+ * `deferred` and `declined` get this treatment and nothing else does, because
+ * they are the two fields where losing the value silently contradicts something
+ * the assistant just said. A valid patch always wins; this only fills a gap.
+ */
+function salvageRefusals(
+  patch: ComplaintPatch,
+  envelope: { deferred?: unknown; declined?: unknown } | undefined,
+): ComplaintPatch {
+  if (!envelope) return patch;
+  const list = z.array(z.string());
+  const rescued = { ...patch };
+  if (rescued.deferred === undefined) {
+    const stray = list.safeParse(envelope.deferred);
+    if (stray.success) rescued.deferred = stray.data;
+  }
+  if (rescued.declined === undefined) {
+    const stray = list.safeParse(envelope.declined);
+    if (stray.success) rescued.declined = stray.data;
+  }
+  return rescued;
+}
+
 export async function runTurn(args: {
   state: ComplaintState;
   firm: Firm | null;
@@ -101,10 +139,20 @@ export async function runTurn(args: {
   });
 
   const call = response.content.find((block) => block.type === "tool_use");
-  const envelope = z.object({ reply: z.unknown().optional(), patch: z.unknown().optional() })
+  const envelope = z
+    .object({
+      reply: z.unknown().optional(),
+      patch: z.unknown().optional(),
+      // Read from the top level as well, because the model sometimes puts them
+      // there. See `salvageRefusals` below.
+      deferred: z.unknown().optional(),
+      declined: z.unknown().optional(),
+    })
     .safeParse(call?.input);
   const reply = z.string().safeParse(envelope.success ? envelope.data.reply : undefined);
-  const { patch, issues } = parsePatch(envelope.success ? envelope.data.patch : undefined);
+  const parsed = parsePatch(envelope.success ? envelope.data.patch : undefined);
+  const patch = salvageRefusals(parsed.patch, envelope.success ? envelope.data : undefined);
+  const { issues } = parsed;
   if (!reply.success || issues.length > 0) {
     console.error(
       "[turn-parse-failed]",

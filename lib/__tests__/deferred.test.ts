@@ -126,4 +126,30 @@ describe("a field deferred after one refusal", () => {
     const out = ensureAsk(TRAILS_OFF, state);
     expect(out).toContain("Which of these fits best?");
   });
+  it("surfaces every deferred field once nothing else is askable", () => {
+    // Two refusals, not one. `askableFor` returns the deferred list when the
+    // ready list empties, so both come back rather than one blocking the other
+    // — and `groupedWithNext` asks them one at a time, as it does for any other
+    // fields. The failure this guards against is a deferred field never
+    // surfacing because a second deferred field sits in front of it forever.
+    const state = afterFirstDecline();
+    state.deferred = ["service.subtype", "complainant.dob"];
+    const full = applyPatch(state, {
+      complaint: { narrative: "They cancelled my cover without telling me." },
+      complained_to_firm: { yes: true, date: "2026-08-20", how: "phone", final_reply: false },
+      legal_proceedings: false,
+      outcome: { seeking_compensation: "no", fair_outcome: "Reinstate the cover." },
+      complainant: {
+        lodging_for: "Myself",
+        first_name: "Helen",
+        last_name: "Byrne",
+        email: "helen@example.com",
+        notify_by: "email",
+        address: { line1: "18 King William Road", suburb: "Unley", state: "SA", postcode: "5061" },
+      },
+    });
+    const paths = askableFor(full).map((m) => m.path);
+    expect(paths).toContain("service.subtype");
+    expect(paths).toContain("complainant.dob");
+  });
 });
