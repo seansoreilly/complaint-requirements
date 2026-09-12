@@ -248,7 +248,12 @@ describe("reconcile is safe to run on every keystroke", () => {
   // coerce to nothing, and clearing it there would blank the field under the
   // person's cursor. Validation waits for blur; see commitDate.
   it("leaves a half-typed date exactly as it is", () => {
+    // On an OPEN branch. FormPane renders only fields `applies` accepts
+    // (components/FormPane.tsx:320), so the date box does not exist until
+    // `complained_to_firm.yes` is true — there is no keystroke to preserve
+    // before then, and a value sitting there with the branch shut is defect 21.
     const previous = emptyState();
+    previous.complained_to_firm.yes = true;
     const next = structuredClone(previous);
     next.complained_to_firm.date = "3 S";
     const result = reconcile(previous, next, (p) => p === "complained_to_firm.date");

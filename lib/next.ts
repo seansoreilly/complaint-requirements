@@ -68,9 +68,31 @@ export function stageProgress(state: ComplaintState): { id: string; title: strin
   }));
 }
 
+/**
+ * Missing, minus what the person has declined to answer.
+ *
+ * `missingFor` stays honest — a blank required field is blank, and the counter
+ * and the review panel should keep saying so. This is the narrower list: what
+ * it is still reasonable to ask for. Everything that drives a question goes
+ * through here.
+ */
+export function askableFor(state: ComplaintState): MissingField[] {
+  const declined = new Set(state.declined);
+  const open = missingFor(state).filter((m) => !declined.has(m.path));
+
+  // A field refused once waits for the others. It is not dropped — when it is
+  // all that is left it comes back, which is the return-once the README
+  // promises, scheduled here rather than remembered by the model. Holding it
+  // back is also what stops `ensureAsk` appending its option list underneath
+  // some later reply that trails off, a turn or more after the refusal.
+  const deferred = new Set(state.deferred);
+  const ready = open.filter((m) => !deferred.has(m.path));
+  return ready.length > 0 ? ready : open;
+}
+
 /** The single next thing worth asking about, or null when the form is done. */
 export function nextField(state: ComplaintState): MissingField | null {
-  return missingFor(state)[0] ?? null;
+  return askableFor(state)[0] ?? null;
 }
 
 /**
@@ -80,7 +102,7 @@ export function nextField(state: ComplaintState): MissingField | null {
 export function groupedWithNext(state: ComplaintState): MissingField[] {
   const next = nextField(state);
   if (!next) return [];
-  const missing = missingFor(state);
+  const missing = askableFor(state);
   if (next.stageId === "contact") {
     // Name, email and address belong in one breath; DOB and contact preference
     // stay separate so skipping one doesn't stall the others.
@@ -105,6 +127,7 @@ export function groupedWithNext(state: ComplaintState): MissingField[] {
 export function sensitiveOffered(state: ComplaintState): boolean {
   const c = state.complainant;
   return (
+    state.sensitive_offered ||
     c.pronoun.trim() !== "" ||
     c.interpreter !== null ||
     c.support_needs.trim() !== "" ||

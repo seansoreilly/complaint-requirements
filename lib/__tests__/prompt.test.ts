@@ -33,4 +33,28 @@ describe("buildSystemPrompt", () => {
     const prompt = buildSystemPrompt({ state: emptyState(), firm: null });
     expect(prompt).toContain("End every turn by asking");
   });
+
+  /**
+   * The model dated things from its training data otherwise. Told "28 February
+   * 2026" it called that date "in the future" and pressed for 2025 — the person
+   * was right and had to argue. Code knew the date all along; the model was not
+   * told it.
+   */
+  it("states today's date so the model does not date things from training", () => {
+    const prompt = buildSystemPrompt({
+      state: emptyState(),
+      firm: null,
+      today: new Date("2026-09-12T00:00:00Z"),
+    });
+    expect(prompt).toContain("2026-09-12");
+    expect(prompt).toContain("September 2026");
+  });
+
+  it("warns against calling a date future without checking today", () => {
+    const prompt = buildSystemPrompt({ state: emptyState(), firm: null });
+    // Line-wrapped in the prompt, so match without the newline.
+    expect(prompt.replace(/\s+/g, " ")).toContain(
+      "never press them to change a year that is already right",
+    );
+  });
 });

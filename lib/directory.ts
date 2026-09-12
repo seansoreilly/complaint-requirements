@@ -132,8 +132,38 @@ export function lookupFirm(query: string): LookupResult {
   if (ranked.length === 0) return { status: "not_found", query: trimmed };
 
   const [top, second] = ranked;
-  if (top.confidence >= CONFIDENT && (!second || top.confidence - second.confidence >= 0.15)) {
+
+  // A query whose words are ALL generic, and which matches the leader on nothing
+  // but those generic words, must not settle on one firm. "super fund" scores
+  // 1.0 against "Hesta Super Fund" — both its words are in that name — so it
+  // came back matched, and the route stamped Hesta's member number onto a
+  // complaint where the person had named no firm at all.
+  //
+  // The test is the MATCH, not the query. "australian super" is also all
+  // stopwords and generic words, but it covers AustralianSuper's name entirely,
+  // which is a real signal; "super fund" covers only part of Hesta's. So the
+  // leader still wins when the query accounts for its whole name, and otherwise
+  // the candidates go back for disambiguation.
+  const queryTokens = tokens(trimmed).filter((t) => !STOPWORDS.has(t));
+  const allGenericQuery = queryTokens.length > 0 && queryTokens.every((t) => GENERIC.has(t));
+  // Does the query account for the leader's whole name? Compared with spacing
+  // removed, so "australian super" covers "AustralianSuper" — the case the
+  // generic-word exemption was written for — while "super fund" covers only
+  // part of "Hesta Super Fund" and so cannot settle it.
+  const squash = (v: string): string => normalise(v).replace(/ /g, "");
+  const coversLeaderName =
+    squash(top.firm.name) === squash(trimmed) ||
+    tokens(top.firm.name)
+      .filter((t) => !STOPWORDS.has(t))
+      .every((t) => queryTokens.some((q) => t === q || t.startsWith(q) || q.startsWith(t)));
+
+  if (
+    (!allGenericQuery || coversLeaderName) &&
+    top.confidence >= CONFIDENT &&
+    (!second || top.confidence - second.confidence >= 0.15)
+  ) {
     return { status: "matched", firm: top.firm };
   }
+
   return { status: "ambiguous", candidates: ranked.slice(0, 4) };
 }
