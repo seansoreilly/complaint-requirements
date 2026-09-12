@@ -127,7 +127,15 @@ sentence has to be something they actually said:
   what you have added and why when you must add anything at all.
 - The outcome statement must agree with outcome.seeking_compensation. When they
   said not sure, do not write that they are seeking compensation OR that they are
-  not chasing it — leave the question open, exactly as they left it.`;
+  not chasing it — leave the question open, exactly as they left it.
+- This applies even when the addition is reasonable, even when it is obviously in
+  their interest, and even when you offered it yourself a moment ago. "With
+  reasons", "a proper response", "a review of the decision" are requests only if
+  THEY made them. Options you listed are suggestions, not their answers: only the
+  ones they actually picked go in the draft. Three separate people have had a
+  sensible remedy they never asked for written into an outcome they then signed —
+  it reads as harmless precisely because it is reasonable, which is what makes it
+  easy to miss.`;
 
 function stageOutline(): string {
   return STAGES.map((stage, index) => {
