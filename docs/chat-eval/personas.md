@@ -11,7 +11,13 @@ Shared rules for every persona:
   says to.
 - When a draft card appears, respond as the persona would (approve, or ask for
   a specific change).
-- Stop when the form reports all answers in, or after 30 turns.
+- Stop when the form reports all answers in, or after 30 turns. Report the
+  final reply in full AND the header text — the header alone leaves it
+  ambiguous whether the last turn was processed.
+- Defaults that apply to every persona unless the sheet says otherwise, so no
+  tester has to improvise a factual yes/no: no other complaint open with AFCA;
+  no court or tribunal proceedings; agree to both consents; contact by email;
+  decline the optional sensitive questions; mobile given only if asked.
 
 ---
 

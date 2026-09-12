@@ -308,6 +308,24 @@ build** (Step 0 10/10, evidence 626df3e; the retry fired once during Step 0
 and recovered). Any code, prompt, schema, tool-schema or data change after it
 restarts every count.
 
+**Retry recovery is ~50%, not 100%** (4 retries in the first 50 sweep-build
+turns: 2 recovered, 2 failed twice; one of the failures cost Hugh's outcome
+draft on p5 case 20). Ten fragments across the run hit five different fields,
+so it is a general serialisation failure, not one schema entry; and a retry on
+identical input reproduces it about half the time, so it is closer to
+deterministic-given-input than to noise. Two of the ten carried `drafts` — the
+longest strings in any patch — which is the hypothesis to test first: log the
+raw envelope length on every fragment and compare with clean turns. Ruling:
+build stays 3f2bce0; no second retry (two identical failures predict a third
+and double the worst-case latency); decide on the prompt trim after sweep 1
+with the counter's denominator. **Scoring rule for dropped turns during the
+sweeps:** a turn the tester re-sent once under the mechanical rule is not a
+deduction — it is a measured, mitigated limitation tracked on the row; two or
+more dropped turns in one run cost the C-1 point (the experience degraded); a
+reply that claims a card is waiting when none appeared is noted on the row as
+the "saved" family and goes on the post-sweep fix list (the route can detect a
+promised draft that did not land, as it already does for "saved").
+
 **Sweep brief rule (mechanical, so it is not a judgement call):** after each
 answer, glance at the panel; if the value you just gave did not land, re-send
 the same message once and report it as "dropped turn (re-sent)" — not as a
