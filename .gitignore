@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code: agent worktrees are separate checkouts of this repo, and the
+# scratch dirs are per-session. None of it belongs in history.
+.claude/worktrees/
+.claude/jobs/
+.claude/plans/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
