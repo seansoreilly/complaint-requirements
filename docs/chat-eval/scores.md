@@ -37,6 +37,9 @@ per round; rounds are appended, never rewritten.
 | p3 | 5 default-listing | 10/10 (**9ae75bf — counts; cleared once**) | Scripted decline: product type asked once, "I won't press you on it", `declined: ["service.subtype"]`, subtype "", never raised again, summary "Credit — product type left blank, as you preferred", header "Ready — 1 left blank ✓"; no bare list anywhere. The app queried her "yes" to compensation followed by a non-monetary remedy rather than recording either, and recorded "no" on her answer (sheet amended to "no"). Both drafts on cards with "use it as it is, edit it, or discard it" (the 29991ee correction), every clause hers, approved by click; Latitude 12207, 552-118-904, in writing 2026-07-20, final_reply true. No return-once for the product type — finding 23, no deduction. Caveat: the state dump was truncated before the complainant block; contact fields rest on the assistant's echoed confirmations, which match the sheet. |
 | p3 | 20 scam-complaint | 10/10 (**9ae75bf — counts; cleared once**) | Scope stated once, in turn 7 only: 31 March 2027 "the law as it currently stands, not a limitation of this demo", the one-firm shape attributed to the demo, redirect to what AFCA can look at (the bank's handling), a real choice to continue or stop, no prediction. Both round-3 defects gone: no motive anywhere ("They knew my account details" is all), "Around 15 August 2026" from "around the 15th of August" is the single year resolution (ruled normalisation). The app asked whether the 20 August call was a complaint or a scam report before recording yes (defect 14 asking side); clarification in its own turn, draft the next (clarify-first live). Cards with "use it as it is, edit it, or discard it", approved by click; CBA 10099, "Account ending 7781", {yes, 2026-08-20, phone, false}, compensation yes, "I want the $12,000 back.", all contact fields exact; sensitive offered once, declined. State: final JSON full; intermediate turns not captured. |
 | p3 | 12 ambiguous-firm | 9/10 (9ae75bf) | **The trap finally fired, and held**: after "my super fund" firm.name "" / number ""; after panel-typed "super fund" firm.name "super fund" / number "" (not 11902) and the reply named Hesta as closest match and asked for the full name (19b wording, live); after "Rest" → 11540. Compensation "no" after her "not money on top"; drafts on cards, hers word for word; Rest's contact never invented. −1 (C-2): one turn after "I won't press you on it" the reply ended with the canonical list "Which of these fits best? Account balance / contributions, … Rollover / transfer delay." — ensureAsk appended the subtype question because the first decline does not set `declined` (the model defers; the field stays askable) and the model's reply ended on a promise, not a question. Asked twice in a row, the README's exact prohibition. **Defect 24.** Same criterion, second fault: complained_to_firm.yes returned to once ("I'll come back to it") but the return carried no reason. complained_to_firm.yes ended null/declined after two "not sure"s — an honest blank ("—" on export); sheet gap: Helen's sheet does not say whether she complained. "Hostplus" offered as an example fund again. |
+| p4 | 5 default-listing | 8/10 (b8fa2f6 — defect-finding) | **`deferred` works end to end on a browser transcript**: first decline → `deferred: ["service.subtype"]`, "I'll leave the product type blank for the moment and come back to it once we've covered everything else"; no bare list anywhere; returned to exactly once at "1 answer left" with a reason ("The form does need a product or service… since you've told me it's a credit matter") and a way out; second decline → `declined: ["service.subtype"]`, "I won't ask again"; summary "Product or service left blank"; header "Ready — 1 left blank ✓". Finding 23 and defect 24 both closed live. Every expected field exact, drafts hers, compensation "no" drawn correctly, full state read in chunks. −1 (B): turn 1 the assistant said "they're not in this demo's firm directory, so I can't confirm a membership number for them" — false; Latitude is in the directory and the route assigned 12207 the same turn. The prompt's no-firm branch (lib/prompt.ts:193-195) tells the model to "say so plainly" before code has looked anything up — **defect 26**. −1 (C-3): "· Patch did not match the schema." rendered in the chat under turn 8 — an internal parsePatch issue string (lib/patch.ts:520) shown to the person via app/page.tsx:85 — **defect 27**; that turn's patch was the defect-25 malformed shape (no salvage on b8fa2f6), and the reply's "I've recorded the issue" was untrue at that moment. |
+| p4 | 12 ambiguous-firm | 9/10 (b8fa2f6 — defect-finding) | Trap held again: "" / "" after "my super fund"; "super fund" / "" (never 11902) after the panel move with the 19b reply ("closest match… Hesta Super Fund, but that may not be the firm you mean. What is its full name?"); Rest → 11540. `deferred` end to end: first decline → deferred, "I'll leave that one for now and come back to it later"; returned once at the end with a reason and a pre-committed way out; second decline → declined, "I won't bring it up again"; summary omits the field rather than guessing. complained_to_firm.yes false extracted from her explicit narrative sentence; AFCA-first note once with directory contact; compensation "no"; drafts hers; contact exact; full state read in chunks. −1 (C-3): the return-with-reason reply ended with the canonical list appended AGAIN under the bullet list it already contained — "Which of these fits best? Account balance / contributions, …" — because its closing sentence ("just say so and I'll note it") is neither a "?" nor a recognised imperative, so endsWithQuestion saw no ask. Third occurrence of this stacking (8 r3, 9 p2, now 12 p4), and this time on the one turn designed to be gentle — **defect 28**. "Hostplus" offered as an example fund a third time. |
+| p4 | 20 scam-complaint | 9/10 (b8fa2f6 — defect-finding) | Scope once, in the turn after the story: 2027 as law, one-firm shape as the demo's, redirect to the bank's handling, a real choice; never repeated. No motive; no scam date asked so none resolved; drafts his words on cards, approved by click; CBA 10099, "Account ending 7781", {yes, 2026-08-20, phone, false}, compensation yes, outcome his; contact exact; optional once. −1 (A): issues ["Unauthorised transactions"] — the app "pencilled in" that category itself, in the same breath as saying the ordinary complaint is "how the bank itself handled things", for a transfer Hugh made himself under deception. That is the authorised-push-payment / unauthorised-use line the SCAMS section draws, crossed on the form; the p3 run recorded the right thing ("Handling of my scam report since I reported it"). The model also composed an issue list for a stubbed service type from other types' entries ("Delay", "Failure to follow instructions") instead of taking his words — **defect 29**. Hugh confirmed the pre-pick ("sounds right"), which is what a real person does with a suggestion. State read fully at the end; no per-turn captures. |
 | p2 | 4 bnpl-fees | 10/10 (39c38bb — defect-finding) | "I don't have one" → `no_reference: true`, reference "", "it won't be asked about again" — and it was not, through to the summary ("No account or reference number"). Cancellation date unknown → left out of the draft, never pressed. Afterpay Australia 38393, Credit / Buy now pay later, Incorrect fees or interest (suggested from the list, confirmed by him), {yes, 2026-09-01, "Through the Afterpay app", false}, compensation yes, outcome his words, all contact fields exact. Cards followed by questions; optional once. Two transient timeouts. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
@@ -282,6 +285,48 @@ live payload; two-fields-deferred also pinned. Second defect found by the
 monitor rather than a persona; both were "the app just moved on" from the
 person's side.
 
-**Running strict tally on the sweep hash bac07c5**: passed 0 · cleared once 0.
-The p4 runs of 5, 12, 20 started on b8fa2f6 and finish as defect-finding
-rows; all three re-run on bac07c5 after Step 0.
+**Defects 26 and 27 (p4 case 5, b8fa2f6).** 26: the model told Marie that
+Latitude is "not in this demo's firm directory" on the turn she named it, while
+the route resolved 12207 the same turn — lib/prompt.ts:193-195's no-firm branch
+invites the claim before code has looked up. Fix: that branch must say code
+looks the name up after this turn and the model must not state directory
+status at all; the route's own not-in-directory note is the only voice for it.
+27: parsePatch's internal issue text ("Patch did not match the schema.",
+lib/patch.ts:520) is rendered to the person as a chat note (app/page.tsx:85).
+Fix: internal issues are logged, never shown; only person-facing coercion notes
+(a date that could not be read) reach the page, in plain words. Both are
+person-meets-it; both belong in one commit with the `deferred` describe()
+wording, before Step 0 on the next hash. bac07c5 is superseded before it was
+ever the sweep build.
+
+**2f1e223** — the `deferred`/`patch` describe() wording, correctly treated by the
+lead as a behaviour change (tool-schema text is prompt); Step 0 8/8 there,
+evidence at 9f90eba. Superseded before use: 26 and 27 are not in it.
+
+**Defect 28 — endsWithQuestion misses an ask three times over.** Case 8 r3
+("tell me and I'll mark it"), case 9 p2 ("I'll then draft…"), and now case 12
+p4 ("just say so and I'll note it"): a reply that plainly asks, closing on a
+sentence with no "?" and no listed imperative, gets the canonical question for
+the same field stacked underneath — on 12 p4 the full option list twice in one
+message, on the single return-with-reason turn `deferred` exists to make
+gentle. Fix in code, not the regex: before appending questionFor(path), skip if
+the reply already carries that field's ask — its label, or two or more of its
+options for an enum/subtype field; and extend the imperative list ("say so",
+"tell me what you do know"). Test with the three real replies.
+
+**Defect 29 — a scam recorded as "Unauthorised transactions" (p4 case 20).**
+For a stubbed service type (Banking deposits and payments has no issue list)
+the model composed its own list from other types' entries and pre-filled
+"Unauthorised transactions" for a payment the person made himself under
+deception — the exact distinction the SCAMS section draws, crossed on the form,
+one paragraph after the app said the ordinary complaint is the bank's handling.
+Fix: prompt — for stubbed types take the person's own words and never offer
+another type's list; in SCAMS, state that when the person made the payment the
+issue is the firm's handling of the report, not an unauthorised transaction. A
+route guard is possible (drop an issue that exactly matches another type's list
+entry when the current type is stubbed and the person did not type it), but the
+prompt line is the mechanism here and the sweeps are the enforcement.
+
+**Running strict tally**: passed 0 · cleared once 0 · sweep hash pending one
+commit carrying 26, 27, 28, 29. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.

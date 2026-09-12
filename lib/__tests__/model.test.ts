@@ -40,8 +40,12 @@ describe("live turn parsing", () => {
     }));
     const body = await response.json();
     expect(body.reply).toBe(reply);
-    expect(body.issues).not.toEqual([]);
     expect(body.state.complainant.pronoun).toBe("");
+    // The issue is real and logged, but it is not for the person: a null where
+    // a string belongs is the model's slip in the model's vocabulary. Defect 27
+    // was exactly this class reaching the page. What the person must see is the
+    // reply, intact, and a field that did not take a bad value.
+    expect(body.issues).toEqual([]);
   });
 
   it("does not re-ask a declined field when the patch fails", async () => {

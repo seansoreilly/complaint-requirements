@@ -190,9 +190,12 @@ ${Object.keys(SERVICE_ISSUES)
 
 function firmFacts(firm: Firm | null, state: ComplaintState): string {
   if (!firm) {
-    return `Directory: no firm resolved yet. When they name one, put it in firm.name and
-code will look it up. If it is not in the demo directory, say so plainly — do not
-guess a member number.`;
+    return `Directory: no firm resolved yet. When they name one, put it in firm.name
+and code looks it up AFTER this turn — you cannot know the answer while you are
+writing this reply. Never say whether a firm is or is not in the directory: if it
+is not, the app tells them itself, in its own words, once it knows. A live run
+told someone Latitude was not listed on the same turn the app assigned its member
+number, and they had to decide which to believe. And do not guess a member number.`;
   }
   const lines = [
     `Directory facts for the firm resolved so far. These are the only ABN, member`,

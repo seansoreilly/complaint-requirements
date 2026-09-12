@@ -260,7 +260,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     missing: missingFor(state),
     next: nextField(state),
     stages: stageProgress(state),
-    issues: [...(turn.issues ?? []), ...issues],
+    // Only what the person can act on. An internal issue — a schema failure,
+    // a silent trim — is the model's mistake in the model's vocabulary, and it
+    // appeared in a live chat as "· Patch did not match the schema." beneath a
+    // reply claiming the field had been recorded. It stays in the server log,
+    // where [turn-parse-failed] already records the whole envelope.
+    issues: [...(turn.issues ?? []), ...issues].filter((issue) => issue.personFacing),
     firmNote: resolvedAfter.note,
     mode: turn.mode,
   });

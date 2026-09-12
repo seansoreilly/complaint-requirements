@@ -278,6 +278,22 @@ now salvages `deferred`/`declined` from the top level when the patch is
 broken). The p4 runs of 5, 12, 20 started on b8fa2f6 finish as defect-finding
 rows and re-run on bac07c5 after Step 0. Sweep hash: **bac07c5**.
 
+**Then bac07c5 → 2f1e223 → (pending).** 2f1e223 carried the `deferred`/`patch`
+describe() wording (a behaviour change — tool-schema text is prompt). The p4
+re-runs of 5, 12, 20 on b8fa2f6 (8, 9, 9; all defect-finding) proved `deferred`
+end to end twice and found four more defects, all person-facing: 26 the model
+told Marie a listed firm was "not in this demo's firm directory" while the
+route assigned its number (lib/prompt.ts no-firm branch invites the claim); 27
+parsePatch's "Patch did not match the schema." rendered to the person
+(app/page.tsx:85); 28 endsWithQuestion missing an ask for the third time and
+stacking the full option list under a reply that already held it, on the one
+return-with-reason turn; 29 a scam the person paid under deception filed as
+"Unauthorised transactions" from a list the model composed for a stubbed type.
+One commit for all four, then Step 0 with three added checks (a listed firm is
+never called unlisted; a reply already carrying a field's options gets none
+appended; Hugh's story yields no "Unauthorised transactions"), then 5, 12, 20
+again. The sweep hash is that commit.
+
 **Known edge, from defects 5 and 25:** two defects this run were found by the
 server-side monitor (`[turn-parse-failed]` logging) and not by any persona,
 because the person experiences both as "the app just moved on" — nothing
@@ -337,14 +353,14 @@ can start on the next frozen hash.
 | 2 credit-hardship | 2 | 9 | p2 on 39c38bb; found defect 20 (no draft card); clarify-then-draft bundled |
 | 3 unauth-transactions | 1 | 10 | pre-freeze |
 | 4 bnpl-fees | 1 | 10 | p2 on 39c38bb; no_reference path clean |
-| 5 default-listing | 1 | 8 | pre-freeze; found defects 15, 16, card dead-end |
+| 5 default-listing | 3 | 10, 8 | p3 on 9ae75bf 10 (superseded); p4 on b8fa2f6 8 — `deferred` proven, found 26, 27 |
 | 6 general-insurance | 1 | 10 | pre-freeze; found defect 15 |
 | 7 firm-initiated-contact | 3 | 10 | pre-freeze |
 | 8 impossible-date | 3 | 10 | pre-freeze; sheet rewritten |
 | 9 negated-complaint | 2 | 10 | p2 on 39c38bb; negation → false, note once, kept going |
 | 10 stray-reference | 1 | 10 | p2 on 39c38bb; no stray word stored |
 | 11 unknown-firm | 2 | 10 | pre-freeze |
-| 12 ambiguous-firm | 2 | 10 | p2 on 39c38bb; model asks rather than guesses; directory trap never fired (defect 19) — run again on the rewritten sheet |
+| 12 ambiguous-firm | 4 | 9, 9 | p3 on 9ae75bf 9 (trap fired and held; found 24); p4 on b8fa2f6 9 (`deferred` proven; found 28) |
 | 13 everything-at-once | 1 | 10 | p2 on 39c38bb; six fields from one paragraph, nothing re-asked |
 | 14 terse | 1 | 10 | pre-freeze; invention trigger not exercised |
 | 15 skip-and-return | 1 | 9 | p2 on 39c38bb; return-once with reasons held; found defect 21 (branch fields written while closed) |

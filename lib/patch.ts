@@ -224,6 +224,19 @@ function coerceEnum(value: string, options: readonly string[]): string {
 export interface PatchIssue {
   path: string;
   message: string;
+  /**
+   * Is this for the person, or for the log?
+   *
+   * "Could not read that as a date" is something they need to see — it explains
+   * why a field stayed empty and invites them to say it differently. "Patch did
+   * not match the schema" is not: it is the model's mistake in the model's
+   * vocabulary, and it appeared in a live chat as "· Patch did not match the
+   * schema." underneath a reply claiming the field had been recorded.
+   *
+   * Absent means internal. Only the coercion notes below set it, so a new issue
+   * is private until someone decides it should not be.
+   */
+  personFacing?: true;
 }
 
 export interface CleanResult {
@@ -243,12 +256,13 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.complained_to_firm?.date !== undefined) {
     const coerced = coerceDate(patch.complained_to_firm.date, today);
     if (coerced === "" && patch.complained_to_firm.date.trim() !== "") {
-      issues.push({ path: "complained_to_firm.date", message: "Could not read that as a date." });
+      issues.push({ path: "complained_to_firm.date", message: "Could not read that as a date.", personFacing: true });
       delete patch.complained_to_firm.date;
     } else if (isFuture(coerced, today)) {
       issues.push({
         path: "complained_to_firm.date",
         message: "That date is in the future — when did you contact them?",
+        personFacing: true,
       });
       delete patch.complained_to_firm.date;
     } else {
@@ -259,10 +273,10 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.complainant?.dob !== undefined) {
     const coerced = coerceDate(patch.complainant.dob, today);
     if (coerced === "" && patch.complainant.dob.trim() !== "") {
-      issues.push({ path: "complainant.dob", message: "Could not read that as a date." });
+      issues.push({ path: "complainant.dob", message: "Could not read that as a date.", personFacing: true });
       delete patch.complainant.dob;
     } else if (isFuture(coerced, today)) {
-      issues.push({ path: "complainant.dob", message: "That date of birth is in the future." });
+      issues.push({ path: "complainant.dob", message: "That date of birth is in the future.", personFacing: true });
       delete patch.complainant.dob;
     } else {
       patch.complainant.dob = coerced;
@@ -271,7 +285,7 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
 
   if (patch.complainant?.email !== undefined && patch.complainant.email.trim() !== "") {
     if (!isValidEmail(patch.complainant.email)) {
-      issues.push({ path: "complainant.email", message: "That email address looks incomplete." });
+      issues.push({ path: "complainant.email", message: "That email address looks incomplete.", personFacing: true });
       delete patch.complainant.email;
     } else {
       patch.complainant.email = patch.complainant.email.trim();
@@ -281,7 +295,7 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.service?.type !== undefined && patch.service.type.trim() !== "") {
     const coerced = coerceEnum(patch.service.type, SERVICE_TYPES);
     if (coerced === "") {
-      issues.push({ path: "service.type", message: "Not a recognised service type." });
+      issues.push({ path: "service.type", message: "Not a recognised service type.", personFacing: true });
       delete patch.service.type;
     } else {
       patch.service.type = coerced;
@@ -465,7 +479,7 @@ export function commitDate(
 
   const coerced = coerceDate(value, today);
   if (coerced === "") {
-    return { value: "", issue: { path, message: "Could not read that as a date." } };
+    return { value: "", issue: { path, message: "Could not read that as a date.", personFacing: true } };
   }
   if (isFuture(coerced, today)) {
     const message =
