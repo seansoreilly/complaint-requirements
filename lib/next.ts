@@ -105,6 +105,7 @@ export function groupedWithNext(state: ComplaintState): MissingField[] {
 export function sensitiveOffered(state: ComplaintState): boolean {
   const c = state.complainant;
   return (
+    state.sensitive_offered ||
     c.pronoun.trim() !== "" ||
     c.interpreter !== null ||
     c.support_needs.trim() !== "" ||

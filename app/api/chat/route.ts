@@ -174,7 +174,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     missing: missingFor(state),
     next: nextField(state),
     stages: stageProgress(state),
-    issues,
+    issues: [...(turn.issues ?? []), ...issues],
     firmNote: resolvedAfter.note,
     mode: turn.mode,
   });

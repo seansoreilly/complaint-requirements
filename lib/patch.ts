@@ -32,6 +32,7 @@ const addressPatch = z
 /** Mirrors ComplaintState, every field optional and nullable where the state is. */
 export const patchSchema = z
   .object({
+    sensitive_offered: z.boolean(),
     firm: z
       .object({
         name: z.string(),

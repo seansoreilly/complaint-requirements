@@ -5,9 +5,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { type ComplaintState } from "./schema";
-import { type ComplaintPatch, patchSchema } from "./patch";
+import { type ComplaintPatch, type PatchIssue, parsePatch, patchSchema } from "./patch";
 import { type Firm } from "./directory";
 import { buildSystemPrompt } from "./prompt";
+import { missingFor } from "./next";
 import { mockBrain } from "./mock-brain";
 
 /** Opus 5 by default; COMPLAINT_MODEL overrides it. */
@@ -28,6 +29,7 @@ export interface TurnResult {
   reply: string;
   patch: ComplaintPatch;
   mode: BrainMode;
+  issues?: PatchIssue[];
 }
 
 /** The model returns a reply and a patch; `stage_complete` is computed in code. */
@@ -41,7 +43,7 @@ const turnSchema = z.object({
  * Structured output compiles the schema into a grammar, and the API caps that
  * at 24 optional parameters — the patch is a deep-partial mirror of the whole
  * form, so it has 49 and is rejected outright. A tool schema has no such cap,
- * and `turnSchema` still gates whatever comes back.
+ * and reply and patch are validated independently on return.
  */
 const turnTool: Anthropic.Tool = {
   name: "turn",
@@ -84,25 +86,27 @@ export async function runTurn(args: {
   });
 
   const call = response.content.find((block) => block.type === "tool_use");
-  const result = turnSchema.safeParse(call?.input);
-  const parsed = result.success ? result.data : null;
-  if (!parsed) {
+  const envelope = z.object({ reply: z.unknown().optional(), patch: z.unknown().optional() })
+    .safeParse(call?.input);
+  const reply = z.string().safeParse(envelope.success ? envelope.data.reply : undefined);
+  const { patch, issues } = parsePatch(envelope.success ? envelope.data.patch : undefined);
+  if (!reply.success || issues.length > 0) {
     console.error(
       "[turn-parse-failed]",
       JSON.stringify({
         stop_reason: response.stop_reason,
         had_tool_use: Boolean(call),
-        issues: result.error?.issues,
+        issues: [...(reply.error?.issues ?? []), ...issues],
         raw: call?.input,
       }),
     );
-    return {
-      // Deliberately asks nothing: the route appends whatever the form still
-      // needs, so a parse failure costs the person a turn, not the thread.
-      reply: "Sorry — I didn't catch that.",
-      patch: {},
-      mode: "claude",
-    };
   }
-  return { reply: parsed.reply, patch: parsed.patch, mode: "claude" };
+  return {
+    reply: reply.success ? reply.data : missingFor(state).length === 0
+      ? "You can review your completed form and export it now."
+      : "Sorry — I didn't catch that.",
+    patch,
+    issues,
+    mode: "claude",
+  };
 }

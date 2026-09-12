@@ -18,6 +18,8 @@ export interface Address {
 }
 
 export interface ComplaintState {
+  /** Persists an optional-question offer even when every answer is declined. */
+  sensitive_offered: boolean;
   firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
   open_afca_complaint: boolean | null;
   complained_to_firm: {
@@ -53,6 +55,7 @@ export interface ComplaintState {
 
 export function emptyState(): ComplaintState {
   return {
+    sensitive_offered: false,
     firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
     open_afca_complaint: null,
     complained_to_firm: { yes: null, date: "", how: "", final_reply: null },
