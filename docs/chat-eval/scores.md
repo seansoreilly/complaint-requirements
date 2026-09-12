@@ -370,6 +370,14 @@ nothing, and the lead's own fixture uses a near-identical trail-off that MUST
 get a question appended; no phrasing rule separates them. Agreed: recorded as
 cosmetic, no rule.
 
-**Running strict tally**: passed 0 · cleared once 0 · sweep hash pending the
-retry commit on top of 0a8dc9b. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+**3f2bce0 — THE SWEEP BUILD.** Retry once in runTurn when a patch is present
+and unusable (not on a missing reply, not on an absent patch); same messages
+and prompt; fall back with the salvage if the retry fails; both attempts
+logged; a per-build counter every 25 turns (turns, fragment failures, retries
+recovered), reset on restart. Fired once during Step 0 on a firm-name fragment
+and recovered; check 6 passed; latency unchanged. Step 0 10/10, evidence at
+626df3e. The 1%-8% interval on 5/139 is in the code comment.
+
+**Running strict tally on the sweep build 3f2bce0**: passed 0 · cleared once 0 ·
+in flight: p5-case05, p5-case12, p5-case20 — the first runs that can count. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
 defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.

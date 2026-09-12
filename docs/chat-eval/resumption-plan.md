@@ -303,7 +303,10 @@ retry once in runTurn on an unparseable patch only (not on a missing reply),
 fall back as before if the retry fails, log both attempts and a per-build
 counter (turns, fragment failures, successful retries) so the prompt-length
 hypothesis (lib/prompt.ts grew ~11% today) can be tested with numbers after the
-sweeps rather than guessed at now. That commit is the sweep build.
+sweeps rather than guessed at now. That commit is **3f2bce0 — the sweep
+build** (Step 0 10/10, evidence 626df3e; the retry fired once during Step 0
+and recovered). Any code, prompt, schema, tool-schema or data change after it
+restarts every count.
 
 **Sweep brief rule (mechanical, so it is not a judgement call):** after each
 answer, glance at the panel; if the value you just gave did not land, re-send
