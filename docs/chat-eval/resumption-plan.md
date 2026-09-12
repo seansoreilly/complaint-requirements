@@ -13,7 +13,10 @@ Phase 1 stopped because the Anthropic API key hit its spend limit; access return
 - Defects: `defects.md` — all fixed in code; 17 and 18 are marked NOT VERIFIED
   LIVE in their headings. Three fixes this run passed tests and did nothing in
   production, which is why Step 0 exists.
-- Frozen build: **`39c38bb`** (2026-09-12 22:47 AEST). The behaviour under test is
+- Frozen build: **`39c38bb`** (2026-09-12 22:47 AEST) — the last commit that
+  changed behaviour. Documentation commits after it do not move the freeze and
+  do not restart any count; a code, prompt, schema or data change does. The
+  behaviour under test is
   this commit. Any code, prompt or schema change after it restarts every count.
 - Personas never run: **1, 2, 4, 9, 10, 12, 13, 15**. The `declined` path has
   never been scored from a browser on a build where it works. Two personas test
@@ -73,9 +76,11 @@ have only been seen at the API, never in a browser:
   now draw from one count in app/page.tsx, so if they disagree that is a
   failure. Export is not gated on a blank: ReviewPanel shows "N answers are
   still missing. You can export anyway and finish later" and the button works.
-  Also confirm the `declined` list survives a later decline (2d7cc67 unions it, and it is in the frozen build
-  in reconcile; before that a partial patch wiped earlier refusals) — persona 15
-  declines two fields, so it is the natural check.
+  Also confirm the `declined` list survives a later decline (reconcile unions it
+  since 2d7cc67, which is in the frozen build; before that a partial patch wiped
+  earlier refusals) — persona 15 declines two fields, so it is the natural check.
+  The header arithmetic ("Ready — 1 left blank ✓") landed in 39c38bb and is
+  likewise NOT VERIFIED LIVE.
 - **notify_by is asked**: any persona — "How would you prefer AFCA to contact you"
   must be asked before the summary; the tick must not be pre-filled.
 
