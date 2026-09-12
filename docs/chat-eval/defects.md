@@ -44,7 +44,10 @@ of pointing at the review/export step. Observed twice:
 > Person: "No, I'll skip those, let's move on." → "Sorry — I didn't catch that."
 > Person: "Yes, that all looks right. Go ahead." → "Sorry — I didn't catch that."
 
-**Cause: not yet confirmed.** Two candidates, possibly both:
+**Cause: settled in round 2 — see defect 5.** The model omits the `reply` field
+entirely on ~2% of turns (`stop_reason: "tool_use"`, patch present, reply
+absent). Neither candidate below was the cause, though candidate 1 remains a
+real latent flaw worth fixing. Original hypotheses, kept for the record:
 
 1. *Schema strictness.* `lib/patch.ts:77-81` types `pronoun`, `support_needs`
    and `currently_experiencing` as bare `z.string()` while `interpreter` is
@@ -146,6 +149,77 @@ nothing in the live prompt forbids it.
 
 **Regression test:** a turn whose only evidence is "they called me last week"
 must not produce `complained_to_firm.yes === true`.
+
+---
+
+## 4. A scam complaint is processed as though AFCA could consider it
+
+**Severity: medium-high. Deterministic. Found in round 2.**
+
+`docs/scam-complaints-note.md` sets out, with sources, why scams are out of
+scope: AFCA cannot consider a Scams Prevention Framework complaint until
+**31 March 2027** (Competition and Consumer (Scams Prevention Framework—External
+Dispute Resolution) Authorisation 2026, s50(2)), and the SPF is multi-party in a
+way this one-complainant-one-firm schema does not model.
+
+That decision was documented and never implemented. `grep -ri scam lib/ app/`
+returns **nothing** — the live prompt never mentions it.
+
+Observed live (round 2, case 20). Opening message: *"It's CommBank I want to
+complain about. I lost $12,000 to a scammer."* The assistant replied with
+appropriate empathy — *"losing $12,000 to a scam is a serious thing to go
+through"* — and then proceeded to fill in an ordinary complaint form, saying
+nothing about scope. A person in that position is walked through a complete
+complaint for a matter that cannot be lodged for another eighteen months.
+
+This is the same shape as defect 3: a constraint that exists only in prose the
+live model never sees.
+
+**Suggested fix:** a short prompt section — recognise a scam, say plainly that
+AFCA cannot consider scam complaints until 31 March 2027 and that this demo does
+not model the multi-party shape, then offer to carry on recording it as an
+ordinary service complaint against the bank if that is what they want. Do not
+invent a scam pathway, do not dead-end, and do not promise a timeline. The note
+itself argues the demo should be able to say this: *"which is itself a useful
+thing for the demo to be able to say."*
+
+**Regression test:** a message naming a scam loss must produce a reply
+containing the 31 March 2027 limitation, and must not set a `scam` service type
+(there is none).
+
+---
+
+## 5. The model sometimes omits `reply` entirely
+
+**Severity: low (post-fix). Intermittent, ~2% of turns.**
+
+Root cause of the "Sorry — I didn't catch that" replies, settled from the
+`[turn-parse-failed]` log added for defect 1:
+
+```
+{"stop_reason":"tool_use","had_tool_use":true,
+ "issues":[{"expected":"string","code":"invalid_type","path":[],
+            "message":"Invalid input: expected string, received undefined"}],
+ "raw":{"patch":{"firm":{"name":"AustralianSuper","reference":"444444"}}}}
+```
+
+`stop_reason` is `tool_use`, not `max_tokens`, and the tool input carries a
+patch with **no `reply` field at all**. Neither of the original hypotheses (null
+sensitive fields; truncation under a long history) was the cause — the model
+simply omits `reply` on a small fraction of turns. Measured at 2 failures in 138
+turns (~1.5%) across ten concurrent round-2 conversations.
+
+Post-fix this costs only the reply text: in the example above the firm name and
+reference `444444` were still applied to the form. Pre-fix the whole turn was
+discarded.
+
+**Suggested fix:** the tool schema marks `reply` required but gives it **no
+description**, so nothing tells the model what the field is for. Add
+`.describe()` to both fields on `turnSchema` in `lib/model.ts` (it flows through
+`z.toJSONSchema` into the tool definition), and make the fallback reuse the
+outstanding question from `ensureAsk` rather than apologising — a person should
+never see "Sorry — I didn't catch that" for a message the app understood well
+enough to extract fields from.
 
 ---
 
