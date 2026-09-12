@@ -294,6 +294,23 @@ never called unlisted; a reply already carrying a field's options gets none
 appended; Hugh's story yields no "Unauthorised transactions"), then 5, 12, 20
 again. The sweep hash is that commit.
 
+**Then 945a894 (26, 27) → 5490982 (28 `alreadyAsks`, 29 stubbed-type issues and
+scam handling, no example fund names) → (retry commit, pending).** Step 0 on
+5490982 went 9/10 then 10/10 on identical code: the failed check lost its draft
+to a rejected patch, the defect-25 fragment shape, which is now firing at ~3.6%
+of recent turns (5 in ~139; wide interval) against ~1% historically. Ruling:
+retry once in runTurn on an unparseable patch only (not on a missing reply),
+fall back as before if the retry fails, log both attempts and a per-build
+counter (turns, fragment failures, successful retries) so the prompt-length
+hypothesis (lib/prompt.ts grew ~11% today) can be tested with numbers after the
+sweeps rather than guessed at now. That commit is the sweep build.
+
+**Sweep brief rule (mechanical, so it is not a judgement call):** after each
+answer, glance at the panel; if the value you just gave did not land, re-send
+the same message once and report it as "dropped turn (re-sent)" — not as a
+defect. The monitor log, read after each batch, is the record of what was
+dropped.
+
 **Standing rule for scripted checks (third instance: the firm-status check
 passed against the broken prompt because the model happened not to guess):** a
 check that drives the live model tests what the model happened to do, not what

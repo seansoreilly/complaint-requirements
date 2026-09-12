@@ -26,13 +26,17 @@
  * me and I'll mark it") and case 9 ("I'll then draft the complaint text for you
  * to check"), both replies that invited an answer without a question mark.
  *
- * Adding phrases to IMPERATIVE_ASK chases the symptom — there is always another
- * way to invite an answer. The mechanism is to check whether the reply already
- * carries THIS field's ask: its label, or two or more of its options. That is
- * about the field being appended, not about how the sentence is phrased.
+ * Two mechanisms, and both are needed. `alreadyAsks` is the stronger: it checks
+ * whether THIS field has already been put to the person — its label, or two or
+ * more of its options — which does not depend on wording. I argued that was
+ * enough and that adding phrases to IMPERATIVE_ASK only chases the symptom. It
+ * is not enough: case 8's reply carried no options and no label, so nothing but
+ * the phrasing could catch it. The phrase list stays, fed only from replies
+ * that actually occurred.
  */
 import { describe, expect, it } from "vitest";
 import { alreadyAsks, ensureAsk } from "../continue";
+import { endsWithQuestion } from "../questions";
 import { emptyState, type ComplaintState } from "../schema";
 
 function needsSubtype(): ComplaintState {
@@ -111,5 +115,31 @@ describe("alreadyAsks", () => {
     const dob = { path: "complainant.dob", label: "Date of birth", stageId: "contact" };
     expect(alreadyAsks("What is your date of birth?", dob, needsSubtype())).toBe(true);
     expect(alreadyAsks("What happened next?", dob, needsSubtype())).toBe(false);
+  });
+});
+
+/**
+ * The weaker half of the pair, pinned against the replies that occurred.
+ *
+ * `IMPERATIVE_ASK` matches how a sentence is phrased, and there is always
+ * another phrasing — which is why `alreadyAsks` exists. But two of the three
+ * real replies carried no options and no field label, so only this can catch
+ * them. Entries come from transcripts, never from imagination.
+ */
+describe("closing imperatives that hand the turn back", () => {
+  it("recognises the two that invited an answer", () => {
+    expect(endsWithQuestion("If it turns up later, tell me and I'll mark it on the form.")).toBe(true);
+    expect(
+      endsWithQuestion("If you're still not sure, that's absolutely fine — just say so and I'll note it."),
+    ).toBe(true);
+  });
+
+  it("does not treat a statement of intent as an ask", () => {
+    // "I'll then draft the complaint text for you to check" invites nothing —
+    // it says what the app will do next. Recorded as cosmetic, no deduction.
+    // Matching it would also match the legitimate trail-off below, which MUST
+    // get a question appended, so the two cannot be told apart by phrasing.
+    expect(endsWithQuestion("Take your time — I'll then draft the complaint text for you to check.")).toBe(false);
+    expect(endsWithQuestion("I'll shape that into the complaint text for you afterwards.")).toBe(false);
   });
 });

@@ -338,6 +338,29 @@ missing reply with a valid patch, defect 5's shape, handled by the mitigation.
 Superseded before use: 28 and 29 are not in it (continue.ts/questions.ts and
 the SCAMS/stubbed-types prompt text untouched).
 
-**Running strict tally**: passed 0 · cleared once 0 · sweep hash pending one
-commit carrying 28 and 29 on top of 945a894. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+**5490982** — defects 28 (`alreadyAsks`: a reply carrying the field's label or
+two or more of its options is not appended to; built from the three real
+replies, six of eight tests fail without it) and 29 (stubbed types take the
+person's words; a payment the person made is the firm's handling, never
+"Unauthorised transactions"; category kept for Credit) plus "no example fund
+names". Step 0: first run 9/10 — check 6 failed because the patch carrying the
+draft was rejected (the defect-25 fragment shape), not a draft-hold regression;
+re-run 10/10 on identical code; both recorded, evidence at 05a2037.
+
+**The fragment parse failure is rising:** 5 in ~139 recent turns (~3.6%, wide
+interval at that n, but four of the five are today) against ~1% for all shapes
+historically. Correlation offered, not diagnosis: lib/prompt.ts grew 17,300 →
+19,219 chars today. Cost: a fragment failure discards the whole turn's
+extraction; the salvage keeps deferred/declined and ensureAsk keeps the thread,
+so the person sees nothing — a draft, a date or an issue list just fails to
+land. Ruling: retry once in runTurn on an unparseable patch (not on a missing
+reply, which the mitigation already handles), fall back as now if the retry
+also fails, log both; the prompt-length hypothesis is recorded with a metric
+(fragment rate per build) so it can be tested rather than guessed at. One more
+commit, one Step 0, then the re-runs. Testers in the sweeps check the panel
+after each answer and re-send if a value did not land, reporting it as a
+dropped turn, not a defect.
+
+**Running strict tally**: passed 0 · cleared once 0 · sweep hash pending the
+retry commit on top of 5490982. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
 defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.

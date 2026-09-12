@@ -118,6 +118,13 @@ export function endsWithQuestion(reply: string): boolean {
 /**
  * Closing imperatives that invite an answer. Deliberately narrow: these are
  * phrasings that hand the turn back, not any sentence containing "tell".
+ *
+ * This list is the weaker half of the pair. It matches how a sentence is
+ * phrased, and there is always another phrasing — three real replies stacked a
+ * second ask underneath them before anyone noticed. `alreadyAsks` in
+ * continue.ts is the stronger half: it asks whether the FIELD has already been
+ * put to the person, which does not depend on wording. Entries here are added
+ * from replies that actually occurred, never from imagination.
  */
 const IMPERATIVE_ASK =
-  /\b(tell me|let me know|paste it|pop it in|type it|send it through|give me|say the word|go ahead and)\b/i;
+  /\b(tell me|let me know|paste it|pop it in|type it|send it through|give me|say the word|go ahead and|just say so|say so and|tell me what you do know)\b/i;
