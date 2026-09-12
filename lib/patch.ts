@@ -39,8 +39,24 @@ export const patchSchema = z
      * note — the model proposing one here changes nothing.
      */
     firm_note_said: z.string(),
-    /** Paths the person has refused; unknown paths are dropped in `applyPatch`. */
-    declined: z.array(z.string()),
+    /**
+     * Paths the person has refused; unknown paths are dropped in `applyPatch`.
+     *
+     * Described rather than bare, for the same reason `reply` and `patch` are:
+     * this is one field among 49 in the tool schema, and a prose instruction in
+     * the system prompt did not reach it. A live decline produced the right
+     * reply and an empty list — the model had nowhere obvious to put it.
+     */
+    declined: z
+      .array(z.string())
+      .describe(
+        "Field paths the person has declined to answer, e.g. [\"service.subtype\"]. " +
+          "Add a path here when they have said they do not know or will not say and " +
+          "you have told them you will leave it blank. This is what actually stops " +
+          "the form asking again — say it here as well as in the reply, or they get " +
+          "asked a question you just promised to drop. Include paths already in the " +
+          "list; send the full list, not only what is new.",
+      ),
     firm: z
       .object({
         name: z.string(),
