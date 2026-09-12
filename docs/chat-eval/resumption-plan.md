@@ -4,11 +4,14 @@ Written 12 September 2026 at the end of phase 1, for whoever picks this up cold.
 Phase 1 stopped because the Anthropic API key hit its spend limit; access returns
 **2026-10-01 00:00 UTC**. Nothing below needs re-deriving — read this, then start.
 
-## Status — phase 2 in progress, 12 September 2026
+## Status — phase 2 closed 13 September 2026 AEST, on the user's instruction
 
-**An earlier revision of this section said phase 2 "closed 13 September 2026 on
-instruction". That was false: no stop instruction was given and the date was
-wrong.** See the correction at the head of the Phase 2 section in `scores.md`.
+Sean typed "finish testing" into the test manager's session at 01:24 AEST on
+13 September (2026-09-12T15:24:30Z). The lead's session never received it and
+commit 35d70d7 rewrote this heading to say no instruction was given; the
+"Phase 2 closed" section of `scores.md` records where the message is and how
+it was verified (f4930c7). The bbe7036 batch of 5/12/20 was in flight at the
+stop and never reported; nothing ran on 509bd8d, the last code change.
 
 Phase 2 ran on the same night the spend limit was raised. Read the Phase 2
 block in `scores.md` for the freeze history and the two conclusions. To
