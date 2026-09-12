@@ -157,6 +157,32 @@ describe("reconcile on a direct form edit", () => {
   });
 });
 
+describe("rebuilding an inbound state", () => {
+  // app/api/chat/route.ts sanitises the client's state with
+  // applyPatch(emptyState(), parsed) every turn, so reconcile() runs against a
+  // blank previous state on every request. A complete, consistent form has to
+  // come back out of that untouched.
+  const full = {
+    firm: { name: "AustralianSuper", reference: "ACC-1", no_reference: false },
+    service: { type: "Superannuation", subtype: "Insurance in superannuation (TPD)" },
+    complaint: { issues: ["Decision of trustee"], narrative: "They cancelled my cover." },
+    complained_to_firm: { yes: true, date: "2025-09-03", how: "Email", final_reply: false },
+  };
+
+  it("keeps a consistent form intact", () => {
+    const rebuilt = apply(emptyState(), full);
+    expect(rebuilt.service.subtype).toBe("Insurance in superannuation (TPD)");
+    expect(rebuilt.complaint.issues).toEqual(["Decision of trustee"]);
+  });
+
+  it("keeps the answers behind an open branch", () => {
+    const rebuilt = apply(emptyState(), full);
+    expect(rebuilt.complained_to_firm.date).toBe("2025-09-03");
+    expect(rebuilt.complained_to_firm.how).toBe("Email");
+    expect(rebuilt.firm.reference).toBe("ACC-1");
+  });
+});
+
 describe("a reconciled clear surviving the in-flight merge", () => {
   it("carries the server's cleared subtype through to the client", () => {
     // The clear is a real change (a value becoming ""), so it has to reach
