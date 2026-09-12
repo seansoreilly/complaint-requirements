@@ -46,7 +46,14 @@ own summary ("clean pass"); anything from the mock brain.
 3. `curl -s http://localhost:3100/api/chat` prints `{"mode":"claude"}`. If it
    prints `mock`, stop.
 4. Every tester's launch brief contains the hash and the port, and every report
-   starts with the hash and the start time.
+   starts with the hash and the start time (record `Date.now()` on the first
+   tool call; nobody in f1 had one).
+5. Browser automation: each tester owns its own tab and passes its tabId on
+   every call. Type into the chat box via an element ref from read_page or
+   form_input, never by clicking pixel coordinates from a screenshot — f1-case09
+   found the click silently fails to focus the textarea, typed text vanishes,
+   and a message can be scored as sent when it never was. Confirm each message
+   appears in the transcript before reading the reply.
 
 ## Step 0 — verify the two NOT-VERIFIED-LIVE fixes, in a browser, before anything else
 
@@ -126,13 +133,33 @@ Verbatim, in this order:
    line, or "clicked Use this" (a card click IS an approval; record it as one).
 4. The outcome question, the person's answer, the outcome draft, the approval.
 5. Every decline and every later raise of that field, with the app's wording.
-6. The final state JSON (`window.__state`). Capture it **after every turn**, not
-   only at the end — two f1 runs lost theirs to a closed tab and a failed fetch
-   overwriting the interceptor's value. A run without state cannot be scored on
-   field accuracy.
-7. A list of anything said in character that is not on the persona sheet. Do not
-   improvise facts (dates, illnesses, phone numbers). If the sheet is silent, say
-   "I don't know" in character.
+6. The final state JSON. Install a fetch interceptor on `/api/chat` before the
+   first message that stores each response's `state` on `window.__state`, and
+   guard it: only overwrite on a 200 with a JSON body carrying `state`, so a
+   later 400 cannot clobber the last good value (that is how f1-case09 lost its
+   final dump). Capture it **after every turn**, not only at the end — a closed
+   tab loses it (f1-case12). If the interceptor never populates, fall back to
+   reading the form panel with get_page_text after each turn, and **say which
+   source a state came from**; a panel reading supports B and C but a run
+   without a JSON state cannot be scored on field accuracy (f1-case02).
+7. A list of everything said in character that is not on the persona sheet.
+   The rule, settled at close: **facts are not improvised; colour may be.**
+   - A fact is anything that becomes a field value or a sentence in a draft:
+     an amount, a date, a duration, a reference number, an illness, a phone
+     number, a remedy. If the sheet is silent, say "I'm not sure" in character.
+     That tests something real — the app must handle a gap without filling it
+     (cases 6, 11, 18 all passed exactly that test) — whereas an invented "$180"
+     tests nothing and can mask a real invention if the tester later misremembers
+     what they said. Case 20 round 3 was voided for an unlisted date.
+   - Colour is register and framing that lands in no field — "it was just a
+     normal customer service call", "it's been really stressful". Allowed, and
+     the app is scored against what the transcript shows the tester said, not
+     against the sheet.
+   - Never improvise around the thing the persona exists to test. A run is
+     voided when an improvisation dodges the trap (case 14: picking a category to
+     avoid the trigger), replaces it (case 12: "Rest" where the sheet says "my
+     super fund"), or supplies it unscripted (case 5's decline, now scripted).
+   Whatever you improvise, of either kind, list it here.
 8. A list of anything the assistant stated that the persona did not say — a phone
    number, an email, a full firm name, a date. Flag it; do not judge it. **The
    manager verifies every flag against `data/firms.json` before it becomes a

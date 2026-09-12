@@ -23,6 +23,9 @@ per round; rounds are appended, never rewritten.
 | 4 | 20 scam-complaint | 9/10 (no build hash — defect-finding) | Scope stated once, choice respected, all fields exact, narrative every clause his (round-3 motive gone; "It was a scam" his words); "Around 15 August 2026" from "around the 15th of August" is the same year resolution code applies to every dated field — ruled not an invention. −1 (C-1): two dead-ends — after each "Use this" card approval the assistant said "Added to your complaint…" / "Noted as the outcome you're seeking." and asked nothing; the person had to volunteer the next answer. Card approval is client-side (app/page.tsx:125-150) and never reaches ensureAsk. |
 | 4 | 17 edits-draft | 9/10 (no build hash — defect-finding) | The revision path works: change request → revised card → typed approval → complaint.narrative written, drafts cleared; the app noted honestly that the draft already said seven months and had nothing emotional to remove, then tightened wording. Rest 11540 from the directory (it explicitly declined to trust her stated number); all fields exact; narrative fully traceable. −1 (B): outcome draft adds "with reasons" — a request for reasons she did not make ("decided properly and back payments" was her ask). Same DRAFTING family as cases 18 and 20. |
 | 4 | 5 default-listing | 8/10 (no build hash — pre-2fa9d4f, defect-finding) | Every expected field exact (Latitude 12207, 552-118-904, in writing 2026-07-20, final_reply true, "Default listing on credit file", compensation yes, contact exact); both drafts word-for-word hers, approved via the card. The required-field return-once rule worked as designed on the second ask ("I just need to ask once more because the form does need it"; "I won't ask again"). −1 (C-2): a THIRD ask after the closing summary she had confirmed — "Which of these fits best? Home loan, Personal loan, …" — a forced list with no opt-out, appended by ensureAsk from lib/questions.ts:29 over the model's promise; she had to push back (defect 16, fixed at 2fa9d4f). −1 (C-1): each "Use this" click was answered only by the canned "Added to your complaint…" / "Noted as the outcome…" with no question (app/page.tsx:125-150). Subtype "" is an honest blank, not a field error. Tester improvised the decline; it found a real defect. |
+| f1 | 9 negated-complaint | 10/10 (2fa9d4f — defect-finding) | The safety case held on a direct question that drew the distinction itself ("raising it with them as a complaint, rather than the original call about the interest"); "No, I haven't complained to them yet" → yes=false with date/how/final_reply empty; AFCA-first note once, with ANZ's phone and email verbatim from firms.json:99-100 (tester flagged them as invented — verified, not); form kept going. ANZ 10101, "Card ending 8890", Credit / Credit card; narrative and outcome every clause his (the $180 and "normal customer service call" were the tester's in-character additions, then Ben's words); both approved by typed line. Caveat: the JSON snapshot predates the outcome and contact answers; those rest on the panel ticks and the assistant's own confirmation (DOB 17/09/1997, mobile 0466 554 010), which match the sheet. |
+| f1 | 2 credit-hardship | UNSCORED — no final state (2fa9d4f) | Transcript complete and clean on B and C: CBA resolved, drafts word-for-word Tom's (the "stressful / roof over my family's head" line and the "3 to 6 months" were the tester's in-character additions, spoken by Tom, not added by the app), compensation "not sure" recorded and the outcome draft leaves it open ("I'm not sure exactly how long"), attachments and optional questions offered once and dropped on decline, both approvals typed. No state JSON was captured (the tester's interceptor never populated), so A cannot be diffed; not scored. |
+| f1 | 12 ambiguous-firm | UNSCORED — partial, no state, trap not exercised (2fa9d4f) | Stopped at user turn 9 by the API limit; no state JSON. Agent artefact: asked "Can you tell me the name of the super fund", the tester answered "Rest" instead of the scripted "my super fund", so the directory's ambiguous-match path (lookupFirm → "Several firms match…") never ran. What did happen was right — the app did not extract a firm from "my super fund" in the opening line, asked for the name, and 11540 appeared only after "Rest" — but the persona's trap is untested. Treat 12 as never run. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
 frozen final build. Freeze history: f0f7154 (22:06:38) → 456abb2 (22:16:16, chasing is
@@ -43,7 +46,9 @@ testers in flight (1, 2, 4, 9, 10, 12, 13) were stopped; nothing from the mock
 brain was, or may be, entered here.
 
 Final state of this phase:
-- 18 rows across 12 of the 20 personas.
+- 21 rows across 15 of the 20 personas (the last three, marked f1, are the
+  first-sweep runs that completed or partly completed before the limit hit;
+  they ran on 2fa9d4f and are defect-finding like the rest).
 - **Strict tally: passed 0, cleared once 0.** Every row is a defect-finding run on
   a build that was later changed. This is a statement about the build history, not
   about the app: the last five rows scored 9, 10, 9, 9, 8, and every deduction on
@@ -65,7 +70,8 @@ Final state of this phase:
   two-sweep phase, so the app was never measured against the bar. What phase 1
   did was find defects — every one on `defects.md` — and fix them in code, three
   of them only because someone checked the live path after the tests went green.
-- Never run: 1, 2, 4, 9, 10, 12, 13, 15. The `declined` path has never been scored
+- Never run: 1, 4, 10, 13, 15 — and 12, whose one partial run skipped its trap.
+  2 ran clean but without a state capture; 9 ran clean and scored. The `declined` path has never been scored
   from a browser on a build where it works; it is tested by 15 (a required field
   declined once, returned to with a reason, then given) and by the rescripted 5 (a
   required field declined twice and left blank).
