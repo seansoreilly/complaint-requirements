@@ -68,9 +68,22 @@ export function stageProgress(state: ComplaintState): { id: string; title: strin
   }));
 }
 
+/**
+ * Missing, minus what the person has declined to answer.
+ *
+ * `missingFor` stays honest — a blank required field is blank, and the counter
+ * and the review panel should keep saying so. This is the narrower list: what
+ * it is still reasonable to ask for. Everything that drives a question goes
+ * through here.
+ */
+export function askableFor(state: ComplaintState): MissingField[] {
+  const declined = new Set(state.declined);
+  return missingFor(state).filter((m) => !declined.has(m.path));
+}
+
 /** The single next thing worth asking about, or null when the form is done. */
 export function nextField(state: ComplaintState): MissingField | null {
-  return missingFor(state)[0] ?? null;
+  return askableFor(state)[0] ?? null;
 }
 
 /**
@@ -80,7 +93,7 @@ export function nextField(state: ComplaintState): MissingField | null {
 export function groupedWithNext(state: ComplaintState): MissingField[] {
   const next = nextField(state);
   if (!next) return [];
-  const missing = missingFor(state);
+  const missing = askableFor(state);
   if (next.stageId === "contact") {
     // Name, email and address belong in one breath; DOB and contact preference
     // stay separate so skipping one doesn't stall the others.

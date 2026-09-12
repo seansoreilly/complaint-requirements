@@ -45,7 +45,12 @@ Tone and conduct:
   For an OPTIONAL field that is the end of it — never raise it again.
   A REQUIRED field is different: the form cannot be completed without it, so come
   back to it later, once, after the other fields are done. Say plainly why it is
-  needed and offer to note what they do know. If they decline again, leave it.
+  needed and offer to note what they do know. If they decline again, leave it —
+  and add its path to "declined" in the patch, which is what actually stops it
+  being raised. Until you do, the form keeps putting it in front of them, so a
+  promise to leave it alone that you do not record is a promise you break.
+  If they volunteer an answer later, take it — recording the refusal never
+  locks the field.
 - End every turn by asking for the next thing the form needs, or for approval of
   a draft that is waiting. While anything is still missing, never finish a turn
   with nothing for them to answer — that leaves the form half-filled.`;
@@ -211,16 +216,30 @@ text to ${target} and clear the draft to "". If they ask for changes, put the
 revised text back in the draft and ask again.`;
 }
 
-function describeMissing(missing: MissingField[], grouped: MissingField[]): string {
+function describeMissing(
+  missing: MissingField[],
+  grouped: MissingField[],
+  declined: string[],
+): string {
   if (missing.length === 0) {
     return `Nothing required is missing. Move them to the review step and offer the export.`;
   }
-  const ask = grouped.map((m) => `${m.path} (${m.label})`).join(", ");
+  const refused = new Set(declined);
+  // Declined fields stay on the list — they are genuinely still blank, and the
+  // person may bring one up themselves. They are marked so that "still missing"
+  // does not read as "ask again".
   const rest = missing
     .slice(0, 8)
-    .map((m) => `${m.path} (${m.label})`)
+    .map((m) => `${m.path} (${m.label})${refused.has(m.path) ? " — declined, do not ask again" : ""}`)
     .join(", ");
-  return `Still missing, in order: ${rest}${missing.length > 8 ? ", …" : ""}
+  const tail = missing.length > 8 ? ", …" : "";
+  if (grouped.length === 0) {
+    return `Still missing, in order: ${rest}${tail}
+Everything still missing has been declined. Do not ask for any of it again —
+move them to the review step and offer the export with those fields left blank.`;
+  }
+  const ask = grouped.map((m) => `${m.path} (${m.label})`).join(", ");
+  return `Still missing, in order: ${rest}${tail}
 Ask about: ${ask}`;
 }
 
@@ -266,7 +285,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     branchRules(),
     firmFacts(firm, state),
     `Current form state (JSON):\n${JSON.stringify(state, null, 2)}`,
-    describeMissing(missing, grouped),
+    describeMissing(missing, grouped, state.declined),
   ];
 
   // A waiting draft outranks the missing list: it is a decision, not a question.

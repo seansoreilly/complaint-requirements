@@ -33,6 +33,20 @@ export interface ComplaintState {
    * "already said about this firm".
    */
   firm_note_said: string;
+  /**
+   * Required fields the person has declined to answer, by path.
+   *
+   * The README says a skipped field is returned to once with the reason and
+   * then left. Without somewhere to record "they said no twice", the field
+   * stays at the head of `missingFor` and both the route and the prompt keep
+   * raising it — a live conversation promised "I won't ask again" and then put
+   * a forced multiple choice with no "not sure" option in front of her.
+   *
+   * It records a refusal, not an answer. The field is still missing, the
+   * counter still counts it and the review still shows it blank; it is only
+   * removed from what gets asked. An answer volunteered later clears it.
+   */
+  declined: string[];
   firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
   open_afca_complaint: boolean | null;
   complained_to_firm: {
@@ -70,6 +84,7 @@ export function emptyState(): ComplaintState {
   return {
     sensitive_offered: false,
     firm_note_said: "",
+    declined: [],
     firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
     open_afca_complaint: null,
     complained_to_firm: { yes: null, date: "", how: "", final_reply: null },
@@ -91,7 +106,9 @@ export function emptyState(): ComplaintState {
       interpreter_language: "",
       support_needs: "",
       currently_experiencing: "",
-      notify_by: "email",
+      // Required, so it starts blank: a default here ticks the field before
+      // anyone is asked, and the export then states a preference they never gave.
+      notify_by: "",
     },
     consents: { authority: false, engagement_charter: false },
     drafts: { narrative: "", fair_outcome: "" },

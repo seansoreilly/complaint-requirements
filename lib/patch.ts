@@ -39,6 +39,8 @@ export const patchSchema = z
      * note — the model proposing one here changes nothing.
      */
     firm_note_said: z.string(),
+    /** Paths the person has refused; unknown paths are dropped in `applyPatch`. */
+    declined: z.array(z.string()),
     firm: z
       .object({
         name: z.string(),
@@ -335,6 +337,29 @@ export function reconcile(
     if (!touched("service.subtype")) next.service.subtype = "";
     if (!touched("complaint.issues")) next.complaint.issues = [];
   }
+
+  // The declined list. Two things keep it honest, and both have to happen here
+  // rather than in the merge, because the form panel writes state without ever
+  // going near a patch.
+  //
+  // A path that is not a real required field is dropped: the list drives what
+  // the assistant stops asking for, so an invented entry would silently retire
+  // a question. And an entry whose field now holds a value is dropped too — a
+  // refusal is not a lock, and someone who says "actually, it was a personal
+  // loan" has answered.
+  const requiredPaths = new Set(
+    STAGES.flatMap((stage) => stage.fields.filter((f) => f.required).map((f) => f.path)),
+  );
+  const seen = new Set<string>();
+  next.declined = next.declined.filter((path) => {
+    if (!requiredPaths.has(path)) return false;
+    if (seen.has(path)) return false;
+    seen.add(path);
+    const value = getPath(next, path);
+    if (typeof value === "string") return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    return value === null || value === undefined;
+  });
 
   // The long free-text boxes. cleanPatch caps these on the way in from the model,
   // but a person typing or pasting into the form panel never goes through it,

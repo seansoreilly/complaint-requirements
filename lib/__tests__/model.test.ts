@@ -121,6 +121,37 @@ describe("live turn parsing", () => {
     expect(console.error).toHaveBeenCalledWith("[turn-parse-failed]", expect.stringContaining('"stop_reason":"max_tokens"'));
   });
 
+  /**
+   * Case 5, end to end. The model kept its promise — "I won't ask again, I'll
+   * leave the product blank" — and the route stapled the canonical question
+   * back underneath it, a forced choice with no "not sure" option. The person
+   * had to push back to hold a boundary the app had already agreed to.
+   */
+  it("does not re-ask a required field the person declined", async () => {
+    const state = completeState();
+    state.service.subtype = "";
+    expect(nextField(state)?.path).toBe("service.subtype");
+    // Deliberately ends without a question. `ensureAsk` only appends when the
+    // reply asks nothing, so a reply ending "shall we move on?" would pass this
+    // test even with the fix reverted — it would never reach the append.
+    const reply =
+      "That's completely fine — I won't ask again. I'll leave the product blank " +
+      "and note that you weren't sure. Your form is ready for review.";
+    toolResponse({ reply, patch: { declined: ["service.subtype"] } });
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ state, message: "I'm really not sure which one it was." }),
+    }));
+    const body = await response.json();
+    expect(body.state.declined).toContain("service.subtype");
+    expect(body.reply).toBe(reply);
+    expect(body.reply).not.toContain("Which of these fits best?");
+    expect(body.reply).not.toContain("Personal loan");
+    // Still blank, still counted: a refusal is not an answer.
+    expect(body.state.service.subtype).toBe("");
+    expect(body.missing.some((m: { path: string }) => m.path === "service.subtype")).toBe(true);
+  });
+
   it("keeps a valid patch even when the reply is malformed", async () => {
     toolResponse({ reply: null, patch: { legal_proceedings: false } });
     const turn = await runTurn({ state: emptyState(), firm: null, history: [], message: "No" });
