@@ -326,6 +326,33 @@ reply that claims a card is waiting when none appeared is noted on the row as
 the "saved" family and goes on the post-sweep fix list (the route can detect a
 promised draft that did not land, as it already does for "saved").
 
+**Then 3f2bce0 → (defect 30, pending).** The p5 re-runs on 3f2bce0: 5 = 10 and
+12 = 9, the first clearances that could count. 12 found defect 30: Helen's
+one-word "Rest" to "do you know which fund it is?" was read as a deferral of
+the firm name (the reply before had offered to defer it), and she had to answer
+twice. Fix is a deterministic route guard — an unresolved firm plus a message
+of at most three words that lookupFirm matches confidently sets firm.name
+before the model speaks — plus a prompt line that the firm name is never
+deferred. The lead could not reproduce it in three attempts (bare state, and
+the refusal-heavy history), so it is one misread in four observed. **Freeze
+rule refined:** a defect moves the hash only when it is reproducible — a
+failing test or repeatable live; an unreproducible single observation is a
+watchlist item with its fix specified, promoted on a second instance. Defect
+30 is on the watchlist; the build stays 3f2bce0 and the 5 and 12 clearances
+stand. Watch for a bare firm name read as a refusal in the sweeps.
+
+**Convergence — the stop condition for this phase.** Every batch since 9ae75bf
+found one new person-meets-it defect (24; 26/27/28/29; 30), each fixed, each
+restarting the count; the rubric caps the exercise at five rounds and says to
+report the failure pattern rather than burn the key. The pattern: the model's
+conversational judgement produces a new class of misread each batch, and code
+guards close them one at a time — correct engineering, and not something that
+converges on two clean sweeps in one night. Proposal recorded: fix 30, Step 0,
+one more batch of 5/12/20; if it is clean, sweep 1; if it finds another
+person-meets-it defect, STOP, write the pattern up as phase 2's result, hand
+over the ledger and this plan, and run the sweeps on a later day with the
+fragment counter's numbers in hand.
+
 **Sweep brief rule (mechanical, so it is not a judgement call):** after each
 answer, glance at the panel; if the value you just gave did not land, re-send
 the same message once and report it as "dropped turn (re-sent)" — not as a

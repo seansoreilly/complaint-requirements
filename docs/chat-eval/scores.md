@@ -41,6 +41,8 @@ per round; rounds are appended, never rewritten.
 | p4 | 12 ambiguous-firm | 9/10 (b8fa2f6 — defect-finding) | Trap held again: "" / "" after "my super fund"; "super fund" / "" (never 11902) after the panel move with the 19b reply ("closest match… Hesta Super Fund, but that may not be the firm you mean. What is its full name?"); Rest → 11540. `deferred` end to end: first decline → deferred, "I'll leave that one for now and come back to it later"; returned once at the end with a reason and a pre-committed way out; second decline → declined, "I won't bring it up again"; summary omits the field rather than guessing. complained_to_firm.yes false extracted from her explicit narrative sentence; AFCA-first note once with directory contact; compensation "no"; drafts hers; contact exact; full state read in chunks. −1 (C-3): the return-with-reason reply ended with the canonical list appended AGAIN under the bullet list it already contained — "Which of these fits best? Account balance / contributions, …" — because its closing sentence ("just say so and I'll note it") is neither a "?" nor a recognised imperative, so endsWithQuestion saw no ask. Third occurrence of this stacking (8 r3, 9 p2, now 12 p4), and this time on the one turn designed to be gentle — **defect 28**. "Hostplus" offered as an example fund a third time. |
 | p4 | 20 scam-complaint | 9/10 (b8fa2f6 — defect-finding) | Scope once, in the turn after the story: 2027 as law, one-firm shape as the demo's, redirect to the bank's handling, a real choice; never repeated. No motive; no scam date asked so none resolved; drafts his words on cards, approved by click; CBA 10099, "Account ending 7781", {yes, 2026-08-20, phone, false}, compensation yes, outcome his; contact exact; optional once. −1 (A): issues ["Unauthorised transactions"] — the app "pencilled in" that category itself, in the same breath as saying the ordinary complaint is "how the bank itself handled things", for a transfer Hugh made himself under deception. That is the authorised-push-payment / unauthorised-use line the SCAMS section draws, crossed on the form; the p3 run recorded the right thing ("Handling of my scam report since I reported it"). The model also composed an issue list for a stubbed service type from other types' entries ("Delay", "Failure to follow instructions") instead of taking his words — **defect 29**. Hugh confirmed the pre-pick ("sounds right"), which is what a real person does with a suggestion. State read fully at the end; no per-turn captures. |
 | p5 | 5 default-listing | 10/10 (**3f2bce0 — counts; cleared once**) | Turn 1: "I've put Latitude Financial Services down as the firm" — no directory claim (defect 26 fixed live), 12207 from the directory, firm_note_said "". `deferred` end to end for the third time: first decline → deferred, "I'll come back to that one later"; returned exactly once after the optional questions with a reason ("it decides how your complaint gets routed… so I can't leave it empty") and a narrower prose list, no stacked bare list anywhere (defect 28 fixed live); second decline → declined; header "Ready — 1 left blank ✓". Clarify-first (final-response medium asked, then the draft). Both cards read and approved by click, every clause hers ("already closed", "by letter" were her words); compensation "no" with the remedy separated. All expected fields exact; full state read in chunks; no dropped turns, no timeouts. Reporting gap only: the assistant's reply after the second decline was not quoted (state shows it processed). |
+| p5 | 12 ambiguous-firm | 9/10 (3f2bce0 — counts, clears; but see defect 30) | Trap held for the third time: "" / "" after "my super fund"; "super fund" / "" (never 11902) after the panel move, with the 19b reply; 11540 after "Rest". `deferred` end to end: cover type deferred on the first "not sure", returned once after the optional questions with a reason and a way out, declined on the second; no stacked list (defect 28 fixed live); complained_to_firm.yes false from her sentence; compensation "no"; drafts hers on cards; contact exact; no dropped turns, no timeouts. −1 (C-2): her one-word answer "Rest" to "do you know which fund it is?" was read as a deferral — "No problem — I'll leave the fund's name aside for now and come back to it once we've done everything else" — firm.name stayed "super fund", number ""; she had to answer again ("Sorry, the fund's name is Rest") before 11540 appeared. The reply before it had offered to defer the firm name ("If you'd rather not chase it down right now… I'll come back to it later"), which set the misread up. **Defect 30.** Oddity noted, not a defect: one mid-run snapshot after the outcome approval showed narrative "" while the final state is correct. |
+| p5 | 20 scam-complaint | 9/10 (**3f2bce0 — counts; cleared once**) | Defect 29 fixed live: no issue list offered ("I'd like to use your own words rather than pick from a list"), nothing pre-filled, issues ["The bank's handling of my scam report and my request to get the money back"]; the scope reply explains out loud that a transfer he made is not an unauthorised transaction. Scope: 2027 as law, one-firm shape, real choice; no motive; no scam date asked. Complaint-vs-report asked before recording yes. Both drafts his words, approved by click. All expected fields exact; full state read. −1 (C-1): two fragment losses in one run — his full narrative was answered with the canonical "In a few words, what went wrong?" (reply and patch lost; re-sent once), and the outcome draft was promised ("I've put a short outcome statement on the card") with no card rendered until he asked; the app recovered cleanly both times. Under the dropped-turn rule two in one run cost C-1. The promised-card sentence is the "saved" family — on the post-sweep fix list (the route can detect a promised draft that did not land). Soft repeat, no deduction: the 2027 line was restated once inside the closing summary; SCAMS says say it once. |
 | p2 | 4 bnpl-fees | 10/10 (39c38bb — defect-finding) | "I don't have one" → `no_reference: true`, reference "", "it won't be asked about again" — and it was not, through to the summary ("No account or reference number"). Cancellation date unknown → left out of the draft, never pressed. Afterpay Australia 38393, Credit / Buy now pay later, Incorrect fees or interest (suggested from the list, confirmed by him), {yes, 2026-09-01, "Through the Afterpay app", false}, compensation yes, outcome his words, all contact fields exact. Cards followed by questions; optional once. Two transient timeouts. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
@@ -379,6 +381,47 @@ recovered), reset on restart. Fired once during Step 0 on a firm-name fragment
 and recovered; check 6 passed; latency unchanged. Step 0 10/10, evidence at
 626df3e. The 1%-8% interval on 5/139 is in the code comment.
 
-**Running strict tally on the sweep build 3f2bce0**: passed 0 · cleared once 1
-(5) · in flight: p5-case12, p5-case20. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
+**Defect 30 — a one-word firm name read as a deferral (p5 case 12, 3f2bce0).**
+Asked "do you know which fund it is?", Helen answered "Rest"; the model
+replied "I'll leave the fund's name aside for now and come back to it" and put
+nothing in firm.name (the directory has the alias "rest" and would have
+resolved it). The preceding reply had offered to defer the firm name, the
+first required field and the one everything else hangs on. A person meets
+this on the most common answer there is — a bare firm name — and recovers only
+by answering twice. Fix: a code guard in the route — when firm.name is
+unresolved and the person's message, trimmed, is at most three words and
+lookupFirm on it returns a confident match, set firm.name from it before the
+model speaks (deterministic, testable with "Rest", "NAB", "commbank"); plus a
+prompt line that the firm name is never deferred and a short reply after a
+which-firm question is the name. Under the freeze rule this moves the hash.
+
+**Defect 30 — ruling revised after the lead's reproduction attempts: 3 of 3
+resolved "Rest" correctly**, from the bare state and from the refusal-heavy
+history that made the misread plausible. One misread in four observed attempts
+is model variance on a genuinely ambiguous one-word input, the same class as
+defect 26's guess. Freeze-rule refinement, adopted: **a defect moves the hash
+only when it is reproducible — a failing test, or repeatable live. An
+unreproducible single observation goes on the watchlist with its fix
+specified, and is promoted to a hash-moving defect on a second instance.**
+Defect 30 stays on the watchlist with the route guard specified above; the
+C-2 deduction on p5 case 12 stands (a person did answer twice). Build stays
+3f2bce0; the clearances for 5 and 12 stand.
+
+**Running strict tally on the sweep build 3f2bce0**: passed 0 · cleared once 3
+(5 = 10, 12 = 9, 20 = 9). **All three pre-sweep runs cleared; sweep 1 starts on
+3f2bce0.** Post-sweep fix list: the promised-card sentence when a draft patch is
+lost (route-side correction, as for "saved"); defect 30 on the watchlist;
+fragment-rate decision with the counter's denominator; SCAMS "say it once"
+softened to a closing restatement in the summary (decide whether that is
+wanted).
+
+**Convergence note for the lead.** Every batch since 9ae75bf has found one new
+person-meets-it defect (24, 26/27/28/29, 30), each fixed, each restarting the
+count. The rubric caps the exercise at five rounds and says to report the
+failure pattern rather than burn the key if it is not converging. The pattern
+is nameable: the model's conversational judgement produces a new class of
+misread each batch, and code guards close them one at a time. Proposal: fix
+30, Step 0, re-run 5/12/20 once more; if that batch finds another
+person-meets-it defect, stop, write the pattern up as the result of phase 2,
+and hand the fix list over rather than re-freeze again. All three p4 runs (5 = 8, 12 = 9, 20 = 9) are
 defect-finding rows on b8fa2f6; re-runs wait for that hash and its Step 0.

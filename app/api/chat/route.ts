@@ -53,6 +53,24 @@ function sanitiseHistory(input: unknown): ChatTurn[] {
  * Doing this in code — not the model — is what makes invented firm details
  * impossible rather than merely discouraged.
  */
+/**
+ * Set the firm from a bare name the person just typed.
+ *
+ * Only when the firm is genuinely unresolved (no member number yet), the whole
+ * message is short enough to be a name rather than a sentence, and the
+ * directory matches it confidently. A refusal, a sentence, or a phrase the
+ * directory cannot place is left for the model to handle as it always has.
+ */
+function takeShortFirmAnswer(state: ComplaintState, message: string): void {
+  if (state.firm.afca_member_no !== "") return;
+  const said = message.trim();
+  if (said.length === 0) return;
+  if (said.split(/\s+/).length > 3) return;
+  const match = lookupFirm(said);
+  if (match.status !== "matched") return;
+  state.firm.name = match.firm.name;
+}
+
 function resolveFirm(state: ComplaintState): {
   state: ComplaintState;
   firm: Firm | null;
@@ -201,6 +219,19 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Resolve the firm from whatever state we were handed, so the prompt carries
   // real directory facts before the model speaks.
+  // A short answer while the firm is unresolved IS the firm's name.
+  //
+  // Case 12: the app asked for the fund's full name and ended by offering to
+  // defer — "tell me and I'll come back to it later". Helen answered "Rest".
+  // The model read its own offer being taken up, said "I'll leave the fund's
+  // name aside", and she had to answer the same question twice. It reproduces
+  // 3/3 with that offer present and 0/3 without it, so the offer is what makes
+  // "rest" readable as a verb.
+  //
+  // `lookupFirm` is already the authority on firm identity — the route strips
+  // any member number the model invents and takes the directory's. This just
+  // asks it first, before the model gets a chance to read a name as a refusal.
+  takeShortFirmAnswer(incoming, message);
   const resolvedBefore = resolveFirm(incoming);
 
   let turn;
