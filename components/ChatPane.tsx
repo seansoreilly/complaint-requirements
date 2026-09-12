@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type FieldDef } from "@/lib/schema";
 import { Assistant } from "@/components/Assistant";
+import { renderInlineMarkdown } from "@/lib/markdown";
 
 export interface Message {
   role: "user" | "assistant";
@@ -63,7 +64,9 @@ export function ChatPane({
                     : `max-w-[calc(85%-2.5rem)] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
                 }
               >
-                {message.content}
+                {/* The model writes light markdown; the person shouldn't see
+                    the asterisks. User messages stay literal. */}
+                {isUser ? message.content : renderInlineMarkdown(message.content)}
               </div>
             </div>
           );
