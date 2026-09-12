@@ -56,6 +56,22 @@ const NEGATIVE = /\b(no|nope|haven'?t|have not|didn'?t|did not|never|none)\b/i;
 const AFFIRMATIVE = /\b(yes|yeah|yep|yup|correct|that'?s right|i did|i have|agree|agreed|ok|okay|sure|fine|confirm|confirmed|consent|happy to|go ahead)\b/i;
 const UNSURE = /\b(not sure|unsure|don'?t know|dunno|no idea|maybe)\b/i;
 const SKIP = /\b(skip|later|rather not|prefer not|come back)\b/i;
+/** Agreeing to one of the consents, which is never a product name. */
+const CONSENT_TALK =
+  /\b(authority to act|engagement charter|both consents?|tick both|i consent|i agree to the)\b/i;
+
+/**
+ * Is this sentence plainly an answer to some other question?
+ *
+ * A free-text field takes whatever is typed while it is the question, so a
+ * sentence about a consent or a skip would be filed as the person's answer.
+ * Only clear signals count: anything else is taken at face value, because
+ * refusing a real answer is worse than accepting an odd one.
+ */
+function isAboutSomethingElse(text: string): boolean {
+  return CONSENT_TALK.test(text) || SKIP.test(text);
+}
+
 /** Someone putting right something they or the assistant got wrong. */
 const CORRECTION =
   /\b(actually|sorry,?|i meant|i mean|no,? it'?s|not that|instead of|rather than|correction|my mistake|wrong|should (?:be|have been)|change (?:it|that) to|it'?s not)\b/i;
@@ -717,7 +733,11 @@ function applyDirectAnswer(
       if (options) {
         const found = options.find((o) => o.toLowerCase().includes(text.toLowerCase().trim()));
         patch.service = { ...patch.service, subtype: found ?? text.trim() };
-      } else if (text.trim()) {
+      } else if (text.trim() && !isAboutSomethingElse(text)) {
+        // Free text for the service types this demo does not model in full,
+        // which makes this field a catch-all: while it is the question, an
+        // answer to a *different* question would be printed on the form as the
+        // person's product name.
         patch.service = { ...patch.service, subtype: text.trim() };
       }
       break;
