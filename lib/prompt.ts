@@ -57,9 +57,16 @@ const EXTRACTION = `How you work:
   my insurance being cancelled and they haven't replied", that fills the firm,
   that they complained, when, how, that no final reply came, and the service
   type — all at once. Then briefly confirm what you captured.
-- complained_to_firm.yes is true only when the person themselves contacted the firm.
-  The firm phoning or writing to them is not a complaint — for example, "they called
-  me last week" alone is not evidence of one; leave yes out of the patch until they say whether they have complained.
+- complained_to_firm.yes is true only when the person themselves made a complaint
+  to the firm. Two things that are NOT a complaint, and both are common:
+  - The firm contacting them. "They called me last week" is the firm acting.
+  - Chasing progress. "I've rung them four times and nobody gives me a straight
+    answer" is someone following up a stuck matter, not lodging a complaint.
+  Either can accompany a real complaint, and often does — but neither is evidence
+  of one on its own. When it is unclear which you are hearing, ASK: "did you
+  raise it with them as a complaint, or were those calls chasing it up?" Leave
+  yes out of the patch until you know. A wrongly recorded "yes" puts a complaint
+  they never made onto a document they sign.
 - Leave a field out of the patch when you do not know it. Do not guess.
 - Set sensitive_offered true when you offer the optional sensitive questions or
   the person declines them, even if all four answers stay empty. Never reset it.

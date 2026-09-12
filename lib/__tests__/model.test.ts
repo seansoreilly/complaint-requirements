@@ -84,9 +84,32 @@ describe("live turn parsing", () => {
     await runTurn({ state: emptyState(), firm: null, history: [], message: "They called me last week." });
     const request = create.mock.calls.at(-1)?.[0];
     expect(request.messages).toEqual([{ role: "user", content: "They called me last week." }]);
-    expect(request.system).toContain("complained_to_firm.yes is true only when the person themselves contacted the firm");
-    expect(request.system).toContain("The firm phoning or writing to them is not a complaint");
-    expect(request.system).toContain("leave yes out of the patch until they say whether they have complained");
+    const system = request.system.replace(/\s+/g, " ");
+    expect(system).toContain(
+      "complained_to_firm.yes is true only when the person themselves made a complaint to the firm",
+    );
+    expect(system).toContain('"They called me last week" is the firm acting');
+    expect(system).toContain("Leave yes out of the patch until you know");
+  });
+
+  /**
+   * The other half of the same mistake, and the one a live run actually made:
+   * "I've rung them four times and nobody gives me a straight answer" is chasing
+   * a stuck matter, not lodging a complaint. Recorded as yes it puts a complaint
+   * they never made onto a document they sign.
+   */
+  it("instructs the live model that chasing progress is not a complaint", async () => {
+    toolResponse({ reply: "Were those calls a complaint, or chasing it up?", patch: {} });
+    await runTurn({
+      state: emptyState(),
+      firm: null,
+      history: [],
+      message: "I've rung them four times and nobody gives me a straight answer.",
+    });
+    const system = create.mock.calls.at(-1)?.[0].system.replace(/\s+/g, " ");
+    expect(system).toContain("Chasing progress");
+    expect(system).toContain("not lodging a complaint");
+    expect(system).toContain("When it is unclear which you are hearing, ASK");
   });
 
   it("offers review and export when a completed form has no usable tool reply", async () => {
