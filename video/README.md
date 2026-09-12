@@ -1,6 +1,6 @@
 # Explainer video
 
-A two-minute Remotion explainer for Complaint Concierge, built from screenshots
+A sixty-second Remotion explainer for Complaint Concierge, built from screenshots
 captured by driving the real app rather than from mockups.
 
 ## Rebuilding it
@@ -19,7 +19,7 @@ Edit `SCRIPT.md`, then:
 ```bash
 node show-script.mjs                                 # check it parses, see the word count
 ELEVENLABS_API_KEY=... node voice.mjs --force        # regenerate narration
-node retime.mjs                                      # rebalance beats back to 120s
+node retime.mjs                                      # rebalance beats back to 60s
 node recaption.mjs                                   # push captions into scenes.ts
 npm run render
 ```
@@ -41,15 +41,20 @@ audio for them comes from `SCRIPT.md` like everything else.
 | `script.mjs` | Parses `SCRIPT.md`. Everything else reads the words from here, so nothing is retyped into code. |
 | `capture.mjs` | Drives the running app through `docs/demo-script.md` with Playwright and saves a numbered screenshot at each beat. |
 | `voice.mjs` | Generates the narration with ElevenLabs and measures each clip into `src/durations.json`. |
-| `retime.mjs` | Recomputes beat durations from the measured clips so the total stays exactly 120s. |
+| `retime.mjs` | Recomputes beat durations from the measured clips so the total stays exactly 60s. |
 | `recaption.mjs` | Copies the on-screen captions from `SCRIPT.md` into `scenes.ts`. |
 | `src/scenes.ts` | The storyboard — shot, caption, narration clip and duration per beat. The single place to edit pacing or wording. |
 | `src/Explainer.tsx` | Title card, the captioned beats with a slow push, and the closing card. |
-| `src/Root.tsx` | Registers the composition, asserts the storyboard totals exactly 120s, and asserts no beat is shorter than its narration. |
+| `src/Root.tsx` | Registers the composition, asserts the storyboard totals exactly 60s, and asserts no beat is shorter than its narration. |
 
-The video is 1920×1080 at 30fps, so exactly 3600 frames. `Root.tsx` throws if
-the scene durations stop adding up to two minutes, which keeps a caption edit
+The video is 1920×1080 at 30fps, so exactly 1800 frames. `Root.tsx` throws if
+the scene durations stop adding up to sixty seconds, which keeps a caption edit
 from quietly changing the runtime.
+
+`capture.mjs` still captures all twelve screenshots, but the sixty-second cut
+uses only four of them (`01`, `02`, `03`, `12`). The rest are kept because they
+cost nothing and a longer cut would want them back — `script.mjs`'s `BEATS` list
+decides which are used.
 
 ## The voiceover
 

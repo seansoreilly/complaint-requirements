@@ -183,7 +183,7 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
             marginBottom: 34,
           }}
         >
-          A complaint form you can talk your way through
+          Just talk. The form fills itself in.
         </div>
         <div
           style={{
@@ -207,7 +207,7 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
             lineHeight: 1.4,
           }}
         >
-          Nobody should give up on a complaint because the form asked too much.
+          A complaint to AFCA, without the eight-stage form.
         </div>
       </div>
     </AbsoluteFill>

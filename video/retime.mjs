@@ -13,21 +13,16 @@ import { dirname, join } from "node:path";
 import { BEATS } from "./script.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const TOTAL = 120;
-const PAD = 1.6;
+const TOTAL = 60;
+const PAD = 1.4;
 
-// Relative share of the leftover time. The busy shots — the form filling in,
-// the review table — earn more; a one-line beat earns less.
+// Relative share of the leftover time. The payoff shot — the form filled in —
+// earns the most, because it is the one thing the video is about.
 const WEIGHT = {
   "01-empty": 1.0,
   "02-story-typed": 1.0,
-  "03-form-filled": 1.6,
-  "05-draft-card": 1.2,
-  "06-draft-approved": 1.0,
-  "07-dont-know": 1.0,
-  "09-skipped": 1.0,
-  "11-review": 1.5,
-  "12-review-export": 1.1,
+  "03-form-filled": 1.8,
+  "12-review-export": 1.0,
 };
 
 const clips = JSON.parse(readFileSync(join(HERE, "src", "durations.json"), "utf8"));
