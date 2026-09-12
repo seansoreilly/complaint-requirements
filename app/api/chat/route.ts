@@ -252,7 +252,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   // "Which one is it?" counts as this turn's question — but only when the note is
   // genuinely included, since a note suppressed as a repeat asks nothing.
   const corrected = heldForApproval ? correctSavedClaim(withNote) : withNote;
-  const reply = ensureAsk(corrected, state);
+  // The person's own message is passed in: it can decline a field a turn
+  // before the model records that in `declined`.
+  const reply = ensureAsk(corrected, state, message);
 
   return NextResponse.json({
     reply,
