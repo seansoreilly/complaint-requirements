@@ -439,7 +439,41 @@ short answer. The app is correct in proportion to how little the model is
 trusted with state.
 
 **Running strict tally on bbe7036**: passed 0 · cleared once 0 · in flight
-5, 12, 20. Post-sweep fix list: the promised-card sentence when a draft patch is
+5, 12, 20.
+
+## Phase 2 closed — 13 September 2026, on instruction
+
+Testing was stopped by the user before the bbe7036 batch reported. Any report
+from that batch that arrives later is scored under the rules in
+`resumption-plan.md` and appended here; nothing is assumed about it.
+
+Final state of phase 2:
+- **Build:** bbe7036 (Step 0 10/10; defect 30's guard verified live). Freeze
+  history for the night is in the Phase 2 block above.
+- **Strict tally:** passed 0 · cleared once 0 on bbe7036. On the previous build
+  3f2bce0 all three pre-sweep runs cleared (5 = 10, 12 = 9, 20 = 9) before
+  defect 30 was promoted; those rows stand as defect-finding. No persona has
+  two consecutive ≥9 runs on one hash. **This is a stopped clock, not a
+  verdict**: the two sweeps never started.
+- **Defects:** 30 found across both phases, every one on a browser transcript
+  or the server monitor, every one fixed in code except those a route cannot
+  enforce (22, 29 — what the model chooses to say), which the sweeps enforce.
+  Watchlist: the promised-card sentence when a draft patch is lost; the SCAMS
+  "say it once" softened to a closing restatement; the fragment parse failure
+  (~50% recovered by the retry; counter and envelope-length logging are the
+  next step).
+- **What the ledger shows, beyond the count:** the defects got smaller and
+  further from harm — the early ones put false statements on a signed
+  document, the last five recorded nothing untrue. And every late defect came
+  from the model's conversational judgement, every fix was code taking a
+  decision away from it. The app is correct in proportion to how little the
+  model is trusted with state.
+- **Rows:** 41 scored runs across 20 personas; every persona has at least one
+  full-report row; personas 1, 2, 4, 9, 10, 13, 14, 15, 16, 17, 18, 19 have
+  one run each, all on superseded builds.
+
+Resume from `resumption-plan.md`: Step 0 on the current hash, the batch of
+5/12/20, then the two sweeps, monitor log read after each batch. Post-sweep fix list: the promised-card sentence when a draft patch is
 lost (route-side correction, as for "saved"); defect 30 on the watchlist;
 fragment-rate decision with the counter's denominator; SCAMS "say it once"
 softened to a closing restatement in the summary (decide whether that is

@@ -4,6 +4,17 @@ Written 12 September 2026 at the end of phase 1, for whoever picks this up cold.
 Phase 1 stopped because the Anthropic API key hit its spend limit; access returns
 **2026-10-01 00:00 UTC**. Nothing below needs re-deriving — read this, then start.
 
+## Status — phase 2 closed 13 September 2026 on instruction
+
+Phase 2 ran the same night the limit was raised and stopped on the user's
+instruction with the bbe7036 batch of 5/12/20 in flight. Read the Phase 2
+block in `scores.md` for the freeze history and the two conclusions. To
+resume: confirm HEAD, run Step 0 (ten scripted checks; the unit suite carries
+the deterministic ones), run 5/12/20, then the sweeps. The rules below are
+current; the sections headed "Where phase 1 ended" and "Step 0" are the
+original plan and still apply, with the additions recorded in the status
+updates further down.
+
 ## Where phase 1 ended
 
 - Ledger: `scores.md` — 21 rows, strict tally **0 passed / 0 cleared once**.

@@ -88,6 +88,12 @@ results.append(check(
 
 # ------------------------------------------------------------------- check 6
 banner("CHECK 6 the proposal is held as a card, not quoted into the form")
+# CAVEAT, like check 10's. This asserts a draft exists by a fixed turn, and
+# whether the model drafts on that turn or asks a clarifying question first is
+# the model's choice — clarify-first makes the second legitimate. One run scored
+# 9/10 on exactly that, and the draft-handling code was correct: a valid patch
+# carrying drafts.narrative applies even when `reply` is missing, which the unit
+# suite pins. A failure here means "look at the transcript", not "the app broke".
 # The draft does not arrive on the story turn: clarify-first means the model
 # asks its outstanding question and drafts on a later turn (that is check 8).
 # Answer whatever it asked, then look for the draft.
