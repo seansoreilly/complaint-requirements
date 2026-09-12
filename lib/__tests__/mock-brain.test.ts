@@ -351,11 +351,9 @@ describe("answers route to the field just asked about, not to whatever is still 
     // was still asking about AFCA, and the person's "no" is answering THAT
     // question, not the consents one groupedWithNext would now point at.
     //
-    // The history content is a REAL prior reply (not a hand-typed question):
-    // composeReply wraps the question inside an acknowledgement line and a
-    // "N things left" footer, so a bare-string match against the whole
-    // message would never fire in the real app. Building history from an
-    // actual mockBrain() reply is what makes this test catch that.
+    // The history content is a REAL prior reply (not a hand-typed question),
+    // so the reverse lookup is exercised against what the app actually emits
+    // rather than against a string written to match.
     let state = applyPatch(emptyState(), {
       firm: { name: "AustralianSuper", no_reference: true },
       service: { type: "Superannuation" },
@@ -368,13 +366,12 @@ describe("answers route to the field just asked about, not to whatever is still 
     // consents.authority — reproducing the state the browser bug needs.
     state = applyPatch(state, { open_afca_complaint: true });
 
-    const { patch, reply } = mockBrain(state, "no", undefined, history);
+    const { patch } = mockBrain(state, "no", undefined, history);
     expect(patch.open_afca_complaint).toBe(false);
-    // The acknowledgement must name the AFCA field that was actually
-    // answered, not misattribute the "no" to consents (the wrong-field
-    // symptom the bug produced: "I've noted your answer for authority to
-    // act consent").
-    expect(reply.toLowerCase()).not.toContain("noted your answer for authority to act consent");
+    // The wrong-field symptom the bug produced was the "no" being recorded
+    // against the authority-to-act consent instead of the AFCA question. The
+    // reply may well go on to ASK about consents next — that is correct; what
+    // must not happen is the answer landing there.
     expect(patch.consents).toBeUndefined();
   });
 
@@ -429,7 +426,7 @@ describe("answers route to the field just asked about, not to whatever is still 
     // something else entirely (legal_proceedings) — if line 251 correctly
     // prefers that history-derived path over groupedWithNext's fallback,
     // "Zorbo Financial" is not recognised as an answer to "which firm" and
-    // is left uncaptured.
+    // is not applied to firm.name.
     const state = emptyState();
     const history = [
       { role: "assistant", content: "Is there any court case or legal action going on about this?" },
@@ -448,5 +445,30 @@ describe("answers route to the field just asked about, not to whatever is still 
 
     const { patch } = mockBrain(state, "Zorbo Financial", undefined, history);
     expect(patch.firm?.name).toBe("Zorbo Financial");
+  });
+});
+
+describe("replies carry the question only — the counter lives in the UI", () => {
+  it("does not prefix an acknowledgement or append a 'things left' footer", () => {
+    // Both used to be composed into every reply. The remaining-field count is
+    // now rendered from state in the chat pane, and what the brain captured is
+    // visible in the form panel, so the message is just the next question.
+    const state = applyPatch(emptyState(), { firm: { name: "AustralianSuper" } });
+    const { reply } = mockBrain(state, "I have no reference number", "firm.reference");
+
+    expect(reply).not.toMatch(/left after this/i);
+    expect(reply).not.toMatch(/Got it/i);
+    expect(reply).not.toMatch(/I've noted/i);
+  });
+
+  it("answers a story turn without the removed acknowledgement or footer", () => {
+    const { reply } = mockBrain(
+      emptyState(),
+      "I emailed AustralianSuper on 3 Sept about my insurance being cancelled and they haven't replied.",
+    );
+    // A story turn proposes a narrative draft, so assert on the absence of the
+    // two removed fragments rather than on a one-line shape.
+    expect(reply).not.toMatch(/left after this/i);
+    expect(reply).not.toMatch(/Got it/i);
   });
 });

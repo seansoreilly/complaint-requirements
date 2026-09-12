@@ -214,6 +214,7 @@ export default function Page() {
             messages={messages}
             pending={pending}
             notes={notes}
+            missingCount={missing.length}
             focusField={focusField}
             onClearFocus={() => setFocusPath(null)}
             onSend={send}
