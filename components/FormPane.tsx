@@ -208,7 +208,7 @@ function Field({
               the field is unfillable, and the form uncompletable, for the other
               four. Free text here mirrors what the subtype field already does
               for the service types that are not modelled in full. */}
-          {!suggestions && (
+          {!suggestions && field.path === "complaint.issues" && (
             <input
               type="text"
               placeholder="Type what went wrong, then press Enter"

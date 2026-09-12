@@ -87,4 +87,16 @@ describe("what the guard still protects", () => {
     const { state } = turn(withFirm("AustralianSuper"), "My account number is 12345");
     expect(state.firm.name).toBe("AustralianSuper");
   });
+
+  it("does not let a passing mention replace a firm the directory never knew", () => {
+    // "Bank of Nowhere" is a documented, supported answer — a real firm this
+    // demo's directory does not carry. It is settled, not provisional, so an
+    // incidental CBA must not quietly take the complaint over. Only a name the
+    // directory finds *ambiguous* is still an open question.
+    const { state } = turn(
+      withFirm("Bank of Nowhere"),
+      "I also have a card with CBA but this is about the other one",
+    );
+    expect(state.firm.name).toBe("Bank of Nowhere");
+  });
 });

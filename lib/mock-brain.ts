@@ -360,12 +360,14 @@ export function mockBrain(
   // be put right in chat — and the wrong firm is the worst field to be stuck
   // with, so an explicit correction has to win.
   const correcting = CORRECTION.test(text);
-  // A stored name the directory does not recognise is provisional: it is either
-  // a typo or a firm this demo does not carry, and the route has just asked
-  // which one was meant. Naming a real firm next answers that question, so it
-  // replaces the guess rather than sitting alongside it.
+  // A stored name the directory finds *ambiguous* is still an open question —
+  // the route has just asked which of the near-matches was meant, so naming one
+  // answers it. A name that simply is not in the directory is settled, not
+  // provisional: "Bank of Nowhere" is a supported answer, and letting a passing
+  // mention of a known firm replace it would file the complaint against the
+  // wrong company — the very thing this guard exists to stop.
   const storedFirmIsProvisional =
-    Boolean(state.firm.name) && matchFirm(state.firm.name) === null;
+    Boolean(state.firm.name) && lookupFirm(state.firm.name).status === "ambiguous";
   const replacingFirm =
     Boolean(state.firm.name) && (correcting || answerTargetIsFirm || storedFirmIsProvisional);
   // While correcting, the firm being corrected away from is not a candidate:

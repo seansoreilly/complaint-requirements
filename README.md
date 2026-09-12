@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 188 unit tests
+npm test         # 189 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -68,7 +68,7 @@ records nothing when it is ambiguous.
 npm test
 ```
 
-188 tests across twelve files, covering the parts where being wrong matters:
+189 tests across twelve files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
 the in-flight merge, reconciliation, and the full six-step demo script end to
 end. Most of them exist because they caught a real bug — a super fund's
