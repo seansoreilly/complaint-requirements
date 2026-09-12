@@ -3,6 +3,7 @@
 import {
   type ComplaintState,
   type FieldDef,
+  NARRATIVE_MAX,
   SERVICE_ISSUES,
   SERVICE_SUBTYPES,
   STAGES,
@@ -97,12 +98,15 @@ function Field({
   focused,
   onFocusField,
   onEdit,
+  onCommit,
 }: {
   field: FieldDef;
   state: ComplaintState;
   focused: boolean;
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
+  /** Called when the person leaves a field, for checks too eager per keystroke. */
+  onCommit: (path: string) => void;
 }) {
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
@@ -199,6 +203,26 @@ function Field({
               ))}
             </select>
           )}
+          {/* Only Superannuation and Credit have a suggestion list, but "What
+              went wrong" is required for all six service types — without this
+              the field is unfillable, and the form uncompletable, for the other
+              four. Free text here mirrors what the subtype field already does
+              for the service types that are not modelled in full. */}
+          {!suggestions && field.path === "complaint.issues" && (
+            <input
+              type="text"
+              placeholder="Type what went wrong, then press Enter"
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                const entry = event.currentTarget.value.trim();
+                if (entry === "") return;
+                onEdit(field.path, [...new Set([...list, entry])]);
+                event.currentTarget.value = "";
+              }}
+              className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
+            />
+          )}
         </div>
       );
     }
@@ -209,6 +233,9 @@ function Field({
           value={typeof value === "string" ? value : ""}
           onChange={(event) => onEdit(field.path, event.target.value)}
           rows={4}
+          // Stops the typing at the limit rather than letting someone write
+          // past it and silently losing the tail on the way into the state.
+          maxLength={NARRATIVE_MAX}
           className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
         />
       );
@@ -219,6 +246,7 @@ function Field({
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onEdit(field.path, event.target.value)}
+        onBlur={() => onCommit(field.path)}
         placeholder={field.kind === "date" ? "e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
@@ -259,6 +287,7 @@ export function FormPane({
   focusPath,
   onFocusField,
   onEdit,
+  onCommit,
   onAttach,
   children,
 }: {
@@ -268,6 +297,7 @@ export function FormPane({
   focusPath: string | null;
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
+  onCommit: (path: string) => void;
   onAttach: (names: string[]) => void;
   children?: React.ReactNode;
 }) {
@@ -296,8 +326,22 @@ export function FormPane({
                     focused={focusPath === field.path}
                     onFocusField={onFocusField}
                     onEdit={onEdit}
+                    onCommit={onCommit}
                   />
                 ))}
+              {/* Not a form field — nobody types this. It is what the directory
+                  resolved from the firm's name, and watching it appear is the
+                  point of the demo's first beat, so it belongs beside the firm
+                  rather than only in the review. `summarise` shows it the same
+                  way. */}
+              {stage.id === "firm" && state.firm.afca_member_no && (
+                <div className="flex items-center justify-between px-2.5 py-2 text-xs">
+                  <span className="font-semibold text-afca-navy/70">AFCA member number</span>
+                  <span className="font-mono font-bold text-afca-navy">
+                    {state.firm.afca_member_no}
+                  </span>
+                </div>
+              )}
               {stage.id === "attachments" && (
                 <div className="p-2.5">
                   <input

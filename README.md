@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 53 unit tests
+npm test         # 189 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -30,11 +30,13 @@ it, applies it, and decides what is still missing.
 | File | Role |
 |---|---|
 | `lib/schema.ts` | The form as data — stages, fields, branch rules. The prompt and the UI both derive from this, so they cannot drift. |
-| `lib/patch.ts` | Zod validation, date/enum coercion, deep merge. Nothing reaches the state unvalidated. |
+| `lib/patch.ts` | Zod validation, date/enum coercion, deep merge, and `reconcile` — the one gate every write passes through, clearing answers a later change has made inapplicable. Nothing reaches the state unvalidated. |
 | `lib/next.ts` | What is missing and what to ask next, honouring branches. Never gates progress. |
 | `lib/directory.ts` | Fuzzy firm lookup in code. The model proposes a name; code assigns the member number. |
 | `lib/prompt.ts` | System prompt, generated from the schema. |
 | `lib/mock-brain.ts` | Offline rule-based extractor used when no API key is set. |
+| `lib/merge-state.ts` | Applies only what the server actually changed, so a form edit made while a reply is in flight is not silently discarded. |
+| `lib/export.ts` | The review summary, the clipboard text, and the JSON download. |
 | `app/api/chat/route.ts` | One turn: validate → resolve firm → apply → return authoritative state. |
 
 ### Two deliberate constraints
@@ -48,10 +50,52 @@ the directory" note rather than a plausible-looking number.
 narrative or the outcome statement, it goes to `drafts.*` and appears as a card
 the person approves or edits. Only approval moves text onto the form.
 
+A third rule falls out of the first: the assistant only records that someone
+complained to the firm when *they* were the one who made contact. "They called
+me last week" is the firm acting, not a complaint — writing "I raised this with
+CommBank by phone" into a document someone signs is the worst thing this product
+could do, so `readContactStance` in `lib/mock-brain.ts` reads the subject and
+records nothing when it is ambiguous.
+
 ## Pages
 
 - `/` — the demo: chat on the left, the form filling itself on the right.
 - `/privacy` — what happens to what people type. Reachable from the menu.
+
+## Tests
+
+```bash
+npm test
+```
+
+189 tests across twelve files, covering the parts where being wrong matters:
+date and enum coercion, branch rules, firm matching, request-input sanitising,
+the in-flight merge, reconciliation, and the full six-step demo script end to
+end. Most of them exist because they caught a real bug — a super fund's
+insurance filed as "General insurance", "No, I haven't complained" read as
+*yes*, `31 February` accepted as a date, a stray word stored as an account
+number.
+
+`reconcile.test.ts` is the newest group, and it covers one class in
+particular: **a rule enforced where the model writes but not where the person
+does.** The model's patches pass through `cleanPatch`; text typed into the form
+panel or a draft card does not, so limits held on one path and not the other.
+Switching the service type left the old product on the form — "Credit /
+Insurance in superannuation (TPD)", counted as answered and exported that way —
+because `subtype` has no `showIf` guard: its validity depends on a sibling's
+*value*, which `applies()` cannot express. `reconcile` in `lib/patch.ts` is
+the one gate every write now passes through.
+
+The second group — `address-guard`, `freetext-guard`, `firm-correction`,
+`firm-name-words` — came out of driving the app in a browser, and covers a
+different class: **text landing in a field it was never about.** "I agree to
+the authority to act" set the address state to ACT and the assistant said it
+had noted an address; a consent sentence typed while the product was the
+question was filed as the product name. Both write something into a document
+someone signs that they never said, which is the same failure
+`readContactStance` exists to prevent. The firm was also unchangeable once
+set, so a misheard or mistyped name could never be corrected — the worst
+field in the form to be stuck with.
 
 ## Scope
 
@@ -60,3 +104,23 @@ Credit modelled in full with other service types accepting free text.
 Attachments list filenames only. Export as JSON, clipboard text, or print.
 
 Not included: real submission, persistence, login, multi-party complaints.
+
+Scam complaints are deliberately absent: AFCA cannot consider a Scams
+Prevention Framework complaint until 31 March 2027, and the SPF is multi-party
+in a way this one-complainant-one-firm schema does not model. See
+`docs/scam-complaints-note.md`.
+
+## Repository layout
+
+| Path | |
+|---|---|
+| `app/` | Routes: the demo at `/`, the privacy page at `/privacy`, the turn endpoint at `/api/chat`. |
+| `components/` | Chat pane, form pane, draft card, review panel, menu, assistant avatar. |
+| `lib/` | The engine, and `lib/__tests__/`. |
+| `data/firms.json` | The fabricated firm directory. |
+| `docs/` | The three-minute demo script, and the note on scam complaints. |
+
+`.claude/worktrees/` holds agent worktrees — full checkouts of this repo. They
+are ignored by git, excluded from Vercel uploads, and excluded from the vitest
+run; without that last one, vitest walks into them and reports their tests as
+this project's.

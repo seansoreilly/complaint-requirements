@@ -6,7 +6,7 @@
  * should set ANTHROPIC_API_KEY — see lib/model.ts.
  */
 import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, STAGES, findField } from "./schema";
-import { type ComplaintPatch, cleanPatch } from "./patch";
+import { type ComplaintPatch, applyPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
 import { groupedWithNext, missingFor } from "./next";
 
@@ -56,6 +56,25 @@ const NEGATIVE = /\b(no|nope|haven'?t|have not|didn'?t|did not|never|none)\b/i;
 const AFFIRMATIVE = /\b(yes|yeah|yep|yup|correct|that'?s right|i did|i have|agree|agreed|ok|okay|sure|fine|confirm|confirmed|consent|happy to|go ahead)\b/i;
 const UNSURE = /\b(not sure|unsure|don'?t know|dunno|no idea|maybe)\b/i;
 const SKIP = /\b(skip|later|rather not|prefer not|come back)\b/i;
+/** Agreeing to one of the consents, which is never a product name. */
+const CONSENT_TALK =
+  /\b(authority to act|engagement charter|both consents?|tick both|i consent|i agree to the)\b/i;
+
+/**
+ * Is this sentence plainly an answer to some other question?
+ *
+ * A free-text field takes whatever is typed while it is the question, so a
+ * sentence about a consent or a skip would be filed as the person's answer.
+ * Only clear signals count: anything else is taken at face value, because
+ * refusing a real answer is worse than accepting an odd one.
+ */
+function isAboutSomethingElse(text: string): boolean {
+  return CONSENT_TALK.test(text) || SKIP.test(text);
+}
+
+/** Someone putting right something they or the assistant got wrong. */
+const CORRECTION =
+  /\b(actually|sorry,?|i meant|i mean|no,? it'?s|not that|instead of|rather than|correction|my mistake|wrong|should (?:be|have been)|change (?:it|that) to|it'?s not)\b/i;
 
 const DATE_PATTERN =
   /\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s+\d{2,4})?|\d{1,2}[/\-.]\d{1,2}(?:[/\-.]\d{2,4})?|\d{4}-\d{2}-\d{2})\b/i;
@@ -117,9 +136,17 @@ function namedFirmCandidate(text: string, asked: boolean): string | null {
   const words = value.split(/\s+/);
 
   // An explicit "with/about <Name>" is unambiguous however long the sentence,
-  // so it is checked before the length guard.
-  const trailing = /(?:with|about|against|fund,|bank,|called)\s+([A-Z][A-Za-z&'’.-]*(?:\s+[A-Z][A-Za-z&'’.-]*){0,3})$/.exec(value);
-  if (trailing) return trailing[1];
+  // so it is checked before the length guard. The name starts with a
+  // capitalised word; the words after it may be connectors, because most real
+  // firm names have one — "Bank of Queensland", "Bendigo and Adelaide Bank".
+  // Demanding a capital on every word rejected those outright, and the person
+  // was simply asked the same question again with no reason given.
+  const NAME_WORD = "[A-Z][A-Za-z&'’.-]*";
+  const CONNECTOR = "(?:of|and|the|for)(?:\\s+(?:of|and|the|for))*";
+  const trailing = new RegExp(
+    `(?:with|about|against|fund,|bank,|called)\\s+(${NAME_WORD}(?:\\s+${CONNECTOR}\\s+${NAME_WORD}|\\s+${NAME_WORD}){0,3})$`,
+  ).exec(value);
+  if (trailing) return trailing[1].trim();
 
   if (words.length > 6) return null;
 
@@ -130,8 +157,20 @@ function namedFirmCandidate(text: string, asked: boolean): string | null {
   return null;
 }
 
-function matchFirm(text: string): { name: string; member: string; serviceType: string } | null {
+/**
+ * The first directory firm named in the text.
+ *
+ * `exclude` skips one firm by name, for a correction: "actually it was Westpac,
+ * not CBA" names both, and the one being corrected away from is the one already
+ * on the form. Without that, the old name matches first and the correction
+ * silently does nothing.
+ */
+function matchFirm(
+  text: string,
+  exclude?: string,
+): { name: string; member: string; serviceType: string } | null {
   for (const firm of FIRMS) {
+    if (exclude && firm.name === exclude) continue;
     const names = [firm.name, ...firm.aliases];
     for (const candidate of names) {
       const pattern = new RegExp(`\\b${candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
@@ -208,19 +247,36 @@ function guessIssues(type: string, text: string): string[] {
 }
 
 const STATE_CODES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+/** State codes that are also ordinary words, so they need address context. */
+const AMBIGUOUS_STATE_CODES = ["ACT", "WA", "SA", "NT"];
+/** The words that make a string look like a street address. */
+const STREET_WORD =
+  /\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b/i;
 
 /**
  * Pull what we can from an Australian address written as one line. Partial
  * results are fine — whatever is found gets filled, the rest stays askable.
  */
-function parseAddress(text: string): Record<string, string> {
+/**
+ * `asked` means the address was the question, so a bare state code is an answer
+ * to it rather than a word that happens to look like one.
+ */
+function parseAddress(text: string, asked = false): Record<string, string> {
   const found: Record<string, string> = {};
   const value = text.trim();
 
   const postcode = /\b(\d{4})\b/.exec(value);
   const stateMatch = new RegExp(`\\b(${STATE_CODES.join("|")})\\b`, "i").exec(value);
 
-  if (stateMatch) found.state = stateMatch[1].toUpperCase();
+  // "ACT" is a state code and an ordinary word: "authority to act", "refused to
+  // act on my complaint". Taking it at face value writes an address nobody gave
+  // — the one thing this must never do — so an ambiguous code has to be earned
+  // by the text around it.
+  if (stateMatch) {
+    const code = stateMatch[1].toUpperCase();
+    const addressShaped = asked || STREET_WORD.test(value) || /\b\d{4}\b/.test(value);
+    if (!AMBIGUOUS_STATE_CODES.includes(code) || addressShaped) found.state = code;
+  }
   // A four-digit number is only a postcode in an address-shaped string.
   if (postcode && (stateMatch || /\b(street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|parade|pde|crescent|cres|terrace|tce|way)\b/i.test(value))) {
     found.postcode = postcode[1];
@@ -260,11 +316,15 @@ function humanDate(iso: string): string {
 }
 
 function draftNarrative(state: ComplaintState, text: string): string {
-  const firmName = state.firm.name || "the financial firm";
+  const firmName = state.firm.name;
   const parts: string[] = [];
-  parts.push(`My complaint is about ${firmName}.`);
+  // No opening line at all when the firm is not known yet. The placeholder it
+  // used to fall back to — "My complaint is about the financial firm." — read
+  // as an unfilled template in a draft the person is invited to approve onto
+  // their own complaint.
+  if (firmName) parts.push(`My complaint is about ${firmName}.`);
   parts.push(text.trim().replace(/\s+/g, " "));
-  if (state.complained_to_firm.yes === true) {
+  if (state.complained_to_firm.yes === true && firmName) {
     const when = state.complained_to_firm.date ? ` on ${humanDate(state.complained_to_firm.date)}` : "";
     const how = state.complained_to_firm.how ? ` by ${state.complained_to_firm.how.toLowerCase()}` : "";
     parts.push(`I raised this with ${firmName}${when}${how}.`);
@@ -293,10 +353,35 @@ export function mockBrain(
   const answerTargetIsFirm =
     (focusPath ?? historyTarget ?? groupedWithNext(state)[0]?.path) === "firm.name";
 
-  const firm = matchFirm(text);
-  if (firm && !state.firm.name) {
+  // A firm already on the form is only replaced on a clear signal: the person
+  // correcting themselves, or answering a question about the firm. Without
+  // that, "I also bank with CBA" would hijack a complaint about a super fund.
+  // With no exception at all, though, a misheard or mistyped firm could never
+  // be put right in chat — and the wrong firm is the worst field to be stuck
+  // with, so an explicit correction has to win.
+  const correcting = CORRECTION.test(text);
+  // A stored name the directory finds *ambiguous* is still an open question —
+  // the route has just asked which of the near-matches was meant, so naming one
+  // answers it. A name that simply is not in the directory is settled, not
+  // provisional: "Bank of Nowhere" is a supported answer, and letting a passing
+  // mention of a known firm replace it would file the complaint against the
+  // wrong company — the very thing this guard exists to stop.
+  const storedFirmIsProvisional =
+    Boolean(state.firm.name) && lookupFirm(state.firm.name).status === "ambiguous";
+  const replacingFirm =
+    Boolean(state.firm.name) && (correcting || answerTargetIsFirm || storedFirmIsProvisional);
+  // While correcting, the firm being corrected away from is not a candidate:
+  // "actually it was Westpac, not CBA" names the old firm only to reject it.
+  const firm = matchFirm(text, replacingFirm ? state.firm.name : undefined);
+
+  if (firm && (!state.firm.name || (replacingFirm && firm.name !== state.firm.name))) {
     patch.firm = { name: firm.name };
-    captured.push(`the firm (${firm.name})`);
+    // The old firm's member number must not survive the name change; the route
+    // re-resolves and fills the right one.
+    if (state.firm.afca_member_no) patch.firm.afca_member_no = "";
+    captured.push(
+      state.firm.name ? `the firm (now ${firm.name})` : `the firm (${firm.name})`,
+    );
   } else if (!state.firm.name && !firm) {
     // They may have named a firm this demo's directory does not carry. Take it
     // at face value rather than asking the same question forever; the route
@@ -623,7 +708,7 @@ function applyDirectAnswer(
     case "complainant.address.suburb":
     case "complainant.address.postcode":
     case "complainant.address.state": {
-      const address = parseAddress(text);
+      const address = parseAddress(text, true);
       if (Object.keys(address).length > 0) {
         patch.complainant = {
           ...patch.complainant,
@@ -662,7 +747,11 @@ function applyDirectAnswer(
       if (options) {
         const found = options.find((o) => o.toLowerCase().includes(text.toLowerCase().trim()));
         patch.service = { ...patch.service, subtype: found ?? text.trim() };
-      } else if (text.trim()) {
+      } else if (text.trim() && !isAboutSomethingElse(text)) {
+        // Free text for the service types this demo does not model in full,
+        // which makes this field a catch-all: while it is the question, an
+        // answer to a *different* question would be printed on the form as the
+        // person's product name.
         patch.service = { ...patch.service, subtype: text.trim() };
       }
       break;
@@ -771,21 +860,14 @@ function questionFor(path: string, label: string, state: ComplaintState): string
   }
 }
 
+/**
+ * What the state will look like once this patch lands, used to decide what to
+ * ask next. It has to agree with the real thing exactly, so it defers to
+ * `applyPatch` rather than keeping a second merge of its own — including the
+ * reconciliation that clears answers the patch has just made inapplicable.
+ */
 function projectState(state: ComplaintState, patch: ComplaintPatch): ComplaintState {
-  const next = structuredClone(state);
-  const merge = (target: Record<string, unknown>, source: Record<string, unknown>): void => {
-    for (const [key, value] of Object.entries(source)) {
-      if (value === undefined || !(key in target)) continue;
-      const current = target[key];
-      if (value && typeof value === "object" && !Array.isArray(value) && current && typeof current === "object" && !Array.isArray(current)) {
-        merge(current as Record<string, unknown>, value as Record<string, unknown>);
-      } else {
-        target[key] = value;
-      }
-    }
-  };
-  merge(next as unknown as Record<string, unknown>, patch as Record<string, unknown>);
-  return next;
+  return applyPatch(state, patch);
 }
 
 function listOut(items: string[]): string {
