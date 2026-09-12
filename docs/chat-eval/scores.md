@@ -408,8 +408,38 @@ C-2 deduction on p5 case 12 stands (a person did answer twice). Build stays
 3f2bce0; the clearances for 5 and 12 stand.
 
 **Running strict tally on the sweep build 3f2bce0**: passed 0 · cleared once 3
-(5 = 10, 12 = 9, 20 = 9). **All three pre-sweep runs cleared; sweep 1 starts on
-3f2bce0.** Post-sweep fix list: the promised-card sentence when a draft patch is
+(5 = 10, 12 = 9, 20 = 9). All three pre-sweep runs cleared — **but defect 30 has
+been promoted**: with the app's own defer offer in the preceding turn ("tell me
+and I'll come back to it later so we can get on with the rest"), "Rest" reproduces
+as a deferral 3 of 3; the earlier 3-of-3 correct runs omitted the offer, so the
+fixture was wrong, not the finding. Reproducible → moves the hash under the
+refined rule. The lead's route guard (lib/__tests__/short-firm-answer.test.ts:
+an unresolved firm plus a bare short message that lookupFirm matches confidently
+sets the name before the model speaks; refusals, sentences, resolved firms and
+unlisted names left alone) is the deterministic fix specified above. Sweep 1
+is held; the three clearances become defect-finding on the next hash; the
+convergence stop condition applies to the next batch of 5/12/20.
+
+**Defect 30 fixed at bbe7036** — the route guard; verified live on the exact
+scenario, 0/3 misread from 3/3; Step 0 10/10. **Freeze: bbe7036.** One more
+batch of 5/12/20 there; clean → sweep 1; another person-meets-it, reproducible
+defect → stop and write the pattern up as phase 2's result.
+
+**Two things for that write-up, agreed with the lead.** (1) The defects are
+getting smaller and further from harm: the early ones put false statements on
+a signed document (a complaint never made, a motive never given, a member
+number from a phrase naming no firm); the last five are a doubled question, an
+internal string on screen, a category from a stubbed list, a name said twice,
+and a lost draft — nothing in the last two batches recorded anything untrue.
+That is a converging tail even where the count does not converge. (2) The
+design finding: every defect after the first few came from the model's
+conversational judgement, and every fix was code taking a decision away from
+it — directory status, draft-holding, refusal-tracking, firm identity from a
+short answer. The app is correct in proportion to how little the model is
+trusted with state.
+
+**Running strict tally on bbe7036**: passed 0 · cleared once 0 · in flight
+5, 12, 20. Post-sweep fix list: the promised-card sentence when a draft patch is
 lost (route-side correction, as for "saved"); defect 30 on the watchlist;
 fragment-rate decision with the counter's denominator; SCAMS "say it once"
 softened to a closing restatement in the summary (decide whether that is

@@ -29,6 +29,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../../app/api/chat/route";
 import { emptyState, type ComplaintState } from "../schema";
+import { buildSystemPrompt } from "../prompt";
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock("@anthropic-ai/sdk", () => ({
@@ -128,5 +129,20 @@ describe("a short answer while the firm is unresolved", () => {
     const body = await say(unresolvedFirm(), "Bloggs Mutual");
     expect(body.state.firm.afca_member_no).toBe("");
     expect(body.state.firm.name).toBe("super fund");
+  });
+});
+
+/**
+ * The other half: stop making the offer that sets the trap.
+ *
+ * The guard catches the answer whatever the model does with it. This stops the
+ * model inviting the misread in the first place — the firm's name is the one
+ * required field that is never deferred, because without it there is no
+ * complaint and nothing else on the form means anything.
+ */
+describe("the firm name is never offered as deferrable", () => {
+  it("says so while the firm is unresolved", () => {
+    const prompt = buildSystemPrompt({ state: emptyState(), firm: null }).replace(/\s+/g, " ");
+    expect(prompt).toContain("never offer to defer");
   });
 });

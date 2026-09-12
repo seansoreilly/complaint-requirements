@@ -338,8 +338,29 @@ the refusal-heavy history), so it is one misread in four observed. **Freeze
 rule refined:** a defect moves the hash only when it is reproducible — a
 failing test or repeatable live; an unreproducible single observation is a
 watchlist item with its fix specified, promoted on a second instance. Defect
-30 is on the watchlist; the build stays 3f2bce0 and the 5 and 12 clearances
-stand. Watch for a bare firm name read as a refusal in the sweeps.
+30 was on the watchlist — then promoted: with the app's own defer offer in the
+preceding turn, "Rest" reproduces as a deferral 3 of 3; the three correct
+reproductions had omitted the offer (the fixture was wrong, not the finding).
+The fix is the route guard specified above plus a prompt line that the firm
+name is never deferred (lib/__tests__/short-firm-answer.test.ts pins "Rest",
+"NAB", "commbank", "Westpac" resolved; refusals, sentences, resolved firms and
+unlisted names untouched). All three 3f2bce0 runs cleared (5 = 10, 12 = 9,
+20 = 9) and become defect-finding on the next hash; sweep 1 is held for Step 0
+on that hash and one more batch of 5/12/20, to which the convergence stop
+condition applies. Lesson for the fixture rule: reproduce with the
+conversation that made the misread available, not the bare state.
+
+**Fixed at bbe7036** (0/3 misread from 3/3 on the exact scenario; Step 0
+10/10). **Freeze: bbe7036** — one more batch of 5/12/20; clean → sweep 1;
+another reproducible person-meets-it defect → stop and write up. Two
+conclusions already agreed for that write-up, whichever way the batch goes:
+the defects are getting smaller and further from harm (the last two batches
+recorded nothing untrue — a converging tail even where the count does not
+converge), and the design finding — every late defect came from the model's
+conversational judgement and every fix was code taking a decision away from
+it; the app is correct in proportion to how little the model is trusted with
+state. See [[constraints-need-the-live-path]] in memory for the same idea from
+the other side.
 
 **Convergence — the stop condition for this phase.** Every batch since 9ae75bf
 found one new person-meets-it defect (24; 26/27/28/29; 30), each fixed, each

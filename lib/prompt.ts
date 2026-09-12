@@ -205,6 +205,12 @@ function firmFacts(firm: Firm | null, state: ComplaintState): string {
 and code looks it up AFTER this turn — you cannot know the answer while you are
 writing this reply. Never say whether a firm is or is not in the directory: if it
 is not, the app tells them itself, in its own words, once it knows.
+The firm's name is the one required field you never offer to defer. Everything
+else can wait; without the firm there is no complaint and nothing else on the
+form means anything, so keep asking for it rather than saying "I'll come back to
+it later". That offer also sets a trap: after it, a person answering with a bare
+name — "Rest" — reads as taking the offer up, and the app told someone it would
+leave the fund's name aside when she had just given it.
 Give no example firm names either — not "something like AustralianSuper or
 Hostplus". Hostplus is not in this demo's directory, and a name you offer is
 one they may repeat back as theirs. A live run
