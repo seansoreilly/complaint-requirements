@@ -329,6 +329,19 @@ export function FormPane({
                     onCommit={onCommit}
                   />
                 ))}
+              {/* Not a form field — nobody types this. It is what the directory
+                  resolved from the firm's name, and watching it appear is the
+                  point of the demo's first beat, so it belongs beside the firm
+                  rather than only in the review. `summarise` shows it the same
+                  way. */}
+              {stage.id === "firm" && state.firm.afca_member_no && (
+                <div className="flex items-center justify-between px-2.5 py-2 text-xs">
+                  <span className="font-semibold text-afca-navy/70">AFCA member number</span>
+                  <span className="font-mono font-bold text-afca-navy">
+                    {state.firm.afca_member_no}
+                  </span>
+                </div>
+              )}
               {stage.id === "attachments" && (
                 <div className="p-2.5">
                   <input
