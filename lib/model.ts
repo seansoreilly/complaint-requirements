@@ -96,6 +96,35 @@ function toolInputSchema(): Anthropic.Tool["input_schema"] {
  * they are the two fields where losing the value silently contradicts something
  * the assistant just said. A valid patch always wins; this only fills a gap.
  */
+/**
+ * Per-build counters, so the fragment rate is a measurement rather than an
+ * impression. Logged every 25 turns; reset when the server restarts, which is
+ * what makes them per-build.
+ */
+let turnsSeen = 0;
+let fragmentFailures = 0;
+let retriesRecovered = 0;
+
+/** The tool call's input, whatever shape it arrived in. */
+function toolInput(response: Anthropic.Message): unknown {
+  const call = response.content.find((block) => block.type === "tool_use");
+  return call && "input" in call ? call.input : undefined;
+}
+
+/**
+ * Did the patch fail to parse at all — as opposed to parsing with issues?
+ *
+ * A patch that is simply absent is fine: plenty of turns extract nothing. This
+ * is about a patch that is PRESENT and unusable, which is the fragment shape.
+ */
+function unparseablePatch(response: Anthropic.Message): boolean {
+  const input = toolInput(response);
+  if (typeof input !== "object" || input === null) return false;
+  const patch = (input as { patch?: unknown }).patch;
+  if (patch === undefined) return false;
+  return typeof patch !== "object" || patch === null;
+}
+
 function salvageRefusals(
   patch: ComplaintPatch,
   envelope: { deferred?: unknown; declined?: unknown } | undefined,
@@ -129,18 +158,55 @@ export async function runTurn(args: {
   }
 
   const client = new Anthropic();
-  const response = await client.messages.create({
+  const request = {
     model: MODEL,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    thinking: { type: "adaptive" as const },
     system: buildSystemPrompt({ state, firm, focusPath }),
     messages: [
       ...history.map((turn) => ({ role: turn.role, content: turn.content })),
       { role: "user" as const, content: message },
     ],
     tools: [turnTool],
-    tool_choice: { type: "tool", name: turnTool.name },
-  });
+    tool_choice: { type: "tool" as const, name: turnTool.name },
+  };
+
+  let response = await client.messages.create(request);
+
+  // One retry, and only when the patch cannot be parsed AT ALL.
+  //
+  // A shape that arrived five times in ~139 turns, four of them in one
+  // afternoon: `patch` comes back as a leaked tool-call fragment —
+  // "\n<parameter name=\"complaint\">{...}" — rather than an object, so the
+  // whole turn's extraction is discarded. The person sees nothing wrong; the
+  // reply is fine and `ensureAsk` carries on. But the draft or the date they
+  // just gave is gone, and what they notice later is a field they answered
+  // sitting empty. It cost a Step 0 check the day it was measured.
+  //
+  // A missing `reply` is NOT retried: that is defect 5's shape, the patch is
+  // usually good, and the empty-reply fallback already handles it. Retrying it
+  // would buy latency for nothing.
+  //
+  // The rate is "higher than before and rising today", not a settled figure —
+  // 5 in 139 carries an interval of roughly 1% to 8%. The counter logged below
+  // is what will settle it, and what makes the prompt-length correlation
+  // testable later instead of a guess about which rule to cut.
+  if (unparseablePatch(response)) {
+    console.info(
+      "[turn-patch-retry]",
+      JSON.stringify({ attempt: 1, raw: toolInput(response) }),
+    );
+    fragmentFailures += 1;
+    response = await client.messages.create(request);
+    if (!unparseablePatch(response)) retriesRecovered += 1;
+  }
+  turnsSeen += 1;
+  if (turnsSeen % 25 === 0) {
+    console.info(
+      "[turn-counter]",
+      JSON.stringify({ turns: turnsSeen, fragmentFailures, retriesRecovered }),
+    );
+  }
 
   const call = response.content.find((block) => block.type === "tool_use");
   const envelope = z
