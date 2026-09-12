@@ -324,7 +324,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  *    (TPD)" on the form, counted as answered and shown as complete.
  *
  * Anything the same change explicitly set is kept: the demo paragraph fills
- * type, subtype and issues in one patch, and that must survive.
+ * type, subtype and issues in one patch, and that must survive — and so must
+ * "I emailed them a formal complaint on 5 August", which opens the branch and
+ * fills it in a single turn.
  */
 export function reconcile(
   previous: ComplaintState,
@@ -336,9 +338,18 @@ export function reconcile(
   for (const stage of STAGES) {
     for (const field of stage.fields) {
       if (!field.showIf) continue;
-      if (touched(field.path)) continue;
-      // Only clear on the transition: applicable before, not applicable now.
-      if (applies(field, previous) && !applies(field, next)) {
+      // One rule: a field whose branch is shut holds nothing, however it got
+      // there. `touched` is deliberately NOT consulted — it protects a field
+      // the same change set, which is right when that change opens the branch
+      // ("I emailed them a formal complaint on 5 August" fills yes, date and
+      // how at once, and `applies` is true afterwards so nothing is cleared),
+      // and wrong when it does not. Iris said "I emailed them on 5 August"
+      // before anyone had established whether that email was a complaint, so
+      // the date and channel were written while `yes` was still null. When she
+      // clarified it was a query, yes went null → false — never open, so the
+      // old applicable→not-applicable test never fired, and her form exported
+      // saying she had not complained beside the date she complained and how.
+      if (!applies(field, next)) {
         setPath(next, field.path, getPath(blank, field.path));
       }
     }
