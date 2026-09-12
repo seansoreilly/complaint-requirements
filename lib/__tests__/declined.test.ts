@@ -112,3 +112,27 @@ describe("contact preference", () => {
     expect(missingFor(state).some((m) => m.path === "complainant.notify_by")).toBe(false);
   });
 });
+
+/**
+ * `merge` replaces arrays wholesale, so a patch naming only the newest refusal
+ * would drop every earlier one and the person would be asked again for
+ * something they had already refused twice. The union in `reconcile` makes the
+ * model's list additive without making a refusal permanent.
+ */
+describe("the declined list accumulates", () => {
+  it("keeps an earlier refusal when a patch names only the newest", () => {
+    const state = stateNeedingSubtype();
+    state.declined = ["service.subtype"];
+    state.complainant.dob = "";
+    const next = applyPatch(state, { declined: ["complainant.dob"] });
+    expect(next.declined).toContain("service.subtype");
+    expect(next.declined).toContain("complainant.dob");
+  });
+
+  it("still lets an answer clear a refusal, union or not", () => {
+    const state = stateNeedingSubtype();
+    state.declined = ["service.subtype"];
+    const next = applyPatch(state, { service: { subtype: "Personal loan" } });
+    expect(next.declined).not.toContain("service.subtype");
+  });
+});

@@ -366,6 +366,12 @@ export function reconcile(
   const requiredPaths = new Set(
     STAGES.flatMap((stage) => stage.fields.filter((f) => f.required).map((f) => f.path)),
   );
+  // Union rather than replace. `merge` overwrites arrays wholesale, so a patch
+  // naming only the newest refusal would silently un-decline everything said
+  // before it — and the person would be asked again for something they had
+  // already refused twice. The field description tells the model to send the
+  // whole list; this makes it not matter if it does not.
+  next.declined = [...new Set([...previous.declined, ...next.declined])];
   const seen = new Set<string>();
   next.declined = next.declined.filter((path) => {
     if (!requiredPaths.has(path)) return false;

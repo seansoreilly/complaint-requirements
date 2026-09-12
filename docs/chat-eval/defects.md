@@ -474,6 +474,81 @@ than no test, because it certifies the bug.
 
 ---
 
+## 17. Approving a draft card ends the conversation in silence
+
+**Severity: high. Deterministic — every card approval. Found by the test manager
+scoring cases 20 (round 4) and 5. Fixed in 5076d69. NOT VERIFIED LIVE.**
+
+Clicking "Use this" on a draft card is handled entirely in the browser.
+`approveDraft` (`app/page.tsx`) writes the field, clears the draft and appends a
+canned line. It never calls `/api/chat`, so `ensureAsk` — the thing that stops a
+reply trailing off with nothing to answer — does not run on that path at all.
+
+What a person met:
+
+> **[approves the narrative card]**
+> "Added to your complaint. That's the part most people find hardest — it's done."
+
+and nothing else, with the outcome and every contact field still outstanding.
+Same after the outcome card: "Noted as the outcome you're seeking." then silence.
+Two independent transcripts (case 20 round 4, case 5) recorded it, both times
+immediately after the person had signed off on something.
+
+This is the README's never-dead-end guarantee failing at the two most important
+moments in the form — and it had been on every card-approved run on the ledger
+(16, 3, 11, 14, 20, 5). It surfaced only when a tester wrote down that no
+question appeared; the others knew the flow and typed on regardless, which is
+exactly how a defect hides from people who know the system.
+
+**Fix.** The outstanding question is computed inside the state updater, from the
+reconciled state, and queued with `queueMicrotask` — the idiom `commitDate` a
+few lines above already uses, and for the same reason: an updater may run twice
+and must stay free of side effects.
+
+The first version of this fix read the prompt into a variable and used it after
+`setState`. It typechecked, all tests passed, and it was wrong: it assumes React
+has run the updater by the next statement, which React does not promise. It
+would have been the fourth fix in this run that was green in tests and dead in
+the browser. Noted here because the mistake is more instructive than the fix.
+
+**Why unverified.** The browser check was in progress when the API key hit its
+spend limit. Live-check this before any score is banked against 5076d69:
+approve a card mid-form and confirm a real question follows the canned line, and
+approve the last one and confirm NO question follows.
+
+---
+
+## 18. A reasonable request nobody made, written into a signed outcome
+
+**Severity: medium. Intermittent. Three instances across cases 17, 18 and 20
+(round 3). Prompt line added in 5076d69. NOT VERIFIED LIVE.**
+
+Three separate people had a remedy they never asked for written into an outcome
+they then approved:
+
+- Case 17: she asked for "the claim decided properly and back payments made".
+  The draft said "give me a proper decision, **with reasons**".
+- Case 18: Colin described what happened. The draft had him requesting "a
+  review" and "a proper response" — both lifted from the app's own coaching
+  menu, which he had not picked from.
+- Case 20 (round 3): a motive — "because they sounded official" — he never gave.
+
+DRAFTING already said not to add "the remedy you would ask for". That framing
+missed all three, because each addition IS a remedy the person would plausibly
+want. That is precisely what makes it dangerous: it reads as harmless, it is
+easy to approve without noticing, and it goes onto a document they sign.
+
+The rule now says so in terms — reasonable, obviously in their interest, and
+previously offered by you are each still not the same as asked for, and options
+the assistant listed are suggestions, not answers.
+
+**Why unverified.** Prompt-only change; needs a live draft to confirm. It is also
+the weakest kind of fix in this codebase — prose, not structure — so it deserves
+a deliberate test rather than an assumption. Cases 17, 18 and 20 are the ones to
+re-run.
+
+---
+
 ## Context worth knowing
 
 The reason all of this survived to now: **the live path was completely broken and
