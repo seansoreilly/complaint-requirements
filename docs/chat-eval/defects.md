@@ -1,9 +1,33 @@
-# Complaint Concierge — live-brain defects (round 1)
+# Complaint Concierge — live-brain defects
 
 Found by driving the real app in a browser against the live Claude brain
 (`ANTHROPIC_API_KEY` set, `/api/chat` reporting `mode: "claude"`), not the mock.
-Branch: `staging`. All 216 unit tests pass with every defect below present —
+Branch: `staging`. All 216 unit tests passed with every defect below present —
 they exercise `lib/mock-brain.ts`, and these live only on the real-brain path.
+That is the single most useful thing this exercise established: the suite and
+these failures were on opposite sides of the mock/real boundary.
+
+**All ten are fixed on `staging`, each verified against the live brain rather
+than only the mocked suite.** 224 tests green.
+
+| # | Defect | Found | Fixed in |
+|---|---|---|---|
+| 0 | Every live turn returned 400 (49 optionals vs a 24 grammar cap) | before round 1 | `fix-turn-schema-grammar-limit`, merged |
+| 1 | One bad patch field discarded the whole turn, reply included | round 1 | `lib/model.ts` — reply and patch parsed separately |
+| 2 | A declined optional question read as never asked, so it repeated | round 1 | `sensitive_offered` flag |
+| 3 | The firm-initiated-contact rule existed only in the mock brain | round 1 | `lib/prompt.ts` EXTRACTION |
+| 4 | A scam complaint was processed as an ordinary one | round 2 | `lib/prompt.ts` SCAMS |
+| 5 | The model omitted `reply` on ~2% of turns | round 2 | `.describe()` on both fields; empty fallback |
+| 6 | The unmatched-firm note repeated once history slid past it | round 2 | `firm_note_said` in state |
+| 7 | A firm correction was refused; the wrong firm reached export | round 2 | `lib/prompt.ts` firmFacts |
+| 8 | Drafts added sentences the person never said | round 2 | `lib/prompt.ts` DRAFTING |
+| 9 | An outcome draft contradicted the compensation answer | round 2 | `lib/prompt.ts` DRAFTING |
+| 10 | A correction turn asked two questions at once | round 2 | `lib/prompt.ts` STYLE |
+
+Three of these — 3, 4 and 7 — share a shape worth naming. Each was a rule that
+read as enforced but was not: one lived in the mock brain production never runs,
+one in a markdown file, and one was a safety rule the model over-applied. A
+constraint is only enforced where the live path can see it.
 
 ---
 
