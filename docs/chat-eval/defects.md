@@ -17,7 +17,7 @@ than only the mocked suite.** 224 tests green.
 | 2 | A declined optional question read as never asked, so it repeated | round 1 | `sensitive_offered` flag |
 | 3 | The firm-initiated-contact rule existed only in the mock brain | round 1 | `lib/prompt.ts` EXTRACTION |
 | 4 | A scam complaint was processed as an ordinary one | round 2 | `lib/prompt.ts` SCAMS |
-| 5 | The model omitted `reply` on ~2% of turns | round 2 | `.describe()` on both fields; empty fallback |
+| 5 | The model omitted `reply` on ~2% of turns | round 2 | `.describe()` on both fields; empty fallback — mitigated, not eliminated, see below |
 | 6 | The unmatched-firm note repeated once history slid past it | round 2 | `firm_note_said` in state |
 | 7 | A firm correction was refused; the wrong firm reached export | round 2 | `lib/prompt.ts` firmFacts |
 | 8 | Drafts added sentences the person never said | round 2 | `lib/prompt.ts` DRAFTING |
@@ -237,13 +237,28 @@ Post-fix this costs only the reply text: in the example above the firm name and
 reference `444444` were still applied to the form. Pre-fix the whole turn was
 discarded.
 
-**Suggested fix:** the tool schema marks `reply` required but gives it **no
-description**, so nothing tells the model what the field is for. Add
-`.describe()` to both fields on `turnSchema` in `lib/model.ts` (it flows through
-`z.toJSONSchema` into the tool definition), and make the fallback reuse the
-outstanding question from `ensureAsk` rather than apologising — a person should
-never see "Sorry — I didn't catch that" for a message the app understood well
-enough to extract fields from.
+**Fix applied:** the tool schema marked `reply` required and then said nothing
+about what it was for, so both fields now carry `.describe()` (it flows through
+`z.toJSONSchema` into the tool definition). The mid-form fallback is an empty
+string rather than an apology, so `ensureAsk` supplies the outstanding question
+and the conversation carries on.
+
+**Outcome: mitigated, not eliminated — say so rather than claiming a cure.**
+Measured over ~310 live turns across rounds 2 and 3: 2 occurrences before the
+fix, 1 after. That is roughly 2% down to roughly 1%, on a sample too small to
+call the difference real. The model still omits `reply` sometimes.
+
+What did change is what the person sees. With the reply empty, `ensureAsk`
+returns the outstanding question on its own — verified: a mid-form omission now
+renders as "Which financial firm is your complaint about? A name, ABN or ACN all
+work." rather than "Sorry — I didn't catch that." The turn still costs the
+model's own wording, but it no longer costs the person an apology for something
+they said perfectly clearly, and the patch from that turn is applied either way.
+
+If the rate matters more than the symptom, the next lever is a retry: on a tool
+call with no `reply`, call once more before falling back. Not done here — one
+extra round trip on 1% of turns is a real latency cost for a cosmetic gain, and
+the symptom is already handled.
 
 ---
 
