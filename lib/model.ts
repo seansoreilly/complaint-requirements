@@ -87,6 +87,15 @@ export async function runTurn(args: {
   const result = turnSchema.safeParse(call?.input);
   const parsed = result.success ? result.data : null;
   if (!parsed) {
+    console.error(
+      "[turn-parse-failed]",
+      JSON.stringify({
+        stop_reason: response.stop_reason,
+        had_tool_use: Boolean(call),
+        issues: result.error?.issues,
+        raw: call?.input,
+      }),
+    );
     return {
       // Deliberately asks nothing: the route appends whatever the form still
       // needs, so a parse failure costs the person a turn, not the thread.
