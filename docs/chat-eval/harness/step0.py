@@ -213,6 +213,43 @@ banner("CHECK 9 a decline is honoured before the model records it (defect 24)")
 # lib/__tests__/late-decline.test.ts. Verified to fail without the fix.
 print("     (covered by lib/__tests__/late-decline.test.ts — see note in source)")
 
+# ------------------------------------------------------------------ check 10
+banner("CHECK 10 a listed firm is never called unlisted (defect 26)")
+# On the turn a firm is first named, resolveFirm has not run, so the prompt used
+# to tell the model to say whether the firm was in the directory — something it
+# cannot know while writing that reply. It told someone Latitude was not listed
+# on the same turn the app assigned Latitude's member number.
+#
+# NOTE ON WHAT THIS PROVES. Run against the BROKEN prompt this check passed:
+# the model did not happen to guess that time. It is non-deterministic, so one
+# run cannot catch it, and a green result here is weak evidence. The strong
+# evidence is lib/__tests__/person-facing-issues.test.ts, which asserts the
+# prompt text itself no longer invites the guess — that is deterministic. This
+# check is here to notice a recurrence in the wild, not to gate on.
+f = Chat(label="listed-firm")
+rf = f.say("My complaint is about Latitude Financial Services.")
+reply_f = rf.get("reply", "")
+claims_unlisted = bool(re.search(r"not in (this|the)[^.]*director", reply_f, re.I))
+results.append(check(
+    "10 a listed firm gets its number and is not called unlisted",
+    not claims_unlisted and f.field("firm.afca_member_no") == "12207",
+    f'member={f.field("firm.afca_member_no")!r} claims_unlisted={claims_unlisted}\n{reply_f[:200]}'))
+turns_total += len(f.turns)
+timeouts += f.timeouts
+save(f, "step0_f.json")
+
+# And the true statement still gets made, by the route rather than the model.
+g = Chat(label="unlisted-firm")
+rg = g.say("My complaint is about Bloggs Mutual Credit.")
+note_g = rg.get("firmNote") or ""
+results.append(check(
+    "10b an unlisted firm is still told so, by the app, with no member number",
+    "director" in note_g.lower() and g.field("firm.afca_member_no") == "",
+    f'member={g.field("firm.afca_member_no")!r}\nnote={note_g[:160]}'))
+turns_total += len(g.turns)
+timeouts += g.timeouts
+save(g, "step0_g.json")
+
 banner("RESULT")
 print(f"{sum(results)}/{len(results)} scripted checks passed")
 print(f"turns: {turns_total}   transient timeouts: {timeouts}")

@@ -368,7 +368,7 @@ can start on the next frozen hash.
 | 17 edits-draft | 1 | 9 | pre-freeze; found "with reasons" |
 | 18 not-sure-compensation | 2 | 10 | p2 on 39c38bb; Fix B proven on the menu path |
 | 19 distressed | 1 | 10 | pre-freeze |
-| 20 scam-complaint | 2 | 9 | r3 unscored, r4 9; found card dead-end |
+| 20 scam-complaint | 4 | 10, 9 | p3 on 9ae75bf 10 (superseded); p4 on b8fa2f6 9 — found 29 |
 
 ## Files
 
