@@ -168,6 +168,9 @@ export const SERVICE_ISSUES: Record<string, readonly string[]> = {
   Superannuation: [
     "Denial of insurance claim",
     "Delay in claim handling",
+    // "Rollover / transfer delay" is a subtype above, but had no issue to match
+    // it, so every stuck rollover was filed as a delayed *insurance claim*.
+    "Delay in rollover or transfer",
     "Incorrect premiums or fees",
     "Failure to follow instructions",
     "Incorrect information provided",
