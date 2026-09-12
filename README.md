@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 125 unit tests
+npm test         # 146 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -32,6 +32,8 @@ it, applies it, and decides what is still missing.
 | `lib/schema.ts` | The form as data — stages, fields, branch rules. The prompt and the UI both derive from this, so they cannot drift. |
 | `lib/patch.ts` | Zod validation, date/enum coercion, deep merge. Nothing reaches the state unvalidated. |
 | `lib/next.ts` | What is missing and what to ask next, honouring branches. Never gates progress. |
+| `lib/questions.ts` | The wording used to ask for each field, shared by both brains and the route so they cannot ask differently. |
+| `lib/continue.ts` | The guarantee that a turn never dead-ends while the form still needs something. |
 | `lib/directory.ts` | Fuzzy firm lookup in code. The model proposes a name; code assigns the member number. |
 | `lib/prompt.ts` | System prompt, generated from the schema. |
 | `lib/mock-brain.ts` | Offline rule-based extractor used when no API key is set. |
@@ -39,7 +41,7 @@ it, applies it, and decides what is still missing.
 | `lib/export.ts` | The review summary, the clipboard text, and the JSON download. |
 | `app/api/chat/route.ts` | One turn: validate → resolve firm → apply → return authoritative state. |
 
-### Two deliberate constraints
+### Four deliberate constraints
 
 **Firm details cannot be invented.** The model only ever emits a firm *name*;
 `app/api/chat/route.ts` strips any `afca_member_no` it returns and fills the
@@ -57,6 +59,13 @@ CommBank by phone" into a document someone signs is the worst thing this product
 could do, so `readContactStance` in `lib/mock-brain.ts` reads the subject and
 records nothing when it is ambiguous.
 
+**The conversation does not dead-end.** While any required field is unanswered
+or a draft is waiting, every turn ends by asking for something. The prompt asks
+the model for this; `lib/continue.ts` guarantees it, appending the next question
+when a reply trails off — including when the model's response fails to parse.
+Skipping stays allowed: a skip is respected at once and never pressed twice in a
+row, but a *required* field is returned to later rather than quietly dropped.
+
 ## Pages
 
 - `/` — the demo: chat on the left, the form filling itself on the right.
@@ -68,12 +77,14 @@ records nothing when it is ambiguous.
 npm test
 ```
 
-125 tests across seven files, covering the parts where being wrong matters:
+146 tests across nine files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
-the in-flight merge, and the full six-step demo script end to end. Most of them
-exist because they caught a real bug — a super fund's insurance filed as
-"General insurance", "No, I haven't complained" read as *yes*, `31 February`
-accepted as a date, a stray word stored as an account number.
+the in-flight merge, the guarantee that a turn never ends with nothing to
+answer, and the full six-step demo script end to end. Most of them exist because
+they caught a real bug — a super fund's insurance filed as "General insurance",
+"No, I haven't complained" read as *yes*, `31 February` accepted as a date, a
+stray word stored as an account number, a question stranded above a trailing
+note so the turn closed on a statement.
 
 ## Scope
 

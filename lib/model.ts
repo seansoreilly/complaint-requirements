@@ -67,7 +67,9 @@ export async function runTurn(args: {
   const parsed = response.parsed_output;
   if (!parsed) {
     return {
-      reply: "Sorry — I didn't catch that. Could you say it another way?",
+      // Deliberately asks nothing: the route appends whatever the form still
+      // needs, so a parse failure costs the person a turn, not the thread.
+      reply: "Sorry — I didn't catch that.",
       patch: {},
       mode: "claude",
     };

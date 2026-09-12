@@ -9,6 +9,7 @@ import { type ComplaintState, SERVICE_ISSUES, SERVICE_SUBTYPES, STAGES } from ".
 import { type ComplaintPatch, cleanPatch } from "./patch";
 import { FIRMS, SECTOR_SERVICE_TYPE, lookupFirm } from "./directory";
 import { groupedWithNext } from "./next";
+import { questionFor } from "./questions";
 
 export interface BrainResult {
   reply: string;
@@ -31,12 +32,12 @@ type HistoryTurn = { role: string; content: string };
  * assistant's text against it verbatim. That keeps the lookup honest as the
  * templates change, instead of hand-copying question strings that would rot.
  *
- * A reply can still carry more than the question itself (a draft proposal, or
- * the closing review message), so it is matched line by line rather than whole.
- * A grouped question
- * ("could you give me your X, Y?") or a draft-approval message has no single
- * field behind it, so those turns are left unmatched and fall through to the
- * groupedWithNext fallback, same as the first turn.
+ * A reply can still carry more than the question itself (a draft proposal, the
+ * closing review message, or a question ensureAsk appended), so it is matched
+ * line by line rather than whole. A grouped question ("could you give me your
+ * X, Y?") or a draft-approval message has no single field behind it, so those
+ * turns are left unmatched and fall through to the groupedWithNext fallback,
+ * same as the first turn.
  */
 function askedAboutPath(history: HistoryTurn[] | undefined, state: ComplaintState): string | undefined {
   if (!history || history.length === 0) return undefined;
@@ -684,55 +685,6 @@ function composeReply(state: ComplaintState, patch: ComplaintPatch): string {
   }
 
   return lines.join("\n");
-}
-
-function questionFor(path: string, label: string, state: ComplaintState): string {
-  switch (path) {
-    case "firm.name":
-      return `Which financial firm is your complaint about? A name, ABN or ACN all work.`;
-    case "firm.reference":
-      return `Do you have an account, policy or reference number for this? If you don't have one to hand, just say so — it's not required.`;
-    case "open_afca_complaint":
-      return `Do you already have a complaint open with AFCA?`;
-    case "complainant.lodging_for":
-      return `Is this complaint for yourself, or are you lodging it for someone else?`;
-    case "consents.authority":
-      return `Before we go further, I need two quick confirmations: that AFCA can act on your complaint, and that you accept the engagement charter. Happy to tick both?`;
-    case "service.type":
-      return `What kind of financial service is this about — superannuation, credit, insurance, banking?`;
-    case "service.subtype": {
-      const options = SERVICE_SUBTYPES[state.service.type];
-      if (options) return `Which of these fits best? ${options.join(", ")}.`;
-      return `What product or service specifically?`;
-    }
-    case "complaint.issues": {
-      const options = SERVICE_ISSUES[state.service.type];
-      if (options) return `What went wrong? For example: ${options.slice(0, 4).join(", ")}.`;
-      return `In a few words, what went wrong?`;
-    }
-    case "complaint.narrative":
-      return `Tell me what happened, in your own words — as much or as little as you like. I'll write it up for you afterwards.`;
-    case "complained_to_firm.yes":
-      return `Have you complained to the firm directly yet?`;
-    case "complained_to_firm.date":
-      return `Roughly when did you contact them? An approximate date is fine.`;
-    case "complained_to_firm.how":
-      return `How did you get in touch — phone, email, letter, their website?`;
-    case "complained_to_firm.final_reply":
-      return `Have they given you a final response to that complaint?`;
-    case "legal_proceedings":
-      return `Is there any court case or legal action going on about this?`;
-    case "outcome.seeking_compensation":
-      return `Are you looking for compensation — money back for a loss? Yes, no, or not sure are all fine answers.`;
-    case "outcome.fair_outcome":
-      return `What would actually put this right for you? Even roughly — I'll help turn it into something concrete.`;
-    case "complainant.dob":
-      return `What's your date of birth? AFCA uses it to confirm your identity.`;
-    case "complainant.notify_by":
-      return `How would you prefer AFCA to contact you — email, post or SMS?`;
-    default:
-      return `Could you tell me your ${label.toLowerCase()}?`;
-  }
 }
 
 function projectState(state: ComplaintState, patch: ComplaintPatch): ComplaintState {

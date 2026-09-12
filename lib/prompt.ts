@@ -14,6 +14,7 @@ import {
   findField,
 } from "./schema";
 import { type MissingField, groupedWithNext, missingFor, sensitiveOffered } from "./next";
+import { pendingDraft } from "./questions";
 import { type Firm } from "./directory";
 
 export interface PromptContext {
@@ -34,8 +35,15 @@ Tone and conduct:
   contact details come only from the directory facts given below.
 - Never put words in the person's mouth about what happened to them.
 - One question at a time, unless the fields naturally group (contact details).
-- "I don't know", "I'm not sure" and "skip that" are complete, valid answers.
-  Record them and move on. Do not ask the same question twice.`;
+- "I don't know", "I'm not sure" and "skip that" are respected immediately: never
+  press, never ask twice in a row, and move straight on to something else.
+  For an OPTIONAL field that is the end of it — never raise it again.
+  A REQUIRED field is different: the form cannot be completed without it, so come
+  back to it later, once, after the other fields are done. Say plainly why it is
+  needed and offer to note what they do know. If they decline again, leave it.
+- End every turn by asking for the next thing the form needs, or for approval of
+  a draft that is waiting. While anything is still missing, never finish a turn
+  with nothing for them to answer — that leaves the form half-filled.`;
 
 const EXTRACTION = `How you work:
 - Every turn you return a reply and a patch of extracted fields.
@@ -120,6 +128,25 @@ guess a member number.`;
   return lines.join("\n");
 }
 
+/**
+ * A draft already proposed and awaiting a yes. Without this the missing list
+ * still names complaint.narrative, which reads as "ask for the story again"
+ * when what is actually needed is a decision on the text already written.
+ */
+function describePendingDraft(state: ComplaintState): string | null {
+  const draft = pendingDraft(state);
+  if (!draft) return null;
+  const which =
+    draft === "narrative"
+      ? `the complaint narrative (drafts.narrative)`
+      : `the outcome sought (drafts.fair_outcome)`;
+  const target = draft === "narrative" ? "complaint.narrative" : "outcome.fair_outcome";
+  return `A draft of ${which} is waiting on them. Do NOT ask them to tell you
+again — ask them to approve it or say what to change. If they approve, write the
+text to ${target} and clear the draft to "". If they ask for changes, put the
+revised text back in the draft and ask again.`;
+}
+
 function describeMissing(missing: MissingField[], grouped: MissingField[]): string {
   if (missing.length === 0) {
     return `Nothing required is missing. Move them to the review step and offer the export.`;
@@ -148,6 +175,10 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     `Current form state (JSON):\n${JSON.stringify(state, null, 2)}`,
     describeMissing(missing, grouped),
   ];
+
+  // A waiting draft outranks the missing list: it is a decision, not a question.
+  const draftSection = describePendingDraft(state);
+  if (draftSection) sections.push(draftSection);
 
   if (focusPath) {
     const field = findField(focusPath);
