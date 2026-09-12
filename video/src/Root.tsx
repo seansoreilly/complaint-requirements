@@ -22,9 +22,9 @@ if (Math.abs(storyboardSeconds - TOTAL_SECONDS) > 0.001) {
  * beat shorter than its narration would cut Jess off mid-word and nothing
  * would say so. Check every clip has room, plus a beat of silence to breathe.
  */
-// Audio starts 0.45s in (0.8s title, 0.6s outro), so the clip needs that
-// much plus a tail inside the scene.
-const MIN_HEADROOM = 1.3;
+// Audio starts 0.25s in (0.45s title, 0.35s outro), so the clip needs that
+// much plus a short tail inside the scene. retime.mjs caps the other end.
+const MIN_HEADROOM = 0.7;
 const clips: Record<string, number> = durations;
 
 for (const [label, voice, seconds] of [

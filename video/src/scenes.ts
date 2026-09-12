@@ -2,9 +2,12 @@
  * The storyboard: one entry per beat, in order.
  *
  * `shot` is a file in public/shots (captured by capture.mjs from the live app).
- * `seconds` is how long the beat is on screen. The total is asserted to be
- * exactly TOTAL_SECONDS in Root.tsx, so edits here cannot silently change the
- * video's length.
+ * `seconds` is how long the beat is on screen, derived from the measured
+ * narration by retime.mjs. The total is asserted to be exactly TOTAL_SECONDS in
+ * Root.tsx, so edits here cannot silently change the video's length.
+ *
+ * The wording comes from SCRIPT.md — run `node recaption.mjs` after editing it
+ * rather than retyping captions here.
  */
 export type Scene = {
   readonly shot: string;
@@ -18,10 +21,10 @@ export type Scene = {
 };
 
 export const FPS = 30;
-export const TOTAL_SECONDS = 120;
+export const TOTAL_SECONDS = 40.3;
 
-export const TITLE_SECONDS = 6.7;
-export const OUTRO_SECONDS = 7.2;
+export const TITLE_SECONDS = 3.6;
+export const OUTRO_SECONDS = 6.8;
 
 export const SCENES: readonly Scene[] = [
   {
@@ -29,71 +32,23 @@ export const SCENES: readonly Scene[] = [
     voice: "01-empty",
     title: "Eight stages of questions",
     body: "A lot to face when you're already frustrated.",
-    seconds: 12.2,
+    seconds: 9.2,
     focus: [0.75, 0.4],
   },
   {
     shot: "02-story-typed.png",
     voice: "02-story-typed",
-    title: "It listens first",
+    title: "So just say what happened",
     body: "One sentence, in your own words.",
-    seconds: 8.9,
+    seconds: 7.1,
     focus: [0.25, 0.9],
   },
   {
     shot: "03-form-filled.png",
     voice: "03-form-filled",
-    title: "One sentence, eight answers",
-    body: "The firm, the date, the service, the product, what went wrong.",
-    seconds: 15.9,
-    focus: [0.75, 0.55],
-  },
-  {
-    shot: "05-draft-card.png",
-    voice: "05-draft-card",
-    title: "The part people stall on",
-    body: "Written from what was already said.",
-    seconds: 11.4,
-    focus: [0.75, 0.3],
-  },
-  {
-    shot: "06-draft-approved.png",
-    voice: "06-draft-approved",
-    title: "It waits to be approved",
-    body: "Easy to fill in automatically. It asks first instead.",
-    seconds: 12.8,
-    focus: [0.3, 0.35],
-  },
-  {
-    shot: "07-dont-know.png",
-    voice: "07-dont-know",
-    title: "\"I don't have one\" is an answer",
-    body: "Marked, and not asked again.",
-    seconds: 11.2,
-    focus: [0.4, 0.45],
-  },
-  {
-    shot: "09-skipped.png",
-    voice: "09-skipped",
-    title: "Leave anything for later",
-    body: "Or type any answer in directly.",
-    seconds: 10.5,
-    focus: [0.75, 0.6],
-  },
-  {
-    shot: "11-review.png",
-    voice: "11-review",
-    title: "The member number isn't guessed",
-    body: "Looked up, not invented.",
-    seconds: 14.8,
-    focus: [0.78, 0.35],
-  },
-  {
-    shot: "12-review-export.png",
-    voice: "12-review-export",
-    title: "Yours to check and keep",
-    body: "Check it over, print it, take it to AFCA.",
-    seconds: 8.4,
-    focus: [0.72, 0.65],
+    title: "The form fills itself in",
+    body: "One sentence answered eight questions at once.",
+    seconds: 13.6,
+    focus: [0.75, 0.5],
   },
 ];
