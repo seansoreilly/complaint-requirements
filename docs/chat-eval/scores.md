@@ -26,6 +26,8 @@ per round; rounds are appended, never rewritten.
 | f1 | 9 negated-complaint | 10/10 (2fa9d4f — defect-finding) | The safety case held on a direct question that drew the distinction itself ("raising it with them as a complaint, rather than the original call about the interest"); "No, I haven't complained to them yet" → yes=false with date/how/final_reply empty; AFCA-first note once, with ANZ's phone and email verbatim from firms.json:99-100 (tester flagged them as invented — verified, not); form kept going. ANZ 10101, "Card ending 8890", Credit / Credit card; narrative and outcome every clause his (the $180 and "normal customer service call" were the tester's in-character additions, then Ben's words); both approved by typed line. Caveat: the JSON snapshot predates the outcome and contact answers; those rest on the panel ticks and the assistant's own confirmation (DOB 17/09/1997, mobile 0466 554 010), which match the sheet. |
 | f1 | 2 credit-hardship | UNSCORED — no final state (2fa9d4f) | Transcript complete and clean on B and C: CBA resolved, drafts word-for-word Tom's (the "stressful / roof over my family's head" line and the "3 to 6 months" were the tester's in-character additions, spoken by Tom, not added by the app), compensation "not sure" recorded and the outcome draft leaves it open ("I'm not sure exactly how long"), attachments and optional questions offered once and dropped on decline, both approvals typed. No state JSON was captured (the tester's interceptor never populated), so A cannot be diffed; not scored. |
 | f1 | 12 ambiguous-firm | UNSCORED — partial, no state, trap not exercised (2fa9d4f) | Stopped at user turn 9 by the API limit; no state JSON. Agent artefact: asked "Can you tell me the name of the super fund", the tester answered "Rest" instead of the scripted "my super fund", so the directory's ambiguous-match path (lookupFirm → "Several firms match…") never ran. What did happen was right — the app did not extract a firm from "my super fund" in the opening line, asked for the name, and 11540 appeared only after "Rest" — but the persona's trap is untested. Treat 12 as never run. |
+| p2 | 13 everything-at-once | 10/10 (39c38bb — defect-finding) | From one opening paragraph the first state carried ANZ 10101, complained_to_firm {yes, 2026-08-10, email, final_reply false}, Credit / Personal loan, name, DOB, email; nothing in it was re-asked. Issue category asked once with the list (not stated in the paragraph); reference, address, notify_by ("email, post, or SMS?" — defect 15 fix seen live) each asked once. Both cards followed by a question (Fix A live). Narrative keeps "I say I should never have been given it" as his claim, records the missing date and amount as unknown rather than filling them; outcome is his ask verbatim. Nothing added; card approvals. |
+| p2 | 18 not-sure-compensation | 10/10 (39c38bb — defect-finding) | **Fix B proven on the menu path**: menu offered verbatim ("refunded some or all of what you lost, explained how the advice was given, moved you out of the investment, something else entirely"), he picked money back only, draft "I would like Westpac to pay back the money I lost on the investment. That's the main thing I'm after." — no unpicked item. not_sure kept open. Narrative keeps "I don't think the risk was ever properly explained" as belief. Westpac 10102, 4471-2290, phone 2026-08-25 no final reply, all contact fields exact; subtype declined → `declined: ["service.subtype"]`, third live reading. Two transient timeouts re-sent. Notes, no deduction: the optional-questions offer and notify_by were asked in one turn (both contact-stage); subtype went into `declined` on the first decline rather than after a return-once (prompt.ts:48 says "decline again") — rubric allows zero returns, persona 15 tests the return. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
 frozen final build. Freeze history: f0f7154 (22:06:38) → 456abb2 (22:16:16, chasing is
@@ -78,3 +80,53 @@ Final state of this phase:
 - Every defect found is fixed in code; see `defects.md` for the write-ups.
 
 Resume from `resumption-plan.md`.
+
+## Phase 2 — opened 12 September 2026 (spend limit raised; earlier than the 1 October date above)
+
+**Step 0 verification on 39c38bb — PASSED.** One browser session driven by the
+lead, live brain confirmed by probe, ruled by the test manager from the quoted
+transcript. Not a persona run; not a ledger row; not a score.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Fix A (defect 17) — card approval followed by a question | PASS, both cards | "Added to your complaint. … — it's done. / Have you complained to the firm directly yet?" and "Noted as the outcome you're seeking. / Could you give me your first name, last name, email…?" Counter 14 → 13 on approval, drafts cleared. |
+| Fix B (defect 18) — no unrequested remedy in the outcome draft | PASS (weak) | Single clean remedy given, no coaching menu offered, draft "I want AustralianSuper to reinstate my insurance cover." Nothing added — but this did not exercise the menu path. Persona 18 (Colin) remains the real test and runs early. |
+| `declined` on the UI path + header arithmetic | PASS | `declined: ["service.subtype"]`, subtype "", product list never reappeared (regex over the whole transcript after the decline); header "Ready — 1 left blank ✓"; review panel "1 answer is still missing. You can export anyway…", product "—"; export enabled. Header and panel agree. |
+| notify_by asked, not pre-filled | PASS (lead's account) | Panel showed "—" until "email is best for contacting me". Every sweep persona re-confirms this. |
+
+**Sweep hash was 39c38bb** — superseded, see below. Known edge added to the
+plan: a transient "The assistant is unavailable: Request timed out." on one
+turn, cleared by re-sending; not a finding. Nine testers released on 39c38bb:
+15, 12, 13, 10, 9, 1, 2, 4, 18.
+
+**Defect 19 — freeze moved to 3bfdd51 (23:47); Step 0 must re-run.** After
+persona 12 passed, the lead probed `lookupFirm` to learn *why* the app had asked
+for the fund's name and found that "my super fund" resolves to nothing (so the
+persona's "verified ambiguous" premise was false and its trap has never fired in
+any run) and that **"super fund" returned a confident match on Hesta Super Fund**
+— firm name and member number 11902 from a phrase naming no firm. The
+`allGeneric` exemption in `lib/directory.ts` (written so "australian super"
+could rank) switched off the generic-word guard for exactly the queries it was
+meant to catch. Fixed at 3bfdd51: an all-generic query settles on a firm only
+when it covers that firm's whole name; two wrong fixes on the way (refusing all
+generic queries broke "australian super"; refusing single-candidate ambiguity
+broke "Westpack" → Westpac) were caught by the suite and are pinned. A probe is
+not scoring evidence, but it is a legitimate way to find a code defect; the fix
+is proven by unit tests and the persona-12 rewrite (panel-typed "super fund")
+is how it gets a browser transcript. The nine 39c38bb runs are defect-finding
+rows when they arrive; none counts toward the bar.
+
+**Defect 20 — the draft bypassed the approval card (case 2, 39c38bb).** The
+model quoted its narrative and outcome proposals in the reply text, never
+populated `drafts.*`, and the person approved by typing "yes" to quoted text —
+no card, no edit affordance, no Discard. The README's hold ("Drafts are held,
+not written") existed on that run only as the model's manners; `lib/prompt.ts`
+asks for `drafts.narrative` and nothing in code enforces it. Ruled a defect that
+moves the freeze; the fix belongs in code: `app/api/chat/route.ts` diverts a
+patch that writes `complaint.narrative` / `outcome.fair_outcome` into `drafts.*`
+whenever the incoming state had both the field and its draft empty, so approval
+is the only way onto the form. Prompt line added as well. Step 0 gains a sixth
+check: the proposal appears as a card, never only as quoted text. Whether it
+scores against case 2 depends on the per-turn state — narrative written on the
+proposal turn is a B breach; written only on the approval turn is the defect
+without a deduction.

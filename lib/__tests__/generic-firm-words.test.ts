@@ -20,6 +20,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { lookupFirm } from "../directory";
+import { emptyState } from "../schema";
 
 function status(query: string): string {
   return lookupFirm(query).status;
@@ -64,5 +65,35 @@ describe("a query made only of generic words", () => {
     for (const q of ["Rest", "Westpac", "ANZ", "Hesta"]) {
       expect(status(q), `"${q}" should still match`).toBe("matched");
     }
+  });
+});
+
+/**
+ * The note the person actually reads when their firm is unresolved.
+ *
+ * After the generic-word fix, "super fund" comes back ambiguous with a single
+ * candidate — Hesta — because it is the only name those words touch. The route
+ * said "Several firms match ...: Hesta Super Fund", which is both wrong on its
+ * face and quietly dangerous: told several match and shown one, a person
+ * reasonably confirms that one, and lands on Hesta by a longer route than the
+ * bug this fix removed.
+ */
+describe("the unresolved-firm note", () => {
+  it("does not say several when it found one", async () => {
+    const { POST } = await import("../../app/api/chat/route");
+    const state = emptyState();
+    state.firm.name = "super fund";
+    const response = await POST(
+      new Request("http://localhost/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ state, message: "does that help?" }),
+      }),
+    );
+    const body = await response.json();
+    expect(body.firmNote).toBeTruthy();
+    expect(body.firmNote).not.toContain("Several firms match");
+    expect(body.firmNote).toContain("Hesta Super Fund");
+    expect(body.firmNote).toContain("may not be the firm you mean");
+    expect(body.state.firm.afca_member_no).toBe("");
   });
 });

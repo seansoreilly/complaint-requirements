@@ -72,11 +72,17 @@ function resolveFirm(state: ComplaintState): {
     const cleared = structuredClone(state);
     cleared.firm.afca_member_no = "";
     const names = result.candidates.map((c) => c.firm.name);
-    return {
-      state: cleared,
-      firm: null,
-      note: `Several firms match "${name}": ${names.join(", ")}. Which one is it?`,
-    };
+    // One candidate is not "several". After the generic-word fix (defect 19),
+    // "super fund" comes back ambiguous with Hesta alone — and a person told
+    // "several firms match" and then shown one name will reasonably confirm
+    // that one, which lands them on Hesta by a longer route. Naming it as the
+    // only near match, and asking for the full name, keeps the choice theirs.
+    const note =
+      names.length === 1
+        ? `The closest match to "${name}" in this demo's directory is ${names[0]}, ` +
+          `but that may not be the firm you mean. What is its full name?`
+        : `Several firms match "${name}": ${names.join(", ")}. Which one is it?`;
+    return { state: cleared, firm: null, note };
   }
   const unmatched = structuredClone(state);
   unmatched.firm.afca_member_no = "";

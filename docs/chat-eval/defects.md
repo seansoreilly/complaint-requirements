@@ -571,6 +571,71 @@ re-run.
 
 ---
 
+## 19. "super fund" resolved to one particular super fund
+
+**Severity: high. Deterministic. Found by probing the directory after persona 12
+PASSED. Fixed in 3bfdd51.**
+
+```
+"super fund"          -> matched :: Hesta Super Fund   (member 11902)
+"the super fund"      -> matched :: Hesta Super Fund
+"my super fund"       -> not_found
+"superannuation fund" -> ambiguous :: Hesta Super Fund
+"super"               -> ambiguous :: AustralianSuper / Hesta / Rest
+"bank"                -> ambiguous :: CBA / NAB / Westpac / ANZ
+```
+
+"super fund" is two tokens and both appear in "Hesta Super Fund", so it scored
+1.0 and came back as a CONFIDENT match — firm name and AFCA member number 11902
+— from a phrase that names no firm at all. Someone opening "it's about my super
+fund" could carry Hesta's member number onto a complaint against a different
+fund, and that is the field nobody double-checks, because it is the field the
+app is trusted to supply.
+
+The bug bites only firms whose names contain the generic words. The directory
+has three (Hesta Super Fund, Rest Superannuation, AustralianSuper) plus the
+"Banking Group" / "Banking Corporation" suffixes. "bank" was already safe
+because no bank's name is *covered* by "bank" alone — which is exactly why the
+fixed rule works.
+
+**Cause.** `score` already refuses a candidate whose only hits are generic
+words. The `allGeneric` exemption beneath it — written so "australian super"
+could still rank — was switching that guard off for precisely the queries it
+was meant to catch.
+
+**Fix.** The test now applies to the MATCH, not the query: an all-generic query
+settles on a firm only when it accounts for that firm's whole name. "australian
+super" covers "AustralianSuper" once spacing is ignored and still resolves;
+"super fund" covers only part of "Hesta Super Fund" and comes back as candidates
+to ask about.
+
+**Two wrong fixes on the way, both caught by the full suite, both now pinned by
+tests so nobody narrows this again and rediscovers them:**
+1. Refusing every all-generic query broke "australian super".
+2. Refusing to return a single candidate as ambiguous broke typo correction —
+   "Westpack" stopped resolving to Westpac. That is a worse outcome for a real
+   person than the bug being fixed.
+
+**How it was found, and why that matters.** Persona 12 passed. The app did ask
+Helen which fund — but because "my super fund" is `not_found`, not because it
+was ambiguous. Her sheet claimed that phrase was "verified ambiguous"; it was
+not, on this build, so the trap that persona exists to spring had never fired in
+any run. A passing test that tests nothing is the failure this exercise keeps
+finding, and this time it was in our own fixtures.
+
+A probe is not scoring evidence — only a browser transcript on a known hash is —
+but it is a legitimate way to FIND a code defect. The fix is proven by unit
+tests; the browser transcript comes from the rewritten persona 12, which reaches
+the phrase through the editable form panel (`components/FormPane.tsx` onEdit →
+the route resolves the firm on the next turn) rather than asking the model to
+guess. The model has asked, correctly, every time it has seen a generic phrase,
+so the ambiguous path is simply not reachable through chat.
+
+Persona 12's earlier pass stays on the ledger as evidence of good model
+behaviour and none at all about this guard.
+
+---
+
 ## Context worth knowing
 
 The reason all of this survived to now: **the live path was completely broken and

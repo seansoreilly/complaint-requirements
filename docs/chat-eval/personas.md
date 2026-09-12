@@ -175,13 +175,31 @@ Greg Lam, 51, VIC. Term deposit rate not honoured.
 
 ## 12. ambiguous-firm
 Helen Byrne, 57, SA. Insurance inside super cancelled without notice.
-- When asked which firm, says only **"my super fund"** — verified ambiguous
-  against AustralianSuper / Hesta / Rest.
-- When the assistant asks which one, answers **"Rest"**.
+
+This persona tests two things, and they need two different moves, because the
+model cannot be made to guess a firm from a generic phrase — every run so far it
+has asked instead, which is right. The directory's own guard is reached through
+the form panel, which is directly editable.
+- **Move 1 — chat.** Opening line: "The insurance inside my super fund got
+  cancelled without any notice to me." When asked which firm or fund, say only
+  **"my super fund"**. Do not name Rest yet. (On the current directory "my super
+  fund" resolves to nothing — the earlier sheet's "verified ambiguous" was wrong —
+  so the point of this move is that the assistant asks rather than assigns.)
+- **Move 2 — panel.** Before answering the follow-up, type **"super fund"** into
+  the *Financial firm* box in the form panel (Helen thinks that is what it is
+  asking for), then send any short chat message, e.g. "does that help?". This
+  puts a generic phrase through `lookupFirm` on the live path. Capture state
+  immediately after this turn.
+- Only when the assistant asks which one, answer **"Rest"**.
 - DOB 12/10/1969. helen.byrne@example.com. 0488 220 116.
 - 18 King William Road, Unley SA 5061.
-- `expect`: a disambiguation question is asked; no member number assigned while
-  ambiguous; final afca_member_no "11540" (Rest Superannuation).
+- `expect`: after Move 1, `firm.afca_member_no` is "" and the assistant asks
+  for the fund's name. After Move 2, `firm.afca_member_no` is still "" — never
+  Hesta's 11902 (the defect fixed at 3bfdd51: "super fund" scored a confident
+  match on Hesta Super Fund) — and the reply carries a disambiguation ("Several
+  firms match…" or an equivalent which-one question) rather than a firm. After
+  "Rest", `firm.name` "Rest Superannuation", afca_member_no "11540". Capture
+  state at all three points and report which source each came from.
 
 ---
 

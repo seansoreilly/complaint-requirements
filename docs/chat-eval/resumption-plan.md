@@ -196,9 +196,29 @@ No self-scoring. No summaries in place of transcript.
 ## Status update — 12 September 2026, phase 2 opened early
 
 The spend limit was raised the same night. Step 0 ran on 39c38bb and all four
-checks passed (see the Phase 2 block in `scores.md`); 39c38bb is the sweep hash.
-Fix B's Step 0 check was weak (no coaching menu was offered), so persona 18 is
-the real test and runs early in Step 1.
+checks passed (see the Phase 2 block in `scores.md`). Fix B's Step 0 check was
+weak (no coaching menu was offered), so persona 18 is the real test and runs
+early in Step 1.
+
+**Then the freeze moved to 3bfdd51** (defect 19: "super fund" resolved
+confidently to Hesta Super Fund via the directory's generic-word exemption).
+Step 0 re-runs on 3bfdd51 — all four checks, per the rule that Step 0 is a
+property of a hash — before anything counts. The nine runs launched on 39c38bb
+are defect-finding rows. Persona 12's sheet was wrong ("my super fund" was never
+ambiguous on this directory) and is rewritten: the ambiguous path is reached by
+typing "super fund" into the panel's firm box, since the model correctly asks
+rather than guesses. Add a fifth Step 0 check on any future hash: type "super
+fund" into the firm box and confirm no member number appears.
+
+**Then defect 20** (case 2 on 39c38bb): the model quoted its proposal in the
+reply and never populated `drafts.*`, so no card appeared and the person
+approved by typing "yes". Fix is a code guard in the route (a first write to
+`complaint.narrative` / `outcome.fair_outcome` with no pending draft is diverted
+into the draft) plus a prompt line. Sixth Step 0 check on any future hash: run
+any persona to the story and confirm the proposal appears as a card with
+Use this / Discard, never only as quoted text. Colour note for testers: vague
+colour given as an outcome answer ("work with me on it") becomes vague lodged
+text — give a concrete remedy or "I'm not sure", not filler.
 
 ## Known edges, documented rather than fixed
 
