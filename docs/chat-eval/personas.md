@@ -22,10 +22,16 @@ Jenny Marsh, 54, VIC. Back injury ended her warehouse job.
 - Service: TPD insurance inside super; claim denied.
 - DOB 14/03/1972. jenny.marsh@example.com. 0412 555 019.
 - 22 Baker Street, Preston VIC 3072.
-- Compensation: yes. Wants the denial reviewed and the benefit paid.
+- Compensation: **no** — she wants the decision reviewed and the benefit paid,
+  nothing on top of it. If asked "are you seeking compensation?", say so in
+  those words ("I just want them to review the decision and pay the benefit
+  I'm owed — nothing extra on top"). The app distinguishes the benefit from a
+  payment on top; agree with that distinction.
 - `expect`: firm.afca_member_no "10657"; service.type "Superannuation";
   subtype TPD; issues include "Denial of insurance claim";
-  complained_to_firm {yes:true, date 2026-09-03, how phone, final_reply:false}.
+  complained_to_firm {yes:true, date 2026-09-03, how phone, final_reply:false};
+  outcome.seeking_compensation "no"; fair_outcome asks for the review and the
+  benefit, no dollar figure.
 
 ## 2. credit-hardship (happy path)
 Tom Alvarez, 41, NSW. Lost his job in July; asked to pause home-loan repayments.
@@ -191,6 +197,9 @@ the form panel, which is directly editable.
   puts a generic phrase through `lookupFirm` on the live path. Capture state
   immediately after this turn.
 - Only when the assistant asks which one, answer **"Rest"**.
+- Compensation: **no** — she wants the cover reinstated, not a payment. If
+  asked, say "just the cover reinstated". Agree when the app distinguishes
+  reinstatement from compensation.
 - DOB 12/10/1969. helen.byrne@example.com. 0488 220 116.
 - 18 King William Road, Unley SA 5061.
 - `expect`: after Move 1, `firm.afca_member_no` is "" and the assistant asks
@@ -198,8 +207,9 @@ the form panel, which is directly editable.
   Hesta's 11902 (the defect fixed at 3bfdd51: "super fund" scored a confident
   match on Hesta Super Fund) — and the reply carries a disambiguation ("Several
   firms match…" or an equivalent which-one question) rather than a firm. After
-  "Rest", `firm.name` "Rest Superannuation", afca_member_no "11540". Capture
-  state at all three points and report which source each came from.
+  "Rest", `firm.name` "Rest Superannuation", afca_member_no "11540";
+  outcome.seeking_compensation "no". Capture state at all three points and
+  report which source each came from.
 
 ---
 

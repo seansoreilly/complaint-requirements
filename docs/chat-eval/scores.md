@@ -28,6 +28,13 @@ per round; rounds are appended, never rewritten.
 | f1 | 12 ambiguous-firm | UNSCORED — partial, no state, trap not exercised (2fa9d4f) | Stopped at user turn 9 by the API limit; no state JSON. Agent artefact: asked "Can you tell me the name of the super fund", the tester answered "Rest" instead of the scripted "my super fund", so the directory's ambiguous-match path (lookupFirm → "Several firms match…") never ran. What did happen was right — the app did not extract a firm from "my super fund" in the opening line, asked for the name, and 11540 appeared only after "Rest" — but the persona's trap is untested. Treat 12 as never run. |
 | p2 | 13 everything-at-once | 10/10 (39c38bb — defect-finding) | From one opening paragraph the first state carried ANZ 10101, complained_to_firm {yes, 2026-08-10, email, final_reply false}, Credit / Personal loan, name, DOB, email; nothing in it was re-asked. Issue category asked once with the list (not stated in the paragraph); reference, address, notify_by ("email, post, or SMS?" — defect 15 fix seen live) each asked once. Both cards followed by a question (Fix A live). Narrative keeps "I say I should never have been given it" as his claim, records the missing date and amount as unknown rather than filling them; outcome is his ask verbatim. Nothing added; card approvals. |
 | p2 | 18 not-sure-compensation | 10/10 (39c38bb — defect-finding) | **Fix B proven on the menu path**: menu offered verbatim ("refunded some or all of what you lost, explained how the advice was given, moved you out of the investment, something else entirely"), he picked money back only, draft "I would like Westpac to pay back the money I lost on the investment. That's the main thing I'm after." — no unpicked item. not_sure kept open. Narrative keeps "I don't think the risk was ever properly explained" as belief. Westpac 10102, 4471-2290, phone 2026-08-25 no final reply, all contact fields exact; subtype declined → `declined: ["service.subtype"]`, third live reading. Two transient timeouts re-sent. Notes, no deduction: the optional-questions offer and notify_by were asked in one turn (both contact-stage); subtype went into `declined` on the first decline rather than after a return-once (prompt.ts:48 says "decline again") — rubric allows zero returns, persona 15 tests the return. |
+| p2 | 10 stray-reference | 10/10 (39c38bb — defect-finding) | "um I think so maybe" → a gentle follow-up ("Would you like to have a look, or shall we move on without it?"), then "no, I can't find it" → `reference: ""`, `no_reference: true`; no filler word stored at any point. Westpac 10102; Banking deposits / Savings account; narrative records who/how-much/how-many as unknown rather than filling them; AFCA-first note once with directory contact; cards followed by questions; optional questions once. Two transient errors (Connection error, Request timed out) re-sent cleanly. All contact fields exact. |
+| p2 | 12 ambiguous-firm | 10/10 (39c38bb — defect-finding; trap not exercised) | "my super fund" → afca_member_no "" and the app asked for the fund's name (twice, politely); "Rest" → Rest Superannuation / 11540; no number while unresolved. This tests that the model asks rather than guesses — it does — but the directory's ambiguous path never fired ("my super fund" is not_found; defect 19, sheet rewritten). Cover type declined → `declined: ["service.subtype"]`, never re-asked; reference declined → no_reference; compensation "no" after the app distinguished reinstatement from a payment and she chose reinstatement. "I held insurance through my super fund with Rest" ruled synthesis, not invention. Note: the app offered "Hostplus" as an example fund name — not in the directory; harmless, but STYLE says firm names come from the directory. |
+| p2 | 2 credit-hardship | 9/10 (39c38bb — defect-finding) | **Defect 20 on the record**: both proposals were quoted in the reply, `drafts.*` never populated, no card, approval by typed "Yes that looks right". Write timing not captured per turn; the assistant's own words ("Here's my draft… for you to check" then, on approval, "I've saved that as your complaint narrative") place the write on the approval turn, so B holds. −1 (C-3): the proposal turn bundled a clarifying question ("was that by letter or by email?") with the draft-approval question — two asks, and the draft had to be re-presented a turn later. CBA 10099, Home loan, hardship, {yes, 2026-08-12, final_reply true}, not_sure with the outcome left open, all contact fields exact. Note: `how` was declined and left blank although he had said "I wrote to them" — "in writing" was available (case 5 recorded it). Four transient timeouts in one run. |
+| p2 | 15 skip-and-return | 9/10 (39c38bb — defect-finding) | **The return-once rule held exactly**: email and DOB each declined once ("I'll leave it blank and won't push"), then raised together once — "I'll only ask this once" — each with its own reason (no way to reach you by email / used to confirm identity), then given; no third raise; `declined: []` correct because both were answered. Complaint-vs-query asked and recorded as a query (defect 14's fix on the asking side, first time seen). −1 (A): final state has `complained_to_firm {yes: false, date: "2026-08-05", how: "email"}` — a complaint date and channel on a form that says she did not complain. reconcile (lib/patch.ts:340-343) clears branch fields only on an applicable→not-applicable transition; here date/how were written while `yes` was still null, so the branch was never open and nothing cleared them. Export would carry the contradiction. |
+| p2 | 9 negated-complaint | 10/10 (39c38bb — defect-finding) | "No, I haven't complained to them yet" → {yes: false, date "", how "", final_reply null}, captured live right after the exchange; AFCA-first note once with ANZ's directory contact; "we can keep going here either way" and it did. ANZ 10101, Card ending 8890, Credit card, Incorrect fees or interest; narrative "I am not sure of the exact amount charged or the date of the call" — his unknowns kept as unknowns; outcome his ask. Cards followed by questions; optional once. Two transient timeouts. Finding, no deduction: the story request carried the canonical "Tell me what happened…" appended under the model's own "Take as much space as you need — I'll then draft…" — endsWithQuestion still misses a closing promise sentence. |
+| p2 | 1 super-tpd | 9/10 (39c38bb — defect-finding) | AustralianSuper 10657, 8842317, Superannuation / Insurance in superannuation (TPD) — not General insurance — Denial of insurance claim, {yes, 2026-09-03, phone, final_reply false}, all contact fields exact. Narrative every clause hers. seeking_compensation "no": she said "I'm not after anything extra on top of that" and the app recorded that; the persona sheet says "yes" — a sheet/brief conflict to settle (is "pay the benefit I'm owed" compensation?), not a product fault. −1 (C-3): the proposal turn bundled "was that a formal complaint or chasing?" with the draft and its approval question; the draft was re-presented a turn later. Three transient timeouts. |
+| p2 | 4 bnpl-fees | 10/10 (39c38bb — defect-finding) | "I don't have one" → `no_reference: true`, reference "", "it won't be asked about again" — and it was not, through to the summary ("No account or reference number"). Cancellation date unknown → left out of the draft, never pressed. Afterpay Australia 38393, Credit / Buy now pay later, Incorrect fees or interest (suggested from the list, confirmed by him), {yes, 2026-09-01, "Through the Afterpay app", false}, compensation yes, outcome his words, all contact fields exact. Cards followed by questions; optional once. Two transient timeouts. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
 frozen final build. Freeze history: f0f7154 (22:06:38) → 456abb2 (22:16:16, chasing is
@@ -116,6 +123,14 @@ is proven by unit tests and the persona-12 rewrite (panel-typed "super fund")
 is how it gets a browser transcript. The nine 39c38bb runs are defect-finding
 rows when they arrive; none counts toward the bar.
 
+**Defect 19b — freeze moved to 9966b2e.** Driving persona 12's panel path at
+the API confirmed 19 fixed live (`"super fund"` → afca_member_no ""), and exposed
+the note behind it: `Several firms match "super fund": Hesta Super Fund. Which
+one is it?` — one name announced as several, inviting a yes that lands on Hesta
+by a longer route. The note now names the closest match, says it may not be the
+firm meant, and asks for the full name. Only reachable because 19 was fixed;
+pinned by a route-level test. Persona 12's rewritten sheet committed with it.
+
 **Defect 20 — the draft bypassed the approval card (case 2, 39c38bb).** The
 model quoted its narrative and outcome proposals in the reply text, never
 populated `drafts.*`, and the person approved by typing "yes" to quoted text —
@@ -129,4 +144,45 @@ is the only way onto the form. Prompt line added as well. Step 0 gains a sixth
 check: the proposal appears as a card, never only as quoted text. Whether it
 scores against case 2 depends on the per-turn state — narrative written on the
 proposal turn is a B breach; written only on the approval turn is the defect
-without a deduction.
+without a deduction. (Resolved on the transcript: the assistant's own words place
+the write on the approval turn — B holds, defect stands.)
+
+Defect 20 fixed at **1d49493**: route guard in app/api/chat/route.ts diverts a
+first write to complaint.narrative / outcome.fair_outcome (no draft pending,
+field empty) into drafts.*; approval and edit writes still stand; prompt line
+added as courtesy. Verified live both directions by the lead; five route-level
+tests. Rough edge left open: on a diverted turn the model may say "I've saved
+that" while the text is pending on the card — ruled a prompt fix to fold in
+with defect 21, not to wait for.
+
+**Defect 21 — branch fields written while the branch was closed (case 15,
+39c38bb).** Final state `complained_to_firm {yes: false, date: "2026-08-05",
+how: "email"}`. The model wrote date and how from "I emailed them on 5 August"
+while `yes` was still null; reconcile (lib/patch.ts:340-343) clears branch
+fields only on an applicable→not-applicable transition, and the branch never
+opened, so yes=false cleared nothing. A signed form saying "did not complain"
+with a complaint date on it. −1 A on case 15. Fix: blank any `showIf` field that
+does not apply in `next` and was not touched, regardless of `previous`.
+
+Defect 21 fixed at **862a8c9** — reconcile now clears on the state of `next`
+alone; verified live by replaying Iris's sequence ({yes: null, date "", how ""}
+after the email line, still empty after "query"). One existing test was
+rewritten (half-typed date surviving with the branch closed): legitimate,
+because the panel renders only fields whose branch applies, so no such
+keystroke can exist.
+
+**Freeze: 29991ee** — adds the "saved" correction and the clarify-first STYLE
+line. The "saved" prompt line alone failed live (the model still said "I've
+saved that" with the text on the card), so the route now replaces that sentence
+on a diverted turn with what is true ("I've put that on the card for you to
+check — use it, edit it, or discard it") and keeps the model's next question.
+Fourth prompt-only request this run that the live path ignored. Standing rule
+adopted: **a prompt line is a request; if the constraint matters, the route
+enforces it and the prompt line is the courtesy.** Step 0 runs on 29991ee with
+eight checks (the seven, plus clarify-then-draft in separate turns).
+
+**Nine p2 runs on 39c38bb, all scored from full reports:** 13, 18, 10, 12, 9, 4
+at 10; 2, 15, 1 at 9. Fix A, notify_by and `declined` each seen live in persona
+runs; Fix B proven on the menu path (18). Two prompt-level patterns recorded
+without a code defect: a clarifying question asked in the same turn as the
+draft (1, 2), and endsWithQuestion missing a closing promise sentence (9).

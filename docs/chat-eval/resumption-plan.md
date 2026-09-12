@@ -220,6 +220,41 @@ Use this / Discard, never only as quoted text. Colour note for testers: vague
 colour given as an outcome answer ("work with me on it") becomes vague lodged
 text — give a concrete remedy or "I'm not sure", not filler.
 
+**Then defect 21** (case 15 on 39c38bb): date and how written while
+`complained_to_firm.yes` was still null; reconcile clears branch fields only on
+an open→closed transition, so a later "no" left a complaint date on a form that
+says no complaint. Fix in `reconcile`: blank any `showIf` field that does not
+apply in `next` and was not touched, regardless of `previous`. Seventh Step 0
+check on any future hash: say "I emailed them on 5 August 2026" before being
+asked whether you complained, then answer that it was a query — confirm
+`complained_to_firm.date` and `how` are empty.
+
+**Freeze history in phase 2:** 39c38bb (nine p2 runs) → 3bfdd51 (defect 19) →
+9966b2e (19b, the single-candidate note) → 1d49493 (defect 20, draft hold in
+code) → 862a8c9 (defect 21, shut branch holds nothing) → **29991ee** (the
+"saved" sentence corrected by the route on a diverted turn, plus the
+clarify-then-draft STYLE line). Step 0 runs once on 29991ee with eight checks:
+the seven, plus a story with a gap that invites a clarification (Iris's "I
+emailed them on 5 August" line) — the question must come in its own turn and
+the draft in a later one.
+
+**Standing rule (adopted after the fourth prompt-only request the live path
+ignored — date, chasing, `declined`, "saved"):** a prompt line is a request; if
+the constraint matters, the route enforces it and the prompt line is the
+courtesy. When a fix is proposed as "one prompt line", ask what the route does
+if the model ignores it.
+
+**A reusable idea from defect 19:** when a code guard is only reachable through
+a state the model never produces (it asks rather than guesses), reach it through
+the form panel — the panel is directly editable and the route resolves the
+client-sent state every turn. Any future guard the model routes around can be
+tested the same way, without asking the model to misbehave.
+
+**The nine p2 runs on 39c38bb** (13, 18, 10, 12, 9, 4 at 10; 2, 15, 1 at 9) are
+all on the ledger as defect-finding rows. After them, only the two clean re-runs
+(5 and 20) and persona 12 on its rewritten sheet remain before the sweep clock
+can start on the next frozen hash.
+
 ## Known edges, documented rather than fixed
 
 - A turn can fail with "The assistant is unavailable: Request timed out." while
@@ -249,24 +284,24 @@ text — give a concrete remedy or "I'm not sure", not filler.
 
 | Persona | Runs | Last score | Status |
 |---|---|---|---|
-| 1 super-tpd | 0 | — | never run |
-| 2 credit-hardship | 1 | unscored | pre-freeze; clean transcript, no state capture |
+| 1 super-tpd | 1 | 9 | p2 on 39c38bb; clarify-then-draft bundled; sheet's "compensation: yes" vs her "nothing extra" to settle |
+| 2 credit-hardship | 2 | 9 | p2 on 39c38bb; found defect 20 (no draft card); clarify-then-draft bundled |
 | 3 unauth-transactions | 1 | 10 | pre-freeze |
-| 4 bnpl-fees | 0 | — | never run |
+| 4 bnpl-fees | 1 | 10 | p2 on 39c38bb; no_reference path clean |
 | 5 default-listing | 1 | 8 | pre-freeze; found defects 15, 16, card dead-end |
 | 6 general-insurance | 1 | 10 | pre-freeze; found defect 15 |
 | 7 firm-initiated-contact | 3 | 10 | pre-freeze |
 | 8 impossible-date | 3 | 10 | pre-freeze; sheet rewritten |
-| 9 negated-complaint | 1 | 10 | pre-freeze; negation → false, note once, kept going |
-| 10 stray-reference | 0 | — | never run |
+| 9 negated-complaint | 2 | 10 | p2 on 39c38bb; negation → false, note once, kept going |
+| 10 stray-reference | 1 | 10 | p2 on 39c38bb; no stray word stored |
 | 11 unknown-firm | 2 | 10 | pre-freeze |
-| 12 ambiguous-firm | 1 partial | unscored | trap skipped by tester; treat as never run |
-| 13 everything-at-once | 0 | — | never run |
+| 12 ambiguous-firm | 2 | 10 | p2 on 39c38bb; model asks rather than guesses; directory trap never fired (defect 19) — run again on the rewritten sheet |
+| 13 everything-at-once | 1 | 10 | p2 on 39c38bb; six fields from one paragraph, nothing re-asked |
 | 14 terse | 1 | 10 | pre-freeze; invention trigger not exercised |
-| 15 skip-and-return | 0 scored | — | never scored; tests `declined` |
+| 15 skip-and-return | 1 | 9 | p2 on 39c38bb; return-once with reasons held; found defect 21 (branch fields written while closed) |
 | 16 changes-mind | 1 | 10 | pre-freeze |
 | 17 edits-draft | 1 | 9 | pre-freeze; found "with reasons" |
-| 18 not-sure-compensation | 1 | 9 | pre-freeze; found menu-item drafting |
+| 18 not-sure-compensation | 2 | 10 | p2 on 39c38bb; Fix B proven on the menu path |
 | 19 distressed | 1 | 10 | pre-freeze |
 | 20 scam-complaint | 2 | 9 | r3 unscored, r4 9; found card dead-end |
 
