@@ -488,9 +488,10 @@ Final state of phase 2:
   model is trusted with state.
 - **Rows:** 39 rows in the table above across all 20 personas — 36 scored and
   3 UNSCORED (20 r3, 2 f1, 12 f1). Eleven personas have a single row (1, 3, 4,
-  6, 10, 13, 14, 15, 16, 17, 19), all on superseded builds; the round-2 rows
-  (7, 8, 11, 19) were scored from the lead's evidence summaries before the
-  full-transcript rule and say so in their reason column.
+  6, 10, 13, 14, 15, 16, 17, 19), all on superseded builds. The round-2 rows
+  predate the full-transcript rule: 11 and 19 say they were scored from the
+  lead's evidence summary; 7 records that the person's input turns were not
+  supplied, 8 that the outcome draft's approval was not evidenced.
 
 Resume from `resumption-plan.md`: Step 0 on the current hash, the batch of
 5/12/20, then the two sweeps, monitor log read after each batch. Post-sweep fix list: the promised-card sentence when a draft patch is
