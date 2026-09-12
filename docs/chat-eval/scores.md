@@ -18,9 +18,57 @@ per round; rounds are appended, never rewritten.
 | 4 | 11 unknown-firm | 10/10 | Not-in-directory note said exactly once (turn 1) through to export; firm_note_said "bendigo bank" carried the guard instead of the history window; afca_member_no "" with nothing invented anywhere. Asked for the quoted rate and opening date and told "I don't know", the app left both out of the draft. Every draft sentence traces to the story or outcome turn; both approved via the card. No repeats, no fallback. Started ~22:03, before the f0f7154 freeze — defect-finding, not a clearance. |
 | 4 | 7 firm-initiated-contact (strict) | 10/10 (pre-freeze, provisional) | Alan volunteered nothing; the app asked the standalone question with the distinction built in ("Their call to you about the arrears doesn't count as a complaint from you"), recorded yes=false; narrative drafted earlier stayed neutral; outcome states the compensation uncertainty as uncertainty beside not_sure. No fallback. Story/approval turns not supplied to the scorer — B rests on the tester's trace. Started ~22:04, pre-freeze. |
 | 4 | 8 impossible-date (+negation, +stray-reference) | 10/10 (pre-freeze, provisional) | "31 February" bounced with one question; "28 February 2026" accepted outright with no future claim (todayFact confirmed live); stored 2026-02-28; reference "" / no_reference true; outcome leaves compensation open; "Delay in rollover or transfer" used. Trap B not exercised: the app inferred yes=true from "every time I call or email" and never asked, so the scripted negation had nothing to attach to — persona-sheet finding, plus a note that chasing calls were read as a complaint (how "Phone and email"). Approval turns not supplied. Pre-freeze. |
+| 4 | 18 not-sure-compensation | 9/10 (pre-456abb2) | seeking_compensation not_sure; "I just want it fixed" coached with a menu that did not force a pick; the draft says out loud that the compensation question was left open; no dollar figure or invented grievance; unknown adviser/date left out. −1 (B): the outcome draft asks for a review of the advice and "a proper response from Westpac" — both were menu items; his story turn (lead-confirmed) shows he never asked for either, so two of the app's suggested remedies were written into his approved outcome. Ran on f0f7154, before the chasing fix — defect-finding. |
+| 4 | 6 general-insurance | 10/10 (pre-456abb2, provisional) | Free-text subtype path works: General insurance / "Home insurance" / ["Denial of claim"] with no Super or Credit list surfacing; Allianz 10476; every field matches; unknown storm date left out of the narrative; both drafts approved by typed message and traced by the tester. Finding, no deduction: notify_by "email" and lodging_for "self" show ticked without ever being asked — schema defaults count as answered (lib/next.ts isAnswered) so the person is never asked how to be contacted. Ran on f0f7154 — defect-finding. |
+| 4 | 20 scam-complaint | 9/10 (no build hash — defect-finding) | Scope stated once, choice respected, all fields exact, narrative every clause his (round-3 motive gone; "It was a scam" his words); "Around 15 August 2026" from "around the 15th of August" is the same year resolution code applies to every dated field — ruled not an invention. −1 (C-1): two dead-ends — after each "Use this" card approval the assistant said "Added to your complaint…" / "Noted as the outcome you're seeking." and asked nothing; the person had to volunteer the next answer. Card approval is client-side (app/page.tsx:125-150) and never reaches ensureAsk. |
+| 4 | 17 edits-draft | 9/10 (no build hash — defect-finding) | The revision path works: change request → revised card → typed approval → complaint.narrative written, drafts cleared; the app noted honestly that the draft already said seven months and had nothing emotional to remove, then tightened wording. Rest 11540 from the directory (it explicitly declined to trust her stated number); all fields exact; narrative fully traceable. −1 (B): outcome draft adds "with reasons" — a request for reasons she did not make ("decided properly and back payments" was her ask). Same DRAFTING family as cases 18 and 20. |
+| 4 | 5 default-listing | 8/10 (no build hash — pre-2fa9d4f, defect-finding) | Every expected field exact (Latitude 12207, 552-118-904, in writing 2026-07-20, final_reply true, "Default listing on credit file", compensation yes, contact exact); both drafts word-for-word hers, approved via the card. The required-field return-once rule worked as designed on the second ask ("I just need to ask once more because the form does need it"; "I won't ask again"). −1 (C-2): a THIRD ask after the closing summary she had confirmed — "Which of these fits best? Home loan, Personal loan, …" — a forced list with no opt-out, appended by ensureAsk from lib/questions.ts:29 over the model's promise; she had to push back (defect 16, fixed at 2fa9d4f). −1 (C-1): each "Use this" click was answered only by the canned "Added to your complaint…" / "Noted as the outcome…" with no question (app/page.tsx:125-150). Subtype "" is an honest blank, not a field error. Tester improvised the decline; it found a real defect. |
 
 Pass bar (adopted round 4): a case passes only on two consecutive runs at ≥9 on the
-frozen final build **f0f7154** (2026-09-12 22:06:38 +1000; 1776fb3 is docs-only and
-names the same build). Runs started before that commit count as defect-finding, not as
-clearances. If code changes, every count restarts. Strict tally after round 4: passed 0,
-cleared once 0.
+frozen final build. Freeze history: f0f7154 (22:06:38) → 456abb2 (22:16:16, chasing is
+not complaining) → 399b680 (22:29, declined required fields believed; notify_by no
+longer pre-answered — VOID: the declined fix did not work live, the model never set the
+field) → **2fa9d4f** (`declined` given a .describe(); verified live). Runs started before
+the current freeze count as defect-finding, not as clearances. If code changes, every count
+restarts. Probes driven at the API by the lead are not evidence; only a browser
+transcript against the frozen hash is.
+
+## Phase 1 closed — 12 September 2026, 22:40 AEST
+
+**Stopped by the API spend limit, not by a quality judgement.** The Anthropic key
+returned `400 invalid_request_error — You have reached your specified API usage
+limits. You will regain access on 2026-10-01 at 00:00 UTC`, confirmed in the
+browser and by curl. No live-brain conversation is possible until then. The seven
+testers in flight (1, 2, 4, 9, 10, 12, 13) were stopped; nothing from the mock
+brain was, or may be, entered here.
+
+Final state of this phase:
+- 18 rows across 12 of the 20 personas.
+- **Strict tally: passed 0, cleared once 0.** Every row is a defect-finding run on
+  a build that was later changed. This is a statement about the build history, not
+  about the app: the last five rows scored 9, 10, 9, 9, 8, and every deduction on
+  them traces to a defect that has since been fixed in code — but none of those
+  fixes has been seen in a browser, so none counts.
+- Frozen build at stop: **2d7cc67** (22:44). It carries two fixes that are
+  **NOT VERIFIED LIVE** — defect 17, the card-approval dead-end (app/page.tsx),
+  and defect 18, the "even when reasonable" DRAFTING line (lib/prompt.ts) — plus a
+  hardening of `declined` (reconcile now unions the list instead of letting a
+  partial patch wipe earlier refusals). Three earlier fixes in this run passed
+  tests and did nothing in production; treat these the same until a browser
+  transcript shows them working.
+- On defect 16 (declined required fields): a declined field stays counted as
+  missing, and that does not block the person — ReviewPanel says "N answers are
+  still missing. You can export anyway and finish later" and the export works.
+  Blank is an honest warning, not a wall. The chat header will read "1 answer
+  left", never "All answers in ✓", for such a run.
+- **Read the tally as a stopped clock, not a verdict.** Nobody reached the
+  two-sweep phase, so the app was never measured against the bar. What phase 1
+  did was find defects — every one on `defects.md` — and fix them in code, three
+  of them only because someone checked the live path after the tests went green.
+- Never run: 1, 2, 4, 9, 10, 12, 13, 15. The `declined` path has never been scored
+  from a browser on a build where it works; it is tested by 15 (a required field
+  declined once, returned to with a reason, then given) and by the rescripted 5 (a
+  required field declined twice and left blank).
+- Every defect found is fixed in code; see `defects.md` for the write-ups.
+
+Resume from `resumption-plan.md`.

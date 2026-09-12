@@ -34,6 +34,12 @@ export default function Page() {
 
   const stages: StageStatus[] = useMemo(() => stageProgress(state), [state]);
   const missing = useMemo(() => missingFor(state), [state]);
+  // Of what is missing, how much did they decline? Counted here rather than in
+  // ChatPane so the header and the review agree on the same arithmetic.
+  const declinedCount = useMemo(
+    () => missing.filter((m) => state.declined.includes(m.path)).length,
+    [missing, state.declined],
+  );
   /** Where the conversation is up to: the stage of the field being asked about. */
   const activeStageId = useMemo(() => {
     if (focusPath) return missing.find((m) => m.path === focusPath)?.stageId ?? null;
@@ -247,6 +253,7 @@ export default function Page() {
             pending={pending}
             notes={notes}
             missingCount={missing.length}
+            declinedCount={declinedCount}
             focusField={focusField}
             onClearFocus={() => setFocusPath(null)}
             onSend={send}

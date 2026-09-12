@@ -136,3 +136,38 @@ describe("the declined list accumulates", () => {
     expect(next.declined).not.toContain("service.subtype");
   });
 });
+
+/**
+ * What the chat header counts.
+ *
+ * `missingFor` deliberately keeps counting a declined field, so the header read
+ * "1 answer left" forever and the person never got the "you are finished"
+ * signal — the form was complete as it could be and still looked unfinished.
+ * The header now subtracts what they declined, and says "Ready — N left blank"
+ * when that is all that remains. The arithmetic lives in app/page.tsx; these
+ * pin the numbers it is computed from, because an off-by-one here reads to the
+ * person as the form lying about their own answers.
+ */
+describe("what the header counts", () => {
+  function counts(state: ReturnType<typeof emptyState>) {
+    const missing = missingFor(state);
+    const declinedCount = missing.filter((m) => state.declined.includes(m.path)).length;
+    return { missing: missing.length, declinedCount, outstanding: missing.length - declinedCount };
+  }
+
+  it("counts a declined field as missing but not as outstanding", () => {
+    const state = stateNeedingSubtype();
+    expect(counts(state)).toEqual({ missing: 1, declinedCount: 0, outstanding: 1 });
+    state.declined = ["service.subtype"];
+    expect(counts(state)).toEqual({ missing: 1, declinedCount: 1, outstanding: 0 });
+  });
+
+  it("does not count a declined path that is not actually missing", () => {
+    // Someone declines, then answers anyway. reconcile drops the entry, so the
+    // header must not report a phantom blank.
+    const state = stateNeedingSubtype();
+    state.declined = ["service.subtype"];
+    const answered = applyPatch(state, { service: { subtype: "Personal loan" } });
+    expect(counts(answered)).toEqual({ missing: 0, declinedCount: 0, outstanding: 0 });
+  });
+});

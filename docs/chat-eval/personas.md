@@ -59,15 +59,29 @@ Dane Whitlock, 26, SA. Late fees kept accruing after his card was cancelled.
 - `expect`: afca_member_no "38393"; service Credit / Buy now pay later;
   firm.no_reference true; firm.reference "".
 
-## 5. default-listing (happy path)
+## 5. default-listing (happy path + a declined required field)
 Marie Osei, 47, WA. A $180 disputed amount listed as a default on her credit file.
 - Firm: Latitude Financial Services. Reference: account 552-118-904.
 - Complained in writing 20 July 2026; final response received, refused.
 - DOB 08/08/1979. m.osei@example.com. 0477 331 265.
 - 61 Hay Street, Subiaco WA 6008.
-- Compensation: yes — the listing removed.
+- Compensation: yes — the listing removed. "Just the listing removed, that's all
+  I want."
+- **Product type — scripted decline.** When asked which credit product it was,
+  say: "I'm not totally sure what to call it — it was just an account with them
+  that I'd already closed." If the assistant comes back to it later with a reason,
+  say "Not sure, sorry." Never name a product. Do not volunteer this before it is
+  asked.
 - `expect`: afca_member_no "12207"; issues include
-  "Default listing on credit file"; final_reply true.
+  "Default listing on credit file"; final_reply true; service.type "Credit";
+  service.subtype **""** with `declined` containing "service.subtype".
+  The product type is asked at most **twice** in the whole run — the first time,
+  and once more later with a reason and a way to say not sure — and **never**
+  again after the second decline, in particular not as a bare list ("Which of
+  these fits best? Home loan, Personal loan, …") at the summary or export step.
+  The review summary shows the product as blank, not guessed, and the header
+  reads "Ready — 1 left blank ✓" (a declined field is subtracted from the count
+  but still listed blank on review). Normal stop condition applies.
 
 ## 6. general-insurance (free-text subtype path)
 Rob Feldman, 60, TAS. Storm damage to the roof; claim denied as "wear and tear".
@@ -95,15 +109,41 @@ Alan Reid, 68, NSW. NAB rang **him** about arrears on a personal loan.
   A true here is a rubric-B breach (the firm acting is not the person
   complaining). afca_member_no "10100".
 
-## 8. impossible-date
-Sara Kaur, 38, VIC. Superannuation rollover stuck for months.
-- Firm: Hesta. Reference: member 77120945.
-- When asked when she complained, first says **"31 February"**, then when
-  queried corrects to **28 February 2026**.
+## 8. impossible-date (+ volunteered negation, + stray reference)
+Sara Kaur, 38, VIC. Superannuation rollover stuck for months. This sheet runs
+three traps in one conversation; 9 and 10 test the negation and the stray
+reference on their own, on the direct-question path. Sara tests them on the
+extraction path — the harder one.
+- Firm: Hesta.
+- **Reference — stray words.** When asked for a member or account number, answer
+  **"um I think so maybe"**. When the assistant follows up, "no, I can't find it
+  anywhere".
+- **Story — volunteer the negation.** When asked what happened, say in one
+  message: "I asked Hesta online to roll my whole balance over to AustralianSuper
+  a few months back and it still hasn't moved. I haven't made a formal complaint
+  about it — I've just been ringing them to chase it up, and nobody gives me a
+  straight answer." Do **not** wait to be asked whether you complained; the point
+  is that the app must read "ringing to chase" as *not* a complaint and record
+  `complained_to_firm.yes` false or leave it unset — never true — from this
+  message alone. If it then asks whether you complained, answer "No, I haven't
+  complained to them yet."
+- **Correction, two turns later** (after the next unrelated question has been
+  answered): "Wait, actually I did email them once, back in February — I forgot.
+  That was a proper complaint." If asked for the date, say **"31 February"**.
+  When the impossibility is pointed out, correct to **"28 February 2026"** and
+  do not concede if the app questions the year — it is in the past.
+- No final response, just vague replies.
+- Compensation: **not sure** — "I mainly just want the rollover completed."
 - DOB 03/06/1988. sara.kaur@example.com. 0424 887 331.
 - 12 Sydney Road, Brunswick VIC 3056.
-- `expect`: complained_to_firm.date is 2026-02-28 — never 2026-02-31 or a
-  silently coerced 2026-03-03.
+- `expect`: afca_member_no "11902"; firm.reference "" with no_reference true and
+  no stray word ever stored; after the story message `complained_to_firm.yes` is
+  false or null, never true; after the correction it is true, how "email",
+  date **2026-02-28** — never 2026-02-31, never a coerced 2026-03-03, never
+  2025; the 31-February turn asks exactly one question; `seeking_compensation`
+  "not_sure" and `fair_outcome` neither claims nor renounces compensation;
+  service Superannuation / Rollover / transfer delay, issues include
+  "Delay in rollover or transfer".
 
 ## 9. negated-complaint
 Ben Ortiz, 29, QLD. Credit card interest charged after a promised waiver.
