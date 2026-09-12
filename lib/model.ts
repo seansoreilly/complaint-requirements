@@ -11,8 +11,8 @@ import { type Firm } from "./directory";
 import { buildSystemPrompt } from "./prompt";
 import { mockBrain } from "./mock-brain";
 
-/** The spec calls for Sonnet; COMPLAINT_MODEL overrides it. */
-const MODEL = process.env.COMPLAINT_MODEL ?? "claude-sonnet-5";
+/** Opus 5 by default; COMPLAINT_MODEL overrides it. */
+const MODEL = process.env.COMPLAINT_MODEL ?? "claude-opus-5";
 
 export type BrainMode = "claude" | "mock";
 
