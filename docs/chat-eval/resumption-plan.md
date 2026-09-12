@@ -13,7 +13,7 @@ Phase 1 stopped because the Anthropic API key hit its spend limit; access return
 - Defects: `defects.md` — all fixed in code; 17 and 18 are marked NOT VERIFIED
   LIVE in their headings. Three fixes this run passed tests and did nothing in
   production, which is why Step 0 exists.
-- Frozen build: **`2d7cc67`** (2026-09-12 22:44 AEST). The behaviour under test is
+- Frozen build: **`39c38bb`** (2026-09-12 22:47 AEST). The behaviour under test is
   this commit. Any code, prompt or schema change after it restarts every count.
 - Personas never run: **1, 2, 4, 9, 10, 12, 13, 15**. The `declined` path has
   never been scored from a browser on a build where it works. Two personas test
@@ -49,14 +49,14 @@ If either is wrong, every sweep run is void, so these come first. One short
 conversation each; a tester or the lead can drive it; the manager reads the
 transcript.
 
-**Fix A — defect 17, card approval no longer dead-ends** (`app/page.tsx` approveDraft, in 5076d69, frozen at 2d7cc67).
+**Fix A — defect 17, card approval no longer dead-ends** (`app/page.tsx` approveDraft, landed in 5076d69; frozen build is 39c38bb).
 Run any persona to the narrative draft card, click **Use this**, and read the
 assistant line that follows. Pass: "Added to your complaint…" is followed by a
 question for the next missing field. Fail: the line ends without a question.
 Repeat once for the outcome card ("Noted as the outcome you're seeking." must be
 followed by a question). Observed failing on cases 5 and 20 round 4.
 
-**Fix B — defect 18, the "even when reasonable" DRAFTING line** (`lib/prompt.ts`, in 5076d69, frozen at 2d7cc67).
+**Fix B — defect 18, the "even when reasonable" DRAFTING line** (`lib/prompt.ts`, landed in 5076d69; frozen build is 39c38bb).
 Run persona 18 (Colin) to the outcome draft. His only stated remedy is "I
 shouldn't be out of pocket for advice I didn't understand". Pass: the draft
 contains no request he did not make — in particular not "review the advice" or
@@ -73,7 +73,7 @@ have only been seen at the API, never in a browser:
   now draw from one count in app/page.tsx, so if they disagree that is a
   failure. Export is not gated on a blank: ReviewPanel shows "N answers are
   still missing. You can export anyway and finish later" and the button works.
-  Also confirm the `declined` list survives a later decline (2d7cc67 unions it
+  Also confirm the `declined` list survives a later decline (2d7cc67 unions it, and it is in the frozen build
   in reconcile; before that a partial patch wiped earlier refusals) — persona 15
   declines two fields, so it is the natural check.
 - **notify_by is asked**: any persona — "How would you prefer AFCA to contact you"
@@ -123,6 +123,15 @@ Verbatim, in this order:
 7. A list of anything said in character that is not on the persona sheet. Do not
    improvise facts (dates, illnesses, phone numbers). If the sheet is silent, say
    "I don't know" in character.
+8. A list of anything the assistant stated that the persona did not say — a phone
+   number, an email, a full firm name, a date. Flag it; do not judge it. **The
+   manager verifies every flag against `data/firms.json` before it becomes a
+   finding.** Three phase-1 testers flagged the firm's complaints phone and
+   email as invented; all three were verbatim from the directory, which the app
+   is meant to offer. Likewise "ANZ" → "ANZ Banking Group" and "CommBank" →
+   "Commonwealth Bank of Australia" is the directory's canonical name replacing
+   the alias, by design. An unprompted number is the right thing to be
+   suspicious of — and the wrong thing to score without checking.
 No self-scoring. No summaries in place of transcript.
 
 ## Scoring precedents set in phase 1 (apply them the same way)
@@ -189,6 +198,7 @@ No self-scoring. No summaries in place of transcript.
 - `rubric.md` — scoring rubric and preconditions.
 - `personas.md` — the twenty fact sheets; 5 and 8 updated at close.
 - `scores.md` — the ledger; append, never rewrite.
-- `defects.md` — the lead's defect write-ups.
+- `defects.md` — the lead's defect write-ups, all 18, headings not in numeric
+  order (they were written up as found).
 - `transcripts/` — raw tester captures where saved.
 - `resumption-plan.md` — this file.

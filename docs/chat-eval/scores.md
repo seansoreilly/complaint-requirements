@@ -49,7 +49,7 @@ Final state of this phase:
   about the app: the last five rows scored 9, 10, 9, 9, 8, and every deduction on
   them traces to a defect that has since been fixed in code — but none of those
   fixes has been seen in a browser, so none counts.
-- Frozen build at stop: **2d7cc67** (22:44). It carries two fixes that are
+- Frozen build at stop: **39c38bb** (22:47). It carries three fixes that are
   **NOT VERIFIED LIVE** — defect 17, the card-approval dead-end (app/page.tsx),
   and defect 18, the "even when reasonable" DRAFTING line (lib/prompt.ts) — plus a
   hardening of `declined` (reconcile now unions the list instead of letting a
