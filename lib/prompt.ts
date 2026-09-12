@@ -23,6 +23,8 @@ export interface PromptContext {
   firm: Firm | null;
   /** A field the person clicked in the side panel to steer back to. */
   focusPath?: string;
+  /** Injectable so a test can pin the date the model is told. */
+  today?: Date;
 }
 
 const STYLE = `You are Complaint Concierge, helping someone complete an AFCA complaint form by talking with them.
@@ -211,13 +213,41 @@ function describeMissing(missing: MissingField[], grouped: MissingField[]): stri
 Ask about: ${ask}`;
 }
 
+/**
+ * Today, stated plainly.
+ *
+ * Without it the model dates things from its training data. Asked to confirm
+ * "28 February 2026" it called that date "in the future" and pressed the person
+ * to change the year to 2025 — she was right, it was insistent, and a less
+ * certain person would have signed the wrong year. Code has always known the
+ * date (`coerceDate` and `isFuture` in lib/patch.ts take it); only the model
+ * was guessing.
+ */
+function todayFact(today: Date): string {
+  const iso = today.toISOString().slice(0, 10);
+  const long = today.toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Australia/Sydney",
+  });
+  return `Today's date is ${long} (${iso}).
+
+Use it for every date judgement. A bare "3 Sept" or "last month" is this year
+unless that would put it in the future. Never tell someone a date is in the
+future without checking it against today's date above, and never press them to
+change a year that is already right — they were there and you were not.`;
+}
+
 export function buildSystemPrompt(ctx: PromptContext): string {
-  const { state, firm, focusPath } = ctx;
+  const { state, firm, focusPath, today = new Date() } = ctx;
   const missing = missingFor(state);
   const grouped = groupedWithNext(state);
 
   const sections = [
     STYLE,
+    todayFact(today),
     EXTRACTION,
     DRAFTING,
     SCAMS,
