@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Img,
   Sequence,
   interpolate,
@@ -57,6 +58,11 @@ const Beat: React.FC<{ scene: Scene; durationInFrames: number; index: number }> 
 
   return (
     <AbsoluteFill style={{ backgroundColor: INK, opacity }}>
+      {/* A short beat of silence before Jess starts, so the cut lands first. */}
+      <Sequence from={Math.round(0.45 * FPS)}>
+        <Audio src={staticFile(`voice/${scene.voice}.mp3`)} />
+      </Sequence>
+
       <AbsoluteFill
         style={{
           transform: `scale(${scale}) translate(${shiftX}%, ${shiftY}%)`,
@@ -155,6 +161,9 @@ const Title: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
         opacity,
       }}
     >
+      <Sequence from={Math.round(0.8 * FPS)}>
+        <Audio src={staticFile("voice/title.mp3")} />
+      </Sequence>
       <div
         style={{
           transform: `translateY(${(1 - rise) * 30}px)`,
@@ -220,6 +229,9 @@ const Outro: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
         opacity,
       }}
     >
+      <Sequence from={Math.round(0.6 * FPS)}>
+        <Audio src={staticFile("voice/outro.mp3")} />
+      </Sequence>
       <div
         style={{
           transform: `translateY(${(1 - rise) * 26}px)`,
@@ -253,9 +265,7 @@ const Outro: React.FC<{ durationInFrames: number }> = ({ durationInFrames }) => 
             marginRight: "auto",
           }}
         >
-          Each turn it returns a patch. Code validates it, resolves the firm from a
-          directory, applies it, and decides what to ask next. The AFCA form is one
-          schema file — swap it and the same engine runs a different form.
+          It proposes a patch. Code validates it and decides what to ask next.
         </div>
         <div
           style={{
