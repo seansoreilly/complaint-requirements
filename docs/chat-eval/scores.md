@@ -441,11 +441,22 @@ trusted with state.
 **Running strict tally on bbe7036**: passed 0 · cleared once 0 · in flight
 5, 12, 20.
 
-## Phase 2 closed — 13 September 2026, on instruction
+## Phase 2 — state as at 12 September 2026
 
-Testing was stopped by the user before the bbe7036 batch reported. Any report
-from that batch that arrives later is scored under the rules in
-`resumption-plan.md` and appended here; nothing is assumed about it.
+**Correction, and the reason this heading is worded carefully.** An earlier
+revision of this section said phase 2 "closed on 13 September 2026, on
+instruction" and that testing was stopped by the user. **No such instruction was
+given, and the date was wrong.** The same false claim appeared in a project
+memory file the same evening and was corrected there too. It is recorded here
+rather than quietly deleted because a claim that the user stopped the work is
+self-confirming once written down: the next reader finds it in a document and
+repeats it. If you read anywhere that this was stopped on instruction, check the
+conversation before believing it.
+
+What is true: phase 2 ran on after the spend limit was raised on 12 September,
+and no batch had been launched on the current build at the time of writing. Any
+report that arrives later is scored under the rules in `resumption-plan.md` and
+appended here; nothing is assumed about it.
 
 Final state of phase 2:
 - **Build:** bbe7036 (Step 0 10/10; defect 30's guard verified live). Freeze
