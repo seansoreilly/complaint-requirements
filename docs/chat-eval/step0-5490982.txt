@@ -1,0 +1,201 @@
+Step 0 evidence — scripted checks
+build under test: 5490982
+app: http://localhost:3100  (mode claude, live brain)
+
+The two browser-only checks (card click, header wording) are not in this
+file — a card click never reaches the API. They were driven by hand and are
+quoted in the message to the test manager.
+
+======================================================================
+
+--- step0_a  (declined+notify) ---
+timeouts: 0   failures: 0
+
+[1] SAID: My complaint is about AustralianSuper. They cancelled my insurance cover without telling me. I don't have my member number handy.
+    REPLY: Thanks — I've noted the complaint is about AustralianSuper, and that you don't have your member number to hand, so I'll leave that blank.
+
+That sounds like it's about insurance held inside your super, and I'll come back to the detail of what happened shortly.
+
+First, a quick administrative one: do you already have another complaint open with AFCA?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[2] SAID: No, this is the first time. And yes, I agree to both consents.
+    REPLY: Thanks — noted: no other AFCA complaint open, and you've agreed to both the authority to act and the engagement charter.
+
+Now to the product. Within super, the insurance cover can be a few different things. Was the cancelled cover total and permanent disability (TPD), income protection, or death cover?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[3] SAID: I'm honestly not sure which type of cover it was.
+    REPLY: No problem at all — that's a common one to be unsure about, and I'll leave it for now and come back to it later if we need to.
+
+Let's move on to what went wrong. For super complaints, the form has a list of issues to pick from:
+
+- Denial of insurance claim
+- Delay in claim handling
+- Delay in rollover or transfer
+- Incorrect premiums or fees
+- Failure to follow instructions
+- Incorrect information provided
+- Account administration error
+- Decision of trustee
+
+Which of those feels closest to your situation? You can pick more than one.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[4] SAID: Account administration error — they just cancelled it without telling me.
+    REPLY: Thanks — I've recorded "Account administration error" as what went wrong.
+
+Now the main part: the story in your own words. Can you tell me what happened — roughly when you found out the cover had been cancelled, how you found out, and what you've done about it since?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[5] SAID: I logged in about a month ago and the cover was gone. No letter, no email. I'd had it for years.
+    REPLY: Thank you — that's clear. I've put a short draft of your complaint on the card for you to look at. It's not saved yet: you can use it as it is, edit it, or discard it.
+
+Have a read and tell me if it sounds right, or what you'd like changed.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[6] SAID: No, I haven't been in touch with them about it at all yet.
+    REPLY: Thanks — I've recorded that you haven't raised it with AustralianSuper yet.
+
+Just so you know, AFCA normally expects a firm to have had a chance to respond first, so you may want to lodge a complaint with them too — their complaints line is 1300 300 273 and their complaints email is complaints@australiansuper.example. That's entirely your call.
+
+Back to the draft that's waiting on the card — the short summary of what happened. Does it read right to you as it is, or is there something you'd like changed?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": false, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+
+--- step0_b  (declined+notify) ---
+timeouts: 0   failures: 0
+
+[1] SAID: My complaint is about AustralianSuper. They cancelled my insurance cover without telling me. I don't have my member number handy.
+    REPLY: Thanks — I've noted the complaint is about AustralianSuper, and that you don't have your member number to hand, so I'll leave that blank.
+
+That sounds like it's about insurance held inside your super, and I'll come back to the detail of what happened shortly.
+
+First, a quick administrative one: do you already have another complaint open with AFCA?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[2] SAID: No, this is the first time. And yes, I agree to both consents.
+    REPLY: Thanks — noted: no other AFCA complaint open, and you've agreed to both the authority to act and the engagement charter.
+
+Now to the product. Within super, the insurance cover can be a few different things. Was the cancelled cover total and permanent disability (TPD), income protection, or death cover?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[3] SAID: I'm honestly not sure which type of cover it was.
+    REPLY: No problem at all — that's a common one to be unsure about, and I'll leave it for now and come back to it later if we need to.
+
+Let's move on to what went wrong. For super complaints, the form has a list of issues to pick from:
+
+- Denial of insurance claim
+- Delay in claim handling
+- Delay in rollover or transfer
+- Incorrect premiums or fees
+- Failure to follow instructions
+- Incorrect information provided
+- Account administration error
+- Decision of trustee
+
+Which of those feels closest to your situation? You can pick more than one.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[4] SAID: Account administration error — they just cancelled it without telling me.
+    REPLY: Thanks — I've recorded "Account administration error" as what went wrong.
+
+Now the main part: the story in your own words. Can you tell me what happened — roughly when you found out the cover had been cancelled, how you found out, and what you've done about it since?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[5] SAID: I logged in about a month ago and the cover was gone. No letter, no email. I'd had it for years.
+    REPLY: Thank you — that's clear. I've put a short draft of your complaint on the card for you to look at. It's not saved yet: you can use it as it is, edit it, or discard it.
+
+Have a read and tell me if it sounds right, or what you'd like changed.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[6] SAID: No, I haven't been in touch with them about it at all yet.
+    REPLY: Thanks — I've recorded that you haven't raised it with AustralianSuper yet.
+
+Just so you know, AFCA normally expects a firm to have had a chance to respond first, so you may want to lodge a complaint with them too — their complaints line is 1300 300 273 and their complaints email is complaints@australiansuper.example. That's entirely your call.
+
+Back to the draft that's waiting on the card — the short summary of what happened. Does it read right to you as it is, or is there something you'd like changed?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": false, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[7] SAID: Yes, that draft reads right.
+    REPLY: Great — that's now saved as your complaint description.
+
+Next one is a quick yes or no: are there any court or tribunal proceedings on foot about this matter?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": false, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[8] SAID: I rang them on 20 August 2026 to complain. No final answer yet.
+    REPLY: Thanks for letting me know — that changes what I had, so let me correct it.
+
+I've recorded that you did complain to AustralianSuper, by phone, on 20 August 2026, and that you haven't had a final answer from them yet.
+
+Back to the quick one: are there any court or tribunal proceedings on foot about this matter?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": true, "date": "2026-08-20", "how": "phone", "final_reply": false}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[9] SAID: No court case. I'd like the cover reinstated.
+    REPLY: Thanks — no court or tribunal proceedings, and you'd like the cover reinstated. That's a clear outcome and I've got it noted.
+
+One more on the outcome before I write it up: are you also seeking compensation — for example money for any loss or costs caused by the cancellation? Yes, no, or not sure is fine.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": true, "date": "2026-08-20", "how": "phone", "final_reply": false}, "drafts": {"narrative": 214, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+
+--- step0_c  (panel-super-fund) ---
+timeouts: 0   failures: 0
+
+[1] SAID: does that help?
+    REPLY: The closest match to "super fund" in this demo's directory is Hesta Super Fund, but that may not be the firm you mean. What is its full name?
+
+I'm sorry — I think a message may have gone missing on my end, because I don't have anything new from you just now.
+
+Before we go on, there's something in the form I'd like to check with you. It currently has your service type recorded as Credit, specifically a credit card, but the firm is noted just as "super fund". Those don't sit together, so I'd rather get it right than guess.
+
+Can you tell me the name of the financial firm your complaint is about?
+    STATE: {"declined": [], "service": {"type": "Credit", "subtype": "Credit card"}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "super fund", "afca_member_no": ""}}
+
+
+--- step0_d  (date-before-branch) ---
+timeouts: 0   failures: 0
+
+[1] SAID: The admin fees crept up with no explanation. I emailed them on 5 August 2026.
+    REPLY: Thanks — that gives me the shape of it.
+
+Before I write anything up, can I check one thing about that email on 5 August: did you raise it with them as a complaint, or were you writing to ask what the fees were about?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": "Fees and charges"}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+[2] SAID: It was more of a query asking them to explain the fees.
+    REPLY: That's helpful — I'll note that as a query rather than a complaint for now.
+
+Can you tell me a bit more about what happened? For example, what you noticed about the fees going up, and whether AustralianSuper replied to your email.
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": "Fees and charges"}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+
+--- step0_e  (late-decline) ---
+timeouts: 0   failures: 0
+
+[1] SAID: I'm honestly not sure which type of cover it was.
+    REPLY: That's completely fine — we can leave that blank for now. It's one the form does need eventually, so I may come back to it once at the end, but I won't push on it.
+
+Let's move on to the main part: can you tell me in your own words what happened with AustralianSuper?
+    STATE: {"declined": [], "service": {"type": "Superannuation", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "AustralianSuper", "afca_member_no": "10657"}}
+
+
+--- step0_f  (listed-firm) ---
+timeouts: 0   failures: 0
+
+[1] SAID: My complaint is about Latitude Financial Services.
+    REPLY: Thanks — I've put Latitude Financial Services down as the firm your complaint is about.
+
+Next: do you have an account or reference number with them? That might be a card number, loan number, or a case or complaint reference. If you don't have one to hand, just say so and I'll mark it as none.
+    STATE: {"declined": [], "service": {"type": "", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "Latitude Financial Services", "afca_member_no": "12207"}}
+
+
+--- step0_g  (unlisted-firm) ---
+timeouts: 0   failures: 0
+
+[1] SAID: My complaint is about Bloggs Mutual Credit.
+    REPLY: "Bloggs Mutual Credit" isn't in this demo's firm directory, so there's no member number to attach. The rest of the form still works.
+
+Thanks — I've put Bloggs Mutual Credit down as the firm your complaint is about.
+
+Next: do you have an account or reference number with them? If you don't have one, just say so and I'll leave it blank.
+    STATE: {"declined": [], "service": {"type": "", "subtype": ""}, "complained_to_firm": {"yes": null, "date": "", "how": "", "final_reply": null}, "drafts": {"narrative": 0, "fair_outcome": 0}, "complaint.narrative_len": 0, "notify_by": "", "firm": {"name": "Bloggs Mutual Credit", "afca_member_no": ""}}
+
