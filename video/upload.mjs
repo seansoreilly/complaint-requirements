@@ -21,7 +21,11 @@ import { join, resolve } from "node:path";
 
 const CLIENT_SECRET = join(homedir(), ".config", "gws", "client_secret.json");
 const TOKEN_FILE = join(homedir(), ".config", "gws", "youtube_token.json");
-const SCOPE = "https://www.googleapis.com/auth/youtube.upload";
+// Upload, plus readonly so the result can be verified afterwards.
+const SCOPE = [
+  "https://www.googleapis.com/auth/youtube.upload",
+  "https://www.googleapis.com/auth/youtube.readonly",
+].join(" ");
 
 const VIDEO = resolve(process.argv[2] ?? join(homedir(), "Videos", "complaint-concierge-explainer.mp4"));
 
