@@ -245,9 +245,11 @@ function Field({
     return (
       <input
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
-        // Dates are stored ISO and shown day-first. Mid-typing the value is not
-        // yet ISO, so it passes through as typed and only reads back as
-        // DD/MM/YYYY once blur has committed it.
+        // Dates are stored ISO and shown day-first. A part-typed date is not
+        // ISO, so it passes through as typed and reads back as DD/MM/YYYY once
+        // blur has committed it. Someone typing a full ISO date by hand sees it
+        // flip as the last digit lands — odd, but this is an Australian form
+        // and it lands on the format we want.
         value={
           typeof value !== "string" ? "" : field.kind === "date" ? formatDateAU(value) : value
         }

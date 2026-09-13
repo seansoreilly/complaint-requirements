@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { coerceDate, formatDateAU } from "../patch";
 
-// The shapes the live model actually returns under the date rule in
-// lib/prompt.ts, recorded from real turns rather than imagined. A prompt
-// change that lets the model drift back to ISO or US order fails here.
+// Shapes observed coming back from the real model under the date rule in
+// lib/prompt.ts, asserting the parser reads them day-first. These are
+// recorded observations, not a live check: nothing here calls the model, so
+// a prompt that drifted back to US order would still pass. It would show up
+// as the wrong month on the form.
 const TODAY = new Date("2026-09-13T00:00:00Z");
 
 describe("dates the model sends back", () => {
