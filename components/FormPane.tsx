@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import {
   type ComplaintState,
   type FieldDef,
@@ -127,7 +126,6 @@ function Field({
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
   const options = optionsFor(field, state);
-  const pickerRef = useRef<HTMLInputElement>(null);
 
   const control = (() => {
     if (field.kind === "consent") {
@@ -283,45 +281,41 @@ function Field({
     // rather not think about format at all, and it hands back ISO, which is
     // already what we store. Its own value is blanked while a date is
     // part-typed: type="date" takes nothing but ISO and complains otherwise.
+    //
+    // The date input lies invisibly ON TOP of the calendar button at full
+    // size, rather than being hidden away and opened by script. Chrome will
+    // not anchor a picker to something it cannot measure — showPicker() on a
+    // 1px sr-only input throws NotAllowedError even from a real click — and
+    // its own calendar indicator, stretched over the whole box, opens the
+    // popup on an ordinary click with nothing for us to call.
     return (
       <div className="flex items-center gap-1.5">
         {text}
-        <input
-          ref={pickerRef}
-          type="date"
-          value={typeof value === "string" && ISO_DATE.test(value) ? value : ""}
-          // A picked date is already whole, so it commits at once rather than
-          // waiting for a blur that a popup never really produces.
-          onChange={(event) => {
-            onEdit(field.path, event.target.value);
-            onCommit(field.path);
-          }}
-          // Neither a birth nor a complaint can be in the future, and the
-          // form says so on commit — the picker just declines to offer it.
-          max={todayIso()}
-          min="1900-01-01"
-          aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
-          className="sr-only"
-        />
-        <button
-          type="button"
-          onClick={() => {
-            const el = pickerRef.current;
-            if (!el) return;
-            // showPicker is the only reliable way to open it: clicking a date
-            // input lands on its day/month/year segments, not the calendar.
-            try {
-              el.showPicker();
-            } catch {
-              el.focus();
-            }
-          }}
-          title="Pick from a calendar"
-          aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
-          className="shrink-0 rounded-lg border border-afca-line bg-white px-2 py-1.5 text-xs text-afca-blue transition hover:border-afca-blue hover:text-afca-navy"
-        >
-          📅
-        </button>
+        <span className="relative shrink-0">
+          <span
+            aria-hidden
+            className="pointer-events-none flex h-[30px] w-[34px] items-center justify-center rounded-lg border border-afca-line bg-white text-xs text-afca-blue"
+          >
+            📅
+          </span>
+          <input
+            type="date"
+            value={typeof value === "string" && ISO_DATE.test(value) ? value : ""}
+            // A picked date is already whole, so it commits at once rather
+            // than waiting for a blur that a popup never really produces.
+            onChange={(event) => {
+              onEdit(field.path, event.target.value);
+              onCommit(field.path);
+            }}
+            // Neither a birth nor a complaint can be in the future, and the
+            // form says so on commit — the picker just declines to offer it.
+            max={todayIso()}
+            min="1900-01-01"
+            title="Pick from a calendar"
+            aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
+            className="date-picker-overlay absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </span>
       </div>
     );
   })();
