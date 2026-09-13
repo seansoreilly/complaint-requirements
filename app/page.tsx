@@ -10,6 +10,7 @@ import { type ComplaintState, emptyState, findField, getPath, setPath } from "@/
 import { commitDate, reconcile } from "@/lib/patch";
 import { applyServerDelta } from "@/lib/merge-state";
 import { missingFor, stageProgress } from "@/lib/next";
+import { outstandingPrompt } from "@/lib/questions";
 
 const OPENER =
   "Hello — I can help you put together a complaint to AFCA, just by talking it through. " +
@@ -33,6 +34,12 @@ export default function Page() {
 
   const stages: StageStatus[] = useMemo(() => stageProgress(state), [state]);
   const missing = useMemo(() => missingFor(state), [state]);
+  // Of what is missing, how much did they decline? Counted here rather than in
+  // ChatPane so the header and the review agree on the same arithmetic.
+  const declinedCount = useMemo(
+    () => missing.filter((m) => state.declined.includes(m.path)).length,
+    [missing, state.declined],
+  );
   /** Where the conversation is up to: the stage of the field being asked about. */
   const activeStageId = useMemo(() => {
     if (focusPath) return missing.find((m) => m.path === focusPath)?.stageId ?? null;
@@ -124,6 +131,12 @@ export default function Page() {
   }, []);
 
   const approveDraft = useCallback((kind: "narrative" | "fair_outcome", text: string) => {
+    // Approving a card never goes near /api/chat, so `ensureAsk` — which is what
+    // stops the route's replies trailing off — does not run on this path.
+    // Without the prompt below, clicking "Use this" was answered by the canned
+    // line and nothing else: the person finishes the hardest part of the form
+    // and is met with silence, with fields still outstanding. Seen on two
+    // transcripts, both times right after they signed off on something.
     setState((previous) => {
       const next = structuredClone(previous);
       if (kind === "narrative") {
@@ -136,18 +149,35 @@ export default function Page() {
       // The person can rewrite a draft before approving it, so what lands here
       // is typed text and gets the same treatment as the form panel's.
       const path = kind === "narrative" ? "complaint.narrative" : "outcome.fair_outcome";
-      return reconcile(previous, next, (p) => p === path);
+      const reconciled = reconcile(previous, next, (p) => p === path);
+
+      // The question is computed and queued HERE, inside the updater, because
+      // this is the only place the reconciled state exists. Reading it out to a
+      // variable and using it after `setState` would depend on the updater
+      // having run by then, which React does not promise. Queued as a microtask
+      // for the same reason `commitDate` queues its note: an updater must stay
+      // free of side effects, since React may run it twice.
+      //
+      // It is read from `reconciled`, never from `previous`: the draft has just
+      // cleared and the field it filled is no longer outstanding, so the old
+      // state would ask for the very thing they just supplied.
+      const prompt = outstandingPrompt(reconciled);
+      queueMicrotask(() =>
+        setMessages((before) => {
+          const line =
+            kind === "narrative"
+              ? "Added to your complaint. That's the part most people find hardest — it's done."
+              : "Noted as the outcome you're seeking.";
+          const content = prompt ? `${line}\n\n${prompt}` : line;
+          // React may run the updater twice; appending twice would double the
+          // message, so drop it if the same text is already the last thing said.
+          const last = before[before.length - 1];
+          if (last?.role === "assistant" && last.content === content) return before;
+          return [...before, { role: "assistant", content }];
+        }),
+      );
+      return reconciled;
     });
-    setMessages((previous) => [
-      ...previous,
-      {
-        role: "assistant",
-        content:
-          kind === "narrative"
-            ? "Added to your complaint. That's the part most people find hardest — it's done."
-            : "Noted as the outcome you're seeking.",
-      },
-    ]);
   }, []);
 
   const startOver = useCallback(() => {
@@ -223,6 +253,7 @@ export default function Page() {
             pending={pending}
             notes={notes}
             missingCount={missing.length}
+            declinedCount={declinedCount}
             focusField={focusField}
             onClearFocus={() => setFocusPath(null)}
             onSend={send}

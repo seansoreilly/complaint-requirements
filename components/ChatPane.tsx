@@ -18,6 +18,7 @@ export function ChatPane({
   pending,
   notes,
   missingCount,
+  declinedCount,
   focusField,
   onClearFocus,
   onSend,
@@ -27,6 +28,16 @@ export function ChatPane({
   notes: string[];
   /** Required fields still unanswered — shown as a counter above the input. */
   missingCount: number;
+  /**
+   * How many of the missing fields the person declined to answer.
+   *
+   * A declined field stays in `missingCount` on purpose — it IS still blank,
+   * and the review must keep saying so. But if the only things left are things
+   * they refused, the conversation is finished, and a header stuck on "1 answer
+   * left" never tells them that. It says so without claiming the field was
+   * answered.
+   */
+  declinedCount: number;
   focusField: FieldDef | null;
   onClearFocus: () => void;
   onSend: (text: string) => void;
@@ -111,14 +122,18 @@ export function ChatPane({
           <p
             aria-live="polite"
             className={
-              missingCount === 0
+              missingCount === 0 || missingCount === declinedCount
                 ? "ml-auto text-xs font-semibold text-emerald-600"
                 : "ml-auto text-xs font-semibold text-afca-blue"
             }
           >
             {missingCount === 0
               ? "All answers in ✓"
-              : `${missingCount} ${missingCount === 1 ? "answer" : "answers"} left`}
+              : missingCount === declinedCount
+                ? `Ready — ${declinedCount} left blank ✓`
+                : `${missingCount - declinedCount} ${
+                    missingCount - declinedCount === 1 ? "answer" : "answers"
+                  } left`}
           </p>
         </div>
         <div className="flex gap-2">

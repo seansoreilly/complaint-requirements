@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { type ComplaintState, emptyState } from "@/lib/schema";
-import { applyPatch, parsePatch } from "@/lib/patch";
+import { type ComplaintPatch, applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
 import { ensureAsk } from "@/lib/continue";
@@ -53,6 +53,24 @@ function sanitiseHistory(input: unknown): ChatTurn[] {
  * Doing this in code — not the model — is what makes invented firm details
  * impossible rather than merely discouraged.
  */
+/**
+ * Set the firm from a bare name the person just typed.
+ *
+ * Only when the firm is genuinely unresolved (no member number yet), the whole
+ * message is short enough to be a name rather than a sentence, and the
+ * directory matches it confidently. A refusal, a sentence, or a phrase the
+ * directory cannot place is left for the model to handle as it always has.
+ */
+function takeShortFirmAnswer(state: ComplaintState, message: string): void {
+  if (state.firm.afca_member_no !== "") return;
+  const said = message.trim();
+  if (said.length === 0) return;
+  if (said.split(/\s+/).length > 3) return;
+  const match = lookupFirm(said);
+  if (match.status !== "matched") return;
+  state.firm.name = match.firm.name;
+}
+
 function resolveFirm(state: ComplaintState): {
   state: ComplaintState;
   firm: Firm | null;
@@ -72,11 +90,17 @@ function resolveFirm(state: ComplaintState): {
     const cleared = structuredClone(state);
     cleared.firm.afca_member_no = "";
     const names = result.candidates.map((c) => c.firm.name);
-    return {
-      state: cleared,
-      firm: null,
-      note: `Several firms match "${name}": ${names.join(", ")}. Which one is it?`,
-    };
+    // One candidate is not "several". After the generic-word fix (defect 19),
+    // "super fund" comes back ambiguous with Hesta alone — and a person told
+    // "several firms match" and then shown one name will reasonably confirm
+    // that one, which lands them on Hesta by a longer route. Naming it as the
+    // only near match, and asking for the full name, keeps the choice theirs.
+    const note =
+      names.length === 1
+        ? `The closest match to "${name}" in this demo's directory is ${names[0]}, ` +
+          `but that may not be the firm you mean. What is its full name?`
+        : `Several firms match "${name}": ${names.join(", ")}. Which one is it?`;
+    return { state: cleared, firm: null, note };
   }
   const unmatched = structuredClone(state);
   unmatched.firm.afca_member_no = "";
@@ -99,8 +123,76 @@ function resolveFirm(state: ComplaintState): {
  * capped at 20 turns upstream, so in a very long conversation the note can
  * surface once more after it scrolls out — rare, and harmless for a demo.
  */
-export function shouldSayNote(note: string | null, history: ChatTurn[]): boolean {
+/**
+ * Text reaches the form only through an approval.
+ *
+ * The prompt asks the model to put its proposal in `drafts.narrative` and wait.
+ * One live run quoted the proposal in the reply and wrote `complaint.narrative`
+ * straight out, so `app/page.tsx` — which renders the card only when the draft
+ * field is set — showed no card at all. The person had no edit box, no Discard,
+ * and their "yes" was an inference rather than an act. Nothing was fabricated;
+ * the hold simply was not enforced anywhere the live path could see it.
+ *
+ * So a FIRST write to a draftable field, with no draft pending and the field
+ * empty, is a proposal and is diverted into the draft. A write stands only when
+ * there was a draft to approve, or the field already held text and this is the
+ * edit the person asked for. Panel typing never comes through here, and card
+ * approval is client-side, so neither is affected.
+ */
+function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): boolean {
+  const pairs = [
+    ["narrative", patch.complaint?.narrative, incoming.complaint.narrative],
+    ["fair_outcome", patch.outcome?.fair_outcome, incoming.outcome.fair_outcome],
+  ] as const;
+
+  let diverted = false;
+  for (const [key, proposed, existing] of pairs) {
+    if (typeof proposed !== "string" || proposed.trim().length === 0) continue;
+    // An approval: there was something to approve.
+    if (incoming.drafts[key].trim().length > 0) continue;
+    // An edit: the field already holds text they approved earlier.
+    if (existing.trim().length > 0) continue;
+
+    patch.drafts = { ...patch.drafts, [key]: proposed };
+    if (key === "narrative" && patch.complaint) delete patch.complaint.narrative;
+    if (key === "fair_outcome" && patch.outcome) delete patch.outcome.fair_outcome;
+    diverted = true;
+  }
+  return diverted;
+}
+
+/**
+ * A reply that claims text is saved when it is only proposed.
+ *
+ * When `holdDrafts` diverts a write, the model believed it had put the text on
+ * the form and says so — "I've saved that as your complaint description" —
+ * while the text is actually sitting on the card awaiting approval. The prompt
+ * asks it not to; on the live path it said it anyway, which is the usual result
+ * of asking rather than enforcing. The route knows what it did, so the route
+ * corrects the claim. Only the false sentence is replaced; the rest of the
+ * reply, including whatever it asks next, is left alone.
+ */
+const SAVED_CLAIM =
+  /\b(?:I(?:'ve| have)?\s+)?(?:saved|added|recorded|locked(?:\s+that)?\s+in|put)\b[^.!?]*\b(?:that|this|it)\b[^.!?]*[.!?]/i;
+
+export function correctSavedClaim(reply: string): string {
+  const replacement =
+    "I've put that on the card for you to check — use it, edit it, or discard it.";
+  if (!SAVED_CLAIM.test(reply)) {
+    return `${replacement}\n\n${reply}`.trim();
+  }
+  return reply.replace(SAVED_CLAIM, replacement);
+}
+
+export function shouldSayNote(
+  note: string | null,
+  history: ChatTurn[],
+  alreadySaid = false,
+): boolean {
   if (!note) return false;
+  // The flag is the reliable record; history is the fallback for a state that
+  // predates it. Either one saying "told them" is enough to stay quiet.
+  if (alreadySaid) return false;
   return !history.some((turn) => turn.role === "assistant" && turn.content.includes(note));
 }
 
@@ -127,6 +219,19 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Resolve the firm from whatever state we were handed, so the prompt carries
   // real directory facts before the model speaks.
+  // A short answer while the firm is unresolved IS the firm's name.
+  //
+  // Case 12: the app asked for the fund's full name and ended by offering to
+  // defer — "tell me and I'll come back to it later". Helen answered "Rest".
+  // The model read its own offer being taken up, said "I'll leave the fund's
+  // name aside", and she had to answer the same question twice. It reproduces
+  // 3/3 with that offer present and 0/3 without it, so the offer is what makes
+  // "rest" readable as a verb.
+  //
+  // `lookupFirm` is already the authority on firm identity — the route strips
+  // any member number the model invents and takes the directory's. This just
+  // asks it first, before the model gets a chance to read a name as a refusal.
+  takeShortFirmAnswer(incoming, message);
   const resolvedBefore = resolveFirm(incoming);
 
   let turn;
@@ -149,6 +254,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { patch, issues } = parsePatch(turn.patch);
   // The member number is the directory's to assign, never the model's.
   if (patch.firm) delete patch.firm.afca_member_no;
+  // Whether the note has been said is a fact about what this route did, not
+  // something the model gets a view on.
+  delete patch.firm_note_said;
+  const heldForApproval = holdDrafts(patch, resolvedBefore.state);
   const applied = applyPatch(resolvedBefore.state, patch);
 
   // The firm may have only just been named, so resolve again after applying.
@@ -159,14 +268,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   // The note is context, so it goes above the reply rather than after it: tacked
   // on the end it lands below the question and the turn closes on a statement,
   // leaving the person with nothing to answer.
-  const sayNote = shouldSayNote(note, history);
+  // The note names the firm, so a correction to a different firm is a different
+  // note and has to be said again. Comparing the recorded name against the
+  // current one does that without a separate reset.
+  const noteAlreadySaid = state.firm_note_said === state.firm.name.trim().toLowerCase();
+  const sayNote = shouldSayNote(note, history, noteAlreadySaid);
   const withNote = sayNote ? `${note}\n\n${turn.reply}` : turn.reply;
+  // Record it in the state we return, so the next turn knows regardless of how
+  // far the history window has slid.
+  if (sayNote || noteAlreadySaid) state.firm_note_said = state.firm.name.trim().toLowerCase();
 
   // The conversation must not dead-end while the form still needs something.
   // Applied to the text actually being sent, so an ambiguous-firm note that asks
   // "Which one is it?" counts as this turn's question — but only when the note is
   // genuinely included, since a note suppressed as a repeat asks nothing.
-  const reply = ensureAsk(withNote, state);
+  const corrected = heldForApproval ? correctSavedClaim(withNote) : withNote;
+  const reply = ensureAsk(corrected, state);
 
   return NextResponse.json({
     reply,
@@ -174,7 +291,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     missing: missingFor(state),
     next: nextField(state),
     stages: stageProgress(state),
-    issues,
+    // Only what the person can act on. An internal issue — a schema failure,
+    // a silent trim — is the model's mistake in the model's vocabulary, and it
+    // appeared in a live chat as "· Patch did not match the schema." beneath a
+    // reply claiming the field had been recorded. It stays in the server log,
+    // where [turn-parse-failed] already records the whole envelope.
+    issues: [...(turn.issues ?? []), ...issues].filter((issue) => issue.personFacing),
     firmNote: resolvedAfter.note,
     mode: turn.mode,
   });

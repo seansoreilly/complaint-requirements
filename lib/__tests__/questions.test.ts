@@ -72,6 +72,28 @@ describe("endsWithQuestion", () => {
   it("treats an empty reply as asking nothing", () => {
     expect(endsWithQuestion("   ")).toBe(false);
   });
+
+  /**
+   * A live run ended a turn with "tell me and I'll mark it as not available" —
+   * a plain ask with no question mark. Read as silence, the route stacked its
+   * own wording of the same request underneath, so the person was asked for the
+   * reference twice in one turn.
+   */
+  it("counts a closing imperative as an ask", () => {
+    expect(
+      endsWithQuestion("No rush.\n\nIf you can't find it, tell me and I'll mark it as not available."),
+    ).toBe(true);
+    expect(endsWithQuestion("Got it.\n\nJust paste it in when you have it.")).toBe(true);
+  });
+
+  it("does not mistake a mid-reply mention for a closing ask", () => {
+    const reply = [
+      "You said you'd tell me about the fees, and you did.",
+      "",
+      "I've written that up and saved it to your complaint.",
+    ].join("\n");
+    expect(endsWithQuestion(reply)).toBe(false);
+  });
 });
 
 describe("ensureAsk", () => {

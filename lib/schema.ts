@@ -18,6 +18,54 @@ export interface Address {
 }
 
 export interface ComplaintState {
+  /** Persists an optional-question offer even when every answer is declined. */
+  sensitive_offered: boolean;
+  /**
+   * The firm name, lowercased, that the "not in this demo's directory" note was
+   * last said for; "" when it has not been said. Kept in state for the same
+   * reason as `sensitive_offered`: the route is stateless and history is
+   * trimmed to 20 turns, so a conversation that reaches review outlives any
+   * record of having said it and says it a second time.
+   *
+   * It stores the name rather than a flag because the note quotes the firm. A
+   * correction to a different unrecognised firm is a different note and has to
+   * be said again, so comparing names is what makes "already said" mean
+   * "already said about this firm".
+   */
+  firm_note_said: string;
+  /**
+   * Required fields the person has declined to answer, by path.
+   *
+   * The README says a skipped field is returned to once with the reason and
+   * then left. Without somewhere to record "they said no twice", the field
+   * stays at the head of `missingFor` and both the route and the prompt keep
+   * raising it — a live conversation promised "I won't ask again" and then put
+   * a forced multiple choice with no "not sure" option in front of her.
+   *
+   * It records a refusal, not an answer. The field is still missing, the
+   * counter still counts it and the review still shows it blank; it is only
+   * removed from what gets asked. An answer volunteered later clears it.
+   */
+  /**
+   * Required fields the person refused ONCE, held back until everything else
+   * has been asked.
+   *
+   * `declined` is a final refusal; this is the step before it. The README
+   * promises a skipped required field is "returned to later rather than
+   * quietly dropped", and prompt.ts reserves `declined` for a SECOND refusal —
+   * so between the two there was nothing in state saying "not now", the field
+   * stayed askable, and `ensureAsk` appended its bare option list underneath
+   * the next reply that happened to trail off. That was observed one turn after
+   * the app had said "I won't press you on it".
+   *
+   * Deferring is not answering: the field stays in `missingFor`, stays blank on
+   * the review, and comes back once nothing else is askable — which is how the
+   * return-once becomes something code schedules rather than something the
+   * model has to remember. An answer clears it; a second refusal moves it to
+   * [[declined]].
+   */
+  deferred: string[];
+  declined: string[];
   firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
   open_afca_complaint: boolean | null;
   complained_to_firm: {
@@ -53,6 +101,10 @@ export interface ComplaintState {
 
 export function emptyState(): ComplaintState {
   return {
+    sensitive_offered: false,
+    firm_note_said: "",
+    deferred: [],
+    declined: [],
     firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
     open_afca_complaint: null,
     complained_to_firm: { yes: null, date: "", how: "", final_reply: null },
@@ -74,7 +126,9 @@ export function emptyState(): ComplaintState {
       interpreter_language: "",
       support_needs: "",
       currently_experiencing: "",
-      notify_by: "email",
+      // Required, so it starts blank: a default here ticks the field before
+      // anyone is asked, and the export then states a preference they never gave.
+      notify_by: "",
     },
     consents: { authority: false, engagement_charter: false },
     drafts: { narrative: "", fair_outcome: "" },
@@ -151,6 +205,9 @@ export const SERVICE_ISSUES: Record<string, readonly string[]> = {
   Superannuation: [
     "Denial of insurance claim",
     "Delay in claim handling",
+    // "Rollover / transfer delay" is a subtype above, but had no issue to match
+    // it, so every stuck rollover was filed as a delayed *insurance claim*.
+    "Delay in rollover or transfer",
     "Incorrect premiums or fees",
     "Failure to follow instructions",
     "Incorrect information provided",

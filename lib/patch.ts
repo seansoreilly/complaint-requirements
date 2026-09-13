@@ -32,6 +32,49 @@ const addressPatch = z
 /** Mirrors ComplaintState, every field optional and nullable where the state is. */
 export const patchSchema = z
   .object({
+    sensitive_offered: z.boolean(),
+    /**
+     * Carried through `sanitiseState` so the flag survives the round trip, but
+     * the route recomputes it every turn from whether it actually said the
+     * note — the model proposing one here changes nothing.
+     */
+    firm_note_said: z.string(),
+    /**
+     * Paths the person has refused; unknown paths are dropped in `applyPatch`.
+     *
+     * Described rather than bare, for the same reason `reply` and `patch` are:
+     * this is one field among 49 in the tool schema, and a prose instruction in
+     * the system prompt did not reach it. A live decline produced the right
+     * reply and an empty list — the model had nowhere obvious to put it.
+     */
+    /**
+     * Paths refused once and held back. Described for the same reason as
+     * `declined`: a bare array among 49 fields is not an instruction.
+     */
+    deferred: z
+      .array(z.string())
+      .describe(
+        "patch.deferred — field paths the person has put off answering once: " +
+          "they said they do not know or would rather not, and you said you " +
+          "would come back to it. Set it INSIDE patch, like any other field " +
+          "(patch: { deferred: [\"service.subtype\"] }), never beside it. Add " +
+          "the path on that FIRST refusal. The form then stops asking until " +
+          "everything else is done and brings it back once, which is what lets " +
+          "you promise to move on and mean it. If they refuse a second time, " +
+          "move the path to patch.declined instead. Send the full list, not " +
+          "only what is new.",
+      ),
+    declined: z
+      .array(z.string())
+      .describe(
+        "patch.declined — field paths the person has declined to answer, e.g. " +
+        "[\"service.subtype\"]. Set it INSIDE patch, never beside it. " +
+          "Add a path here when they have said they do not know or will not say and " +
+          "you have told them you will leave it blank. This is what actually stops " +
+          "the form asking again — say it here as well as in the reply, or they get " +
+          "asked a question you just promised to drop. Include paths already in the " +
+          "list; send the full list, not only what is new.",
+      ),
     firm: z
       .object({
         name: z.string(),
@@ -196,6 +239,19 @@ function coerceEnum(value: string, options: readonly string[]): string {
 export interface PatchIssue {
   path: string;
   message: string;
+  /**
+   * Is this for the person, or for the log?
+   *
+   * "Could not read that as a date" is something they need to see — it explains
+   * why a field stayed empty and invites them to say it differently. "Patch did
+   * not match the schema" is not: it is the model's mistake in the model's
+   * vocabulary, and it appeared in a live chat as "· Patch did not match the
+   * schema." underneath a reply claiming the field had been recorded.
+   *
+   * Absent means internal. Only the coercion notes below set it, so a new issue
+   * is private until someone decides it should not be.
+   */
+  personFacing?: true;
 }
 
 export interface CleanResult {
@@ -215,12 +271,13 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.complained_to_firm?.date !== undefined) {
     const coerced = coerceDate(patch.complained_to_firm.date, today);
     if (coerced === "" && patch.complained_to_firm.date.trim() !== "") {
-      issues.push({ path: "complained_to_firm.date", message: "Could not read that as a date." });
+      issues.push({ path: "complained_to_firm.date", message: "Could not read that as a date.", personFacing: true });
       delete patch.complained_to_firm.date;
     } else if (isFuture(coerced, today)) {
       issues.push({
         path: "complained_to_firm.date",
         message: "That date is in the future — when did you contact them?",
+        personFacing: true,
       });
       delete patch.complained_to_firm.date;
     } else {
@@ -231,10 +288,10 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.complainant?.dob !== undefined) {
     const coerced = coerceDate(patch.complainant.dob, today);
     if (coerced === "" && patch.complainant.dob.trim() !== "") {
-      issues.push({ path: "complainant.dob", message: "Could not read that as a date." });
+      issues.push({ path: "complainant.dob", message: "Could not read that as a date.", personFacing: true });
       delete patch.complainant.dob;
     } else if (isFuture(coerced, today)) {
-      issues.push({ path: "complainant.dob", message: "That date of birth is in the future." });
+      issues.push({ path: "complainant.dob", message: "That date of birth is in the future.", personFacing: true });
       delete patch.complainant.dob;
     } else {
       patch.complainant.dob = coerced;
@@ -243,7 +300,7 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
 
   if (patch.complainant?.email !== undefined && patch.complainant.email.trim() !== "") {
     if (!isValidEmail(patch.complainant.email)) {
-      issues.push({ path: "complainant.email", message: "That email address looks incomplete." });
+      issues.push({ path: "complainant.email", message: "That email address looks incomplete.", personFacing: true });
       delete patch.complainant.email;
     } else {
       patch.complainant.email = patch.complainant.email.trim();
@@ -253,7 +310,7 @@ export function cleanPatch(raw: ComplaintPatch, today = new Date()): CleanResult
   if (patch.service?.type !== undefined && patch.service.type.trim() !== "") {
     const coerced = coerceEnum(patch.service.type, SERVICE_TYPES);
     if (coerced === "") {
-      issues.push({ path: "service.type", message: "Not a recognised service type." });
+      issues.push({ path: "service.type", message: "Not a recognised service type.", personFacing: true });
       delete patch.service.type;
     } else {
       patch.service.type = coerced;
@@ -314,7 +371,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  *    (TPD)" on the form, counted as answered and shown as complete.
  *
  * Anything the same change explicitly set is kept: the demo paragraph fills
- * type, subtype and issues in one patch, and that must survive.
+ * type, subtype and issues in one patch, and that must survive — and so must
+ * "I emailed them a formal complaint on 5 August", which opens the branch and
+ * fills it in a single turn.
  */
 export function reconcile(
   previous: ComplaintState,
@@ -326,9 +385,18 @@ export function reconcile(
   for (const stage of STAGES) {
     for (const field of stage.fields) {
       if (!field.showIf) continue;
-      if (touched(field.path)) continue;
-      // Only clear on the transition: applicable before, not applicable now.
-      if (applies(field, previous) && !applies(field, next)) {
+      // One rule: a field whose branch is shut holds nothing, however it got
+      // there. `touched` is deliberately NOT consulted — it protects a field
+      // the same change set, which is right when that change opens the branch
+      // ("I emailed them a formal complaint on 5 August" fills yes, date and
+      // how at once, and `applies` is true afterwards so nothing is cleared),
+      // and wrong when it does not. Iris said "I emailed them on 5 August"
+      // before anyone had established whether that email was a complaint, so
+      // the date and channel were written while `yes` was still null. When she
+      // clarified it was a query, yes went null → false — never open, so the
+      // old applicable→not-applicable test never fired, and her form exported
+      // saying she had not complained beside the date she complained and how.
+      if (!applies(field, next)) {
         setPath(next, field.path, getPath(blank, field.path));
       }
     }
@@ -343,6 +411,55 @@ export function reconcile(
     if (!touched("service.subtype")) next.service.subtype = "";
     if (!touched("complaint.issues")) next.complaint.issues = [];
   }
+
+  // The declined list. Two things keep it honest, and both have to happen here
+  // rather than in the merge, because the form panel writes state without ever
+  // going near a patch.
+  //
+  // A path that is not a real required field is dropped: the list drives what
+  // the assistant stops asking for, so an invented entry would silently retire
+  // a question. And an entry whose field now holds a value is dropped too — a
+  // refusal is not a lock, and someone who says "actually, it was a personal
+  // loan" has answered.
+  const requiredPaths = new Set(
+    STAGES.flatMap((stage) => stage.fields.filter((f) => f.required).map((f) => f.path)),
+  );
+  // Union rather than replace. `merge` overwrites arrays wholesale, so a patch
+  // naming only the newest refusal would silently un-decline everything said
+  // before it — and the person would be asked again for something they had
+  // already refused twice. The field description tells the model to send the
+  // whole list; this makes it not matter if it does not.
+  next.deferred = [...new Set([...previous.deferred, ...next.deferred])];
+  next.declined = [...new Set([...previous.declined, ...next.declined])];
+  const stillBlank = (path: string): boolean => {
+    const value = getPath(next, path);
+    if (typeof value === "string") return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    return value === null || value === undefined;
+  };
+
+  // Same treatment as `declined`: real required paths only, no duplicates, and
+  // dropped the moment the field holds a value. A path in both lists is a
+  // second refusal, so `declined` wins and the deferral is spent.
+  const deferredSeen = new Set<string>();
+  next.deferred = next.deferred.filter((path) => {
+    if (!requiredPaths.has(path)) return false;
+    if (deferredSeen.has(path)) return false;
+    deferredSeen.add(path);
+    if (next.declined.includes(path)) return false;
+    return stillBlank(path);
+  });
+
+  const seen = new Set<string>();
+  next.declined = next.declined.filter((path) => {
+    if (!requiredPaths.has(path)) return false;
+    if (seen.has(path)) return false;
+    seen.add(path);
+    const value = getPath(next, path);
+    if (typeof value === "string") return value.trim().length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    return value === null || value === undefined;
+  });
 
   // The long free-text boxes. cleanPatch caps these on the way in from the model,
   // but a person typing or pasting into the form panel never goes through it,
@@ -377,7 +494,7 @@ export function commitDate(
 
   const coerced = coerceDate(value, today);
   if (coerced === "") {
-    return { value: "", issue: { path, message: "Could not read that as a date." } };
+    return { value: "", issue: { path, message: "Could not read that as a date.", personFacing: true } };
   }
   if (isFuture(coerced, today)) {
     const message =
