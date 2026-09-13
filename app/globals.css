@@ -106,3 +106,27 @@ html {
     animation-fill-mode: none !important;
   }
 }
+
+/* The date input sits invisibly over the calendar button. Chrome puts the
+   click target for the popup on its own little indicator icon, so that gets
+   stretched over the whole box — otherwise the person clicks the button and
+   lands on the day/month/year segments instead, which looks like nothing
+   happening. Scripting it open is not an alternative: showPicker() refuses to
+   anchor to an input with no real size. */
+.date-picker-overlay::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* Firefox and Safari show no indicator to stretch, so the input's own box is
+   the target; its text is hidden by the opacity on the element itself. */
+.date-picker-overlay {
+  -webkit-appearance: none;
+  appearance: none;
+}

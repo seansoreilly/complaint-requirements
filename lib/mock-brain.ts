@@ -467,6 +467,21 @@ export function mockBrain(
     }
   }
 
+  // Contact preference. Only when it is the field on the table: "I emailed them
+  // on 3 Sept" is about the firm, not about how AFCA should reach them.
+  if (!state.complainant.notify_by && answerTarget === "complainant.notify_by") {
+    const preference = /\b(post|mail|letter)\b/i.test(text)
+      ? "post"
+      : /\b(sms|text|txt)\b/i.test(text)
+        ? "sms"
+        : /\b(e-?mail)\b/i.test(text)
+          ? "email"
+          : "";
+    if (preference) {
+      patch.complainant = { ...patch.complainant, notify_by: preference };
+    }
+  }
+
   // Compensation stance.
   if (state.outcome.seeking_compensation === null) {
     if (UNSURE.test(text) && /\b(compensat|money|refund|out of pocket)\b/i.test(text)) {

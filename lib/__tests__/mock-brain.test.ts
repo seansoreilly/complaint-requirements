@@ -199,6 +199,9 @@ describe("contact details can be given by talking", () => {
       ["sam.chen@example.com", "complainant.email"],
       ["12 Ford Street, Brunswick VIC 3056", "complainant.address.line1"],
       ["4 March 1979", "complainant.dob"],
+      // notify_by used to default to "email" and tick itself; it is now asked
+      // like any other required field, so the conversation has to answer it.
+      ["email is best", "complainant.notify_by"],
     ];
     let previous = Infinity;
     for (const [message, focus] of script) {

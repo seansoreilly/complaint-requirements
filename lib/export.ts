@@ -1,11 +1,15 @@
 /** Turning the finished state into things a person can take away. */
 import { type ComplaintState, STAGES, getPath } from "./schema";
 import { applies } from "./next";
+import { formatDateAU } from "./patch";
 
 function display(value: unknown, kind?: string): string {
   if (value === null || value === undefined || value === "") return "—";
   // An unticked consent has not been declined; it simply has not been given.
   if (kind === "consent") return value === true ? "Agreed" : "Not yet agreed";
+  // The review and the paste-ready text are read by a person, so dates leave
+  // ISO behind here too.
+  if (kind === "date" && typeof value === "string") return formatDateAU(value);
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
   if (value === "not_sure") return "Not sure";

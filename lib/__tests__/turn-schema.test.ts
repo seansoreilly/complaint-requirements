@@ -60,7 +60,7 @@ describe("turn schema", () => {
   });
 
   it("rejects a malformed tool call rather than passing it to the state", () => {
-    // model.ts treats a failed parse as a lost turn, never as a patch.
+    // The tool contract requires a string reply; runtime parses the patch separately.
     expect(turnSchema.safeParse({ reply: 42 }).success).toBe(false);
     expect(turnSchema.safeParse(undefined).success).toBe(false);
   });

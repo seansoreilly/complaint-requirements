@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyPatch, cleanPatch, coerceDate, isValidEmail, parsePatch } from "../patch";
+import {
+  applyPatch,
+  cleanPatch,
+  coerceDate,
+  formatDateAU,
+  isValidEmail,
+  parsePatch,
+} from "../patch";
 import { emptyState } from "../schema";
 
 const TODAY = new Date("2026-09-11T00:00:00Z");
@@ -53,6 +60,38 @@ describe("coerceDate", () => {
 
   it("rejects years outside any plausible range", () => {
     expect(coerceDate("1 Jan 1850", TODAY)).toBe("");
+  });
+
+  it("takes the day out of a timestamp the model returned", () => {
+    expect(coerceDate("2025-09-03T00:00:00Z", TODAY)).toBe("2025-09-03");
+    expect(coerceDate("2025-09-03 14:30", TODAY)).toBe("2025-09-03");
+  });
+
+  it("reads the longer ways a date gets written out", () => {
+    expect(coerceDate("3rd of September 2025", TODAY)).toBe("2025-09-03");
+    expect(coerceDate("3 September, 2025", TODAY)).toBe("2025-09-03");
+    expect(coerceDate("03-Sep-2025", TODAY)).toBe("2025-09-03");
+  });
+
+  it("will not invent a day for a month on its own", () => {
+    expect(coerceDate("September 2025", TODAY)).toBe("");
+  });
+});
+
+describe("formatDateAU", () => {
+  it("shows a stored date the way Australians read it", () => {
+    expect(formatDateAU("2025-09-03")).toBe("03/09/2025");
+    expect(formatDateAU("2024-10-11")).toBe("11/10/2024");
+  });
+
+  it("leaves a half-typed date alone", () => {
+    expect(formatDateAU("")).toBe("");
+    expect(formatDateAU("3/9")).toBe("3/9");
+    expect(formatDateAU("3 Sept 2025")).toBe("3 Sept 2025");
+  });
+
+  it("round-trips what someone types on an Australian form", () => {
+    expect(formatDateAU(coerceDate("3/9/2025", TODAY))).toBe("03/09/2025");
   });
 });
 

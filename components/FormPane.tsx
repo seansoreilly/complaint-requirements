@@ -11,6 +11,21 @@ import {
   getPath,
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
+import { formatDateAU } from "@/lib/patch";
+
+/** A stored date, as opposed to one part-typed on its way to being stored. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Today where the person is, not in UTC. The picker offers dates from a
+ * calendar on their wall, so its ceiling has to come from the same one.
+ */
+function todayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 export interface StageStatus {
   id: string;
@@ -304,15 +319,67 @@ function Field({
       );
     }
 
-    return (
+    const text = (
       <input
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
-        value={typeof value === "string" ? value : ""}
+        // Dates are stored ISO and shown day-first. A part-typed date is not
+        // ISO, so it passes through as typed and reads back as DD/MM/YYYY once
+        // blur has committed it. Someone typing a full ISO date by hand sees it
+        // flip as the last digit lands — odd, but this is an Australian form
+        // and it lands on the format we want.
+        value={
+          typeof value !== "string" ? "" : field.kind === "date" ? formatDateAU(value) : value
+        }
         onChange={(event) => onEdit(field.path, event.target.value)}
         onBlur={() => onCommit(field.path)}
-        placeholder={field.kind === "date" ? "e.g. 3 Sept 2025" : ""}
+        placeholder={field.kind === "date" ? "DD/MM/YYYY — e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
+    );
+
+    if (field.kind !== "date") return text;
+
+    // Typing stays the primary way in — it accepts "3 Sept" and the other
+    // shapes people actually write. The picker is for the person who would
+    // rather not think about format at all, and it hands back ISO, which is
+    // already what we store. Its own value is blanked while a date is
+    // part-typed: type="date" takes nothing but ISO and complains otherwise.
+    //
+    // The date input lies invisibly ON TOP of the calendar button at full
+    // size, rather than being hidden away and opened by script. Chrome will
+    // not anchor a picker to something it cannot measure — showPicker() on a
+    // 1px sr-only input throws NotAllowedError even from a real click — and
+    // its own calendar indicator, stretched over the whole box, opens the
+    // popup on an ordinary click with nothing for us to call.
+    return (
+      <div className="flex items-center gap-1.5">
+        {text}
+        <span className="relative shrink-0">
+          <span
+            aria-hidden
+            className="pointer-events-none flex h-[30px] w-[34px] items-center justify-center rounded-lg border border-afca-line bg-white text-xs text-afca-blue"
+          >
+            📅
+          </span>
+          <input
+            type="date"
+            value={typeof value === "string" && ISO_DATE.test(value) ? value : ""}
+            // A picked date is already whole, so it commits at once rather
+            // than waiting for a blur that a popup never really produces.
+            onChange={(event) => {
+              onEdit(field.path, event.target.value);
+              onCommit(field.path);
+            }}
+            // Neither a birth nor a complaint can be in the future, and the
+            // form says so on commit — the picker just declines to offer it.
+            max={todayIso()}
+            min="1900-01-01"
+            title="Pick from a calendar"
+            aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
+            className="date-picker-overlay absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </span>
+      </div>
     );
   })();
 
