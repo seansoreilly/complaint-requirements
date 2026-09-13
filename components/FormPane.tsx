@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useState } from "react";
 import {
   type ComplaintState,
   type FieldDef,
@@ -101,6 +102,68 @@ function optionsFor(field: FieldDef, state: ComplaintState): readonly string[] |
   if (field.options) return field.options;
   if (field.path === "service.subtype") return SERVICE_SUBTYPES[state.service.type] ?? null;
   return null;
+}
+
+/**
+ * The "what is this asking me?" answer, one tap or hover away.
+ *
+ * Hover alone would strand anyone on a touch screen or a keyboard, and this
+ * form has interpreter and support-needs fields — the people least served by
+ * hover-only help are exactly the ones it asks about. So: hover, focus and
+ * click all open it, Escape closes it, and the bubble is wired to the label
+ * with aria-describedby rather than left as decoration.
+ */
+function InfoTooltip({ label, help }: { label: string; help: string }) {
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const id = useId();
+  const open = pinned || hovered;
+
+  return (
+    <span
+      className="relative flex-none"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        type="button"
+        aria-label={`About ${label}`}
+        aria-expanded={open}
+        aria-describedby={open ? id : undefined}
+        onClick={() => setPinned((was) => !was)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+        onKeyDown={(event) => {
+          // Both flags: focus opens the bubble too, so clearing only `pinned`
+          // would leave a keyboard user with no way to dismiss it short of
+          // tabbing away.
+          if (event.key !== "Escape") return;
+          setPinned(false);
+          setHovered(false);
+        }}
+        className={
+          open
+            ? "flex h-4 w-4 items-center justify-center rounded-full bg-afca-blue text-[9px] font-bold text-white"
+            : "flex h-4 w-4 items-center justify-center rounded-full bg-afca-skylight text-[9px] font-bold text-afca-blue transition hover:bg-afca-blue hover:text-white"
+        }
+      >
+        i
+      </button>
+      {open && (
+        // Anchored left, not right. The icon trails the label, so it sits near
+        // the left edge of the pane — hanging the bubble off its right edge
+        // pushes it into the scroll container's unreachable negative-x overflow
+        // and silently crops it. Growing rightwards, 208px clears the pane.
+        <span
+          id={id}
+          role="tooltip"
+          className="absolute left-0 top-5 z-20 w-52 rounded-lg bg-afca-navy px-2.5 py-1.5 text-[10px] font-normal leading-snug text-white shadow-lg"
+        >
+          {help}
+        </span>
+      )}
+    </span>
+  );
 }
 
 /**
@@ -328,21 +391,23 @@ function Field({
           : "rounded-xl border-2 border-transparent p-2.5 transition hover:bg-afca-skylight/40"
       }
     >
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onFocusField(field.path)}
-          className="text-left text-xs font-bold text-afca-navy transition hover:text-afca-blue hover:underline"
-          title="Ask me about this"
-        >
-          {field.label}
-          {field.required && !answered && <span className="ml-1 text-afca-amber">•</span>}
-          {field.sensitive && <span className="ml-1 text-[10px] font-normal text-afca-blue/60">optional</span>}
-        </button>
-        {answered && <span className="text-[10px] font-bold text-emerald-600">✓</span>}
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onFocusField(field.path)}
+            className="text-left text-xs font-bold text-afca-navy transition hover:text-afca-blue hover:underline"
+            title="Ask me about this"
+          >
+            {field.label}
+            {field.required && !answered && <span className="ml-1 text-afca-amber">•</span>}
+            {field.sensitive && <span className="ml-1 text-[10px] font-normal text-afca-blue/60">optional</span>}
+          </button>
+          {field.help && <InfoTooltip label={field.label} help={field.help} />}
+        </span>
+        {answered && <span className="flex-none text-[10px] font-bold text-emerald-600">✓</span>}
       </div>
       {control}
-      {field.help && <p className="mt-1 text-[10px] text-afca-navy/50">{field.help}</p>}
     </div>
   );
 }
