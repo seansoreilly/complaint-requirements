@@ -104,7 +104,7 @@ export interface FieldDef {
   required: boolean;
   /** Branch guard: field only applies when this returns true. */
   showIf?: (s: ComplaintState) => boolean;
-  /** Shown in the side panel and used to prompt the model. */
+  /** Shown in the field's info tooltip. Every field carries one. */
   help?: string;
   /** Sensitive/optional: offered once, gently, never pushed. */
   sensitive?: boolean;
@@ -195,6 +195,7 @@ export const STAGES: StageDef[] = [
         label: "Open complaint with AFCA already?",
         kind: "bool",
         required: true,
+        help: "Whether you already have another complaint open with AFCA that has not been closed yet.",
       },
     ],
   },
@@ -208,13 +209,21 @@ export const STAGES: StageDef[] = [
         kind: "enum",
         options: ["self", "jointly", "business", "someone_else"],
         required: true,
+        help: "Self is you alone. Jointly covers a shared account. Business is a company or trust. Someone else means you are acting for another person.",
       },
-      { path: "consents.authority", label: "Authority to act consent", kind: "consent", required: true },
+      {
+        path: "consents.authority",
+        label: "Authority to act consent",
+        kind: "consent",
+        required: true,
+        help: "Confirms you have the authority to lodge this complaint and for AFCA to deal with you about it.",
+      },
       {
         path: "consents.engagement_charter",
         label: "Engagement charter consent",
         kind: "consent",
         required: true,
+        help: "Confirms you have read the charter setting out how AFCA and everyone involved are expected to work together.",
       },
     ],
   },
@@ -228,15 +237,28 @@ export const STAGES: StageDef[] = [
         kind: "enum",
         options: SERVICE_TYPES,
         required: true,
+        help: "The broad category the product falls under. Pick the closest one — it can be changed later.",
       },
-      { path: "service.subtype", label: "Product or service", kind: "text", required: true },
+      {
+        path: "service.subtype",
+        label: "Product or service",
+        kind: "text",
+        required: true,
+        help: "The specific product the complaint is about, such as a home loan or a death benefit.",
+      },
     ],
   },
   {
     id: "details",
     title: "Complaint details",
     fields: [
-      { path: "complaint.issues", label: "What went wrong", kind: "list", required: true },
+      {
+        path: "complaint.issues",
+        label: "What went wrong",
+        kind: "list",
+        required: true,
+        help: "The short labels for the problem. Add as many as fit — the full story goes in the next field.",
+      },
       {
         path: "complaint.narrative",
         label: "Tell us about your complaint",
@@ -249,6 +271,7 @@ export const STAGES: StageDef[] = [
         label: "Complained to the firm already?",
         kind: "bool",
         required: true,
+        help: "AFCA normally expects the firm to have had a chance to put things right first.",
       },
       {
         path: "complained_to_firm.date",
@@ -264,6 +287,7 @@ export const STAGES: StageDef[] = [
         kind: "text",
         required: true,
         showIf: (s) => s.complained_to_firm.yes === true,
+        help: "However you got in touch — phone, email, a web form, a letter or in branch.",
       },
       {
         path: "complained_to_firm.final_reply",
@@ -271,8 +295,15 @@ export const STAGES: StageDef[] = [
         kind: "bool",
         required: true,
         showIf: (s) => s.complained_to_firm.yes === true,
+        help: "A final answer from the firm closing off your complaint. No is fine — you can still lodge.",
       },
-      { path: "legal_proceedings", label: "Legal proceedings on foot?", kind: "bool", required: true },
+      {
+        path: "legal_proceedings",
+        label: "Legal proceedings on foot?",
+        kind: "bool",
+        required: true,
+        help: "Whether this dispute is already before a court or tribunal.",
+      },
     ],
   },
   {
@@ -298,12 +329,14 @@ export const STAGES: StageDef[] = [
         kind: "enum",
         options: ["yes", "no", "not_sure"],
         required: true,
+        help: "Whether you are asking for money back or a payment. Not sure is a perfectly good answer.",
       },
       {
         path: "outcome.fair_outcome",
         label: "What would be a fair outcome?",
         kind: "longtext",
         required: true,
+        help: "What you would like the firm to do to put things right, in your own words.",
       },
     ],
   },
@@ -311,27 +344,77 @@ export const STAGES: StageDef[] = [
     id: "contact",
     title: "Contact details",
     fields: [
-      { path: "complainant.first_name", label: "First name", kind: "text", required: true },
-      { path: "complainant.last_name", label: "Last name", kind: "text", required: true },
-      { path: "complainant.email", label: "Email", kind: "email", required: true },
-      { path: "complainant.dob", label: "Date of birth", kind: "date", required: true },
-      { path: "complainant.mobile", label: "Mobile", kind: "text", required: false },
-      { path: "complainant.address.line1", label: "Street address", kind: "text", required: true },
-      { path: "complainant.address.suburb", label: "Suburb", kind: "text", required: true },
+      {
+        path: "complainant.first_name",
+        label: "First name",
+        kind: "text",
+        required: true,
+        help: "Your given name, as the firm holds it on the account.",
+      },
+      {
+        path: "complainant.last_name",
+        label: "Last name",
+        kind: "text",
+        required: true,
+        help: "Your family name, as the firm holds it on the account.",
+      },
+      {
+        path: "complainant.email",
+        label: "Email",
+        kind: "email",
+        required: true,
+        help: "Where AFCA sends updates about your complaint.",
+      },
+      {
+        path: "complainant.dob",
+        label: "Date of birth",
+        kind: "date",
+        required: true,
+        help: "Used to match you to the account the firm holds.",
+      },
+      {
+        path: "complainant.mobile",
+        label: "Mobile",
+        kind: "text",
+        required: false,
+        help: "Optional. A number to reach you on if something needs a quick word.",
+      },
+      {
+        path: "complainant.address.line1",
+        label: "Street address",
+        kind: "text",
+        required: true,
+        help: "Your street number and name, including a unit number if you have one.",
+      },
+      {
+        path: "complainant.address.suburb",
+        label: "Suburb",
+        kind: "text",
+        required: true,
+        help: "The suburb or town of your postal address.",
+      },
       {
         path: "complainant.address.state",
         label: "State",
         kind: "enum",
         options: AU_STATES,
         required: true,
+        help: "The Australian state or territory of your postal address.",
       },
-      { path: "complainant.address.postcode", label: "Postcode", kind: "text", required: true },
+      {
+        path: "complainant.address.postcode",
+        label: "Postcode",
+        kind: "text",
+        required: true,
+        help: "The four-digit postcode of your postal address.",
+      },
       {
         path: "complainant.notify_by",
         label: "How should we contact you?",
         kind: "enum",
         options: ["email", "post", "sms"],
         required: true,
+        help: "Your preferred channel for updates: email, post, or a text message.",
       },
       {
         path: "complainant.pronoun",
@@ -339,6 +422,7 @@ export const STAGES: StageDef[] = [
         kind: "text",
         required: false,
         sensitive: true,
+        help: "How you would like to be referred to, such as she, he or they. Entirely optional.",
       },
       {
         path: "complainant.interpreter",
@@ -346,6 +430,7 @@ export const STAGES: StageDef[] = [
         kind: "bool",
         required: false,
         sensitive: true,
+        help: "AFCA can arrange one at no cost to you. Entirely optional.",
       },
       {
         path: "complainant.support_needs",
@@ -353,6 +438,7 @@ export const STAGES: StageDef[] = [
         kind: "text",
         required: false,
         sensitive: true,
+        help: "Anything that would make this easier for you, such as a preferred contact time. Entirely optional.",
       },
       {
         path: "complainant.currently_experiencing",
