@@ -53,7 +53,14 @@ const EXTRACTION = `How you work:
   that they complained, when, how, that no final reply came, and the service
   type — all at once. Then briefly confirm what you captured.
 - Leave a field out of the patch when you do not know it. Do not guess.
-- Dates can be written as the person said them ("3 Sept"); code normalises them.
+- Dates: Australian order only. In a patch write a date as DD/MM/YYYY ("03/09/2025")
+  or spelled out day-first ("3 September 2025"). Never year-first ("2025-09-03"),
+  never a timestamp, and never US month-first ("9/3/2025") — code reads the first
+  number as the day, so a US-ordered date silently becomes the wrong date.
+  The form state JSON below holds dates as YYYY-MM-DD; read them from there, but
+  never repeat that form back to the person. In your reply write "3 September 2025".
+- If they give only a month ("sometime in September"), ask for the day. Do not
+  invent one.
 - Set firm.no_reference true when they say they have no account or reference number.`;
 
 const DRAFTING = `Two moments matter most:
