@@ -119,7 +119,12 @@ function InfoTooltip({ label, help }: { label: string; help: string }) {
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
         onKeyDown={(event) => {
-          if (event.key === "Escape") setPinned(false);
+          // Both flags: focus opens the bubble too, so clearing only `pinned`
+          // would leave a keyboard user with no way to dismiss it short of
+          // tabbing away.
+          if (event.key !== "Escape") return;
+          setPinned(false);
+          setHovered(false);
         }}
         className={
           open
@@ -130,12 +135,14 @@ function InfoTooltip({ label, help }: { label: string; help: string }) {
         i
       </button>
       {open && (
-        // Anchored to the right edge: the pane is a narrow scrolling column, so
-        // a left-anchored bubble would run off it on the longer help strings.
+        // Anchored left, not right. The icon trails the label, so it sits near
+        // the left edge of the pane — hanging the bubble off its right edge
+        // pushes it into the scroll container's unreachable negative-x overflow
+        // and silently crops it. Growing rightwards, 208px clears the pane.
         <span
           id={id}
           role="tooltip"
-          className="absolute right-0 top-5 z-20 w-52 rounded-lg bg-afca-navy px-2.5 py-1.5 text-[10px] font-normal leading-snug text-white shadow-lg"
+          className="absolute left-0 top-5 z-20 w-52 rounded-lg bg-afca-navy px-2.5 py-1.5 text-[10px] font-normal leading-snug text-white shadow-lg"
         >
           {help}
         </span>
