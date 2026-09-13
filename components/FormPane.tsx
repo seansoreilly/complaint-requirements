@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   type ComplaintState,
   type FieldDef,
@@ -11,6 +12,20 @@ import {
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
 import { formatDateAU } from "@/lib/patch";
+
+/** A stored date, as opposed to one part-typed on its way to being stored. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Today where the person is, not in UTC. The picker offers dates from a
+ * calendar on their wall, so its ceiling has to come from the same one.
+ */
+function todayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 export interface StageStatus {
   id: string;
@@ -112,6 +127,7 @@ function Field({
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
   const options = optionsFor(field, state);
+  const pickerRef = useRef<HTMLInputElement>(null);
 
   const control = (() => {
     if (field.kind === "consent") {
@@ -242,7 +258,7 @@ function Field({
       );
     }
 
-    return (
+    const text = (
       <input
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
         // Dates are stored ISO and shown day-first. A part-typed date is not
@@ -258,6 +274,55 @@ function Field({
         placeholder={field.kind === "date" ? "DD/MM/YYYY — e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
+    );
+
+    if (field.kind !== "date") return text;
+
+    // Typing stays the primary way in — it accepts "3 Sept" and the other
+    // shapes people actually write. The picker is for the person who would
+    // rather not think about format at all, and it hands back ISO, which is
+    // already what we store. Its own value is blanked while a date is
+    // part-typed: type="date" takes nothing but ISO and complains otherwise.
+    return (
+      <div className="flex items-center gap-1.5">
+        {text}
+        <input
+          ref={pickerRef}
+          type="date"
+          value={typeof value === "string" && ISO_DATE.test(value) ? value : ""}
+          // A picked date is already whole, so it commits at once rather than
+          // waiting for a blur that a popup never really produces.
+          onChange={(event) => {
+            onEdit(field.path, event.target.value);
+            onCommit(field.path);
+          }}
+          // Neither a birth nor a complaint can be in the future, and the
+          // form says so on commit — the picker just declines to offer it.
+          max={todayIso()}
+          min="1900-01-01"
+          aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
+          className="sr-only"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const el = pickerRef.current;
+            if (!el) return;
+            // showPicker is the only reliable way to open it: clicking a date
+            // input lands on its day/month/year segments, not the calendar.
+            try {
+              el.showPicker();
+            } catch {
+              el.focus();
+            }
+          }}
+          title="Pick from a calendar"
+          aria-label={`Pick ${field.label.toLowerCase()} from a calendar`}
+          className="shrink-0 rounded-lg border border-afca-line bg-white px-2 py-1.5 text-xs text-afca-blue transition hover:border-afca-blue hover:text-afca-navy"
+        >
+          📅
+        </button>
+      </div>
     );
   })();
 
