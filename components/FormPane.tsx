@@ -10,6 +10,7 @@ import {
   getPath,
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
+import { formatDateAU } from "@/lib/patch";
 
 export interface StageStatus {
   id: string;
@@ -244,10 +245,17 @@ function Field({
     return (
       <input
         type={field.kind === "date" ? "text" : field.kind === "email" ? "email" : "text"}
-        value={typeof value === "string" ? value : ""}
+        // Dates are stored ISO and shown day-first. A part-typed date is not
+        // ISO, so it passes through as typed and reads back as DD/MM/YYYY once
+        // blur has committed it. Someone typing a full ISO date by hand sees it
+        // flip as the last digit lands — odd, but this is an Australian form
+        // and it lands on the format we want.
+        value={
+          typeof value !== "string" ? "" : field.kind === "date" ? formatDateAU(value) : value
+        }
         onChange={(event) => onEdit(field.path, event.target.value)}
         onBlur={() => onCommit(field.path)}
-        placeholder={field.kind === "date" ? "e.g. 3 Sept 2025" : ""}
+        placeholder={field.kind === "date" ? "DD/MM/YYYY — e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
     );

@@ -143,7 +143,9 @@ const MONTHS: Record<string, number> = {
  * day-and-month is read as the most recent such date, not a future one.
  */
 export function coerceDate(input: string, today = new Date()): string {
-  const value = input.trim();
+  // A model asked for a date sometimes returns a whole timestamp. The day is
+  // the part we want; the time it invented is not information.
+  const value = input.trim().replace(/^(\d{4}-\d{2}-\d{2})[T ].*$/, "$1");
   if (value.length === 0) return "";
 
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -157,7 +159,8 @@ export function coerceDate(input: string, today = new Date()): string {
     return format(year, month, day);
   }
 
-  const words = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-zA-Z]{3,})\.?(?:\s+(\d{2,4}))?$/.exec(value);
+  const words =
+    /^(\d{1,2})(?:st|nd|rd|th)?[\s-]+(?:of\s+)?([a-zA-Z]{3,})\.?(?:[,\s-]+(\d{2,4}))?$/.exec(value);
   if (words) {
     const month = MONTHS[words[2].slice(0, 3).toLowerCase()];
     if (!month) return "";
@@ -176,6 +179,18 @@ export function coerceDate(input: string, today = new Date()): string {
   }
 
   return "";
+}
+
+/**
+ * ISO to the way Australians read a date: DD/MM/YYYY. Storage stays ISO — it
+ * sorts and compares as a string — so this is the last step before a person
+ * sees it. Anything not a complete ISO date is passed through untouched: a
+ * half-typed date on its way through the form is not ours to reformat.
+ */
+export function formatDateAU(value: string): string {
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!iso) return value;
+  return `${iso[3]}/${iso[2]}/${iso[1]}`;
 }
 
 function expandYear(year: number): number {

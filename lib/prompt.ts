@@ -89,7 +89,14 @@ const EXTRACTION = `How you work:
   A decline is not an answer: leave the sensitive fields out of the patch rather
   than writing null strings or assuming interpreter is false. Once
   sensitive_offered is true, never offer them again unless the person asks.
-- Dates can be written as the person said them ("3 Sept"); code normalises them.
+- Dates: Australian order only. In a patch write a date as DD/MM/YYYY ("03/09/2025")
+  or spelled out day-first ("3 September 2025"). Never year-first ("2025-09-03"),
+  never a timestamp, and never US month-first ("9/3/2025") — code reads the first
+  number as the day, so a US-ordered date silently becomes the wrong date.
+  The form state JSON below holds dates as YYYY-MM-DD; read them from there, but
+  never repeat that form back to the person. In your reply write "3 September 2025".
+- If they give only a month ("sometime in September"), ask for the day. Do not
+  invent one.
 - Set firm.no_reference true when they say they have no account or reference number.`;
 
 const SCAMS = `If what they describe is a scam — someone impersonating their bank or a
