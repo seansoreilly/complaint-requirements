@@ -11,6 +11,7 @@ import {
   type StageDef,
   STAGES,
   getPath,
+  isUsable,
 } from "./schema";
 
 /** Does this field apply, given the branches the person has taken? */
@@ -22,6 +23,10 @@ export function applies(field: FieldDef, state: ComplaintState): boolean {
 export function isAnswered(field: FieldDef, state: ComplaintState): boolean {
   const value = getPath(state, field.path);
   if (value === null || value === undefined) return false;
+  // Present is not the same as usable. "not-an-email" typed into the form used
+  // to count as answered and earn the stage its completion tick, so the person
+  // was told they were done and the bad value shipped in the export.
+  if (!isUsable(field, value)) return false;
   if (typeof value === "string") return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   // A consent tick is only answered when actually ticked; for a yes/no question

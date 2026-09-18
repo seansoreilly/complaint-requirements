@@ -8,6 +8,7 @@ import {
   SERVICE_SUBTYPES,
   STAGES,
   getPath,
+  isUsable,
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
 
@@ -111,6 +112,13 @@ function Field({
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
   const options = optionsFor(field, state);
+
+  // Derived from the value rather than tracked as its own state, so it appears
+  // and clears as they type. Empty is not invalid — a field they have not
+  // reached yet is not an error, and neither is one half-typed.
+  const filled = typeof value === "string" && value.trim().length > 0;
+  const invalid = filled && !isUsable(field, value);
+  const domId = `field-${field.path.replace(/\./g, "-")}`;
 
   const control = (() => {
     if (field.kind === "consent") {
@@ -248,7 +256,13 @@ function Field({
         onChange={(event) => onEdit(field.path, event.target.value)}
         onBlur={() => onCommit(field.path)}
         placeholder={field.kind === "date" ? "e.g. 3 Sept 2025" : ""}
-        className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? `${domId}-error` : undefined}
+        className={
+          invalid
+            ? "w-full rounded-lg border-2 border-afca-amber bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
+            : "w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
+        }
       />
     );
   })();
@@ -275,6 +289,13 @@ function Field({
         {answered && <span className="text-[10px] font-bold text-emerald-600">✓</span>}
       </div>
       {control}
+      {invalid && (
+        <p id={`${domId}-error`} className="mt-1 text-[11px] font-semibold text-afca-amber">
+          {field.kind === "email"
+            ? "That doesn't look like a complete email address yet."
+            : "That value can't be used as it is."}
+        </p>
+      )}
       {field.help && <p className="mt-1 text-[10px] text-afca-navy/50">{field.help}</p>}
     </div>
   );

@@ -14,6 +14,7 @@ import {
   STAGES,
   emptyState,
   getPath,
+  isValidEmail,
   setPath,
 } from "./schema";
 import { applies } from "./next";
@@ -168,9 +169,9 @@ function isFuture(iso: string, today: Date): boolean {
   return iso > cutoff;
 }
 
-export function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
+// Now defined in schema.ts so the form panel and progress can share it without
+// importing this module; re-exported here to keep the existing import sites.
+export { isValidEmail };
 
 /** Case-insensitive match back to the canonical enum spelling. */
 function coerceEnum(value: string, options: readonly string[]): string {

@@ -29,10 +29,11 @@ describe("applyServerDelta", () => {
     expect(merged.firm.name).toBe("Westpac");
   });
 
-  it("lets the server win when both sides changed the same field", () => {
-    // Conflict rule: the server's write came from the person's own chat
-    // message this turn, which is the more deliberate statement of intent
-    // than a form field mid-edit — so on a genuine conflict, the server wins.
+  it("lets the person win when both sides changed the same field", () => {
+    // Conflict rule, reversed from the original server-wins: the form edit
+    // happened after the chat message that produced the server's write, often
+    // because the person saw the reply going wrong. Overwriting it reads as
+    // the form fighting back.
     const snapshot = emptyState();
     const current = structuredClone(snapshot);
     current.firm.name = "Typed while thinking";
@@ -41,7 +42,39 @@ describe("applyServerDelta", () => {
 
     const merged = applyServerDelta(current, snapshot, server);
 
+    expect(merged.firm.name).toBe("Typed while thinking");
+  });
+
+  it("re-derives the member number for whichever firm name survived", () => {
+    // The number belongs to the name. A person renaming the firm mid-flight
+    // must not be left holding the other firm's member number.
+    const snapshot = emptyState();
+    snapshot.firm.name = "AustralianSuper";
+    snapshot.firm.afca_member_no = "10657";
+    const current = structuredClone(snapshot);
+    current.firm.name = "Westpac";
+    const server = structuredClone(snapshot);
+
+    const merged = applyServerDelta(current, snapshot, server);
+
     expect(merged.firm.name).toBe("Westpac");
+    expect(merged.firm.afca_member_no).not.toBe("10657");
+  });
+
+  it("does not leave the service type contradicting the issues", () => {
+    // The concurrent-edit bug that produced "Credit" beside the
+    // superannuation issue "Denial of insurance claim".
+    const snapshot = emptyState();
+    snapshot.service.type = "Superannuation";
+    snapshot.complaint.issues = ["Denial of insurance claim"];
+    const current = structuredClone(snapshot);
+    current.service.type = "Credit";
+    const server = structuredClone(snapshot);
+
+    const merged = applyServerDelta(current, snapshot, server);
+
+    expect(merged.service.type).toBe("Credit");
+    expect(merged.complaint.issues).toEqual([]);
   });
 
   it("resolves nested address paths independently", () => {
@@ -103,7 +136,11 @@ describe("applyServerDelta", () => {
 
     const merged = applyServerDelta(current, snapshot, server);
 
-    expect(merged).toEqual(server);
+    // Equal but for the member number, which is re-derived from the name
+    // rather than trusted from the reply — the fixture's AustralianSuper had
+    // no number on it, and the directory supplies one.
+    expect({ ...merged, firm: { ...merged.firm, afca_member_no: "" } }).toEqual(server);
+    expect(merged.firm.afca_member_no).toBe("10657");
   });
 
   it("does not mutate any of the state it was given", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatPane, type Message } from "@/components/ChatPane";
 import { MainMenu } from "@/components/MainMenu";
 import { DraftCard } from "@/components/DraftCard";
@@ -9,11 +9,14 @@ import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, getPath, setPath } from "@/lib/schema";
 import { commitDate, reconcile } from "@/lib/patch";
 import { applyServerDelta } from "@/lib/merge-state";
+import { memberNumberFor } from "@/lib/directory";
 import { missingFor, stageProgress } from "@/lib/next";
 
 const OPENER =
   "Hello — I can help you put together a complaint to AFCA, just by talking it through. " +
-  "Nothing here is sent anywhere; it's a demo.\n\nTo start: which financial firm is your complaint about?";
+  "This is a demo: nothing reaches AFCA or your firm, but what you type is sent to an AI " +
+  "to work out a reply, so please use made-up personal details." +
+  "\n\nTo start: which financial firm is your complaint about?";
 
 export default function Page() {
   const [state, setState] = useState<ComplaintState>(emptyState);
@@ -23,6 +26,14 @@ export default function Page() {
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const [mode, setMode] = useState<"claude" | "mock" | null>(null);
   const [showReview, setShowReview] = useState(false);
+  /**
+   * Which conversation is current. Start over bumps this, and an in-flight
+   * request compares the value it captured before applying anything — the
+   * reply to a conversation that no longer exists is discarded rather than
+   * merged into the fresh one.
+   */
+  const generationRef = useRef(0);
+  const inflightRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetch("/api/chat")
@@ -47,6 +58,16 @@ export default function Page() {
       // from exactly this, so it is the baseline the response gets diffed
       // against, not whatever `state` has become by the time the reply lands.
       const snapshot = state;
+
+      // Which conversation this request belongs to. Start over bumps the
+      // generation, so a reply that was already in flight can tell that the
+      // conversation it was answering no longer exists — without this, a slow
+      // response landed after a reset and repopulated the cleared form.
+      const generation = generationRef.current;
+      inflightRef.current?.abort();
+      const controller = new AbortController();
+      inflightRef.current = controller;
+
       setMessages((previous) => [...previous, { role: "user", content: text }]);
       setPending(true);
       setNotes([]);
@@ -56,8 +77,13 @@ export default function Page() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ state: snapshot, history, message: text, focus: focusPath ?? undefined }),
+          signal: controller.signal,
         });
         const data = await response.json();
+
+        // Checked after every await: the reset may have happened while this
+        // request was in flight, and nothing it carries applies any more.
+        if (generation !== generationRef.current) return;
 
         if (!response.ok) {
           setMessages((previous) => [
@@ -78,12 +104,16 @@ export default function Page() {
         setNotes((data.issues ?? []).map((issue: { message: string }) => issue.message));
         setFocusPath(null);
       } catch {
+        // An abort lands here too, and a conversation that has been reset must
+        // not be told the assistant was unreachable — there is nothing left to
+        // retry, and the message would appear under a fresh opener.
+        if (generation !== generationRef.current) return;
         setMessages((previous) => [
           ...previous,
           { role: "assistant", content: "I couldn't reach the assistant just then. Try again?" },
         ]);
       } finally {
-        setPending(false);
+        if (generation === generationRef.current) setPending(false);
       }
     },
     [messages, state, focusPath],
@@ -94,6 +124,17 @@ export default function Page() {
     setState((previous) => {
       const next = structuredClone(previous);
       setPath(next, path, value);
+      // The member number belongs to the firm name, so it cannot outlive an
+      // edit to it: changing AustralianSuper to Westpac used to leave 10657
+      // on screen against the wrong firm. Re-derived here rather than merely
+      // cleared, so a recognised name gets its number immediately.
+      //
+      // Only the number, never the name: canonicalising per keystroke would
+      // rewrite "westpac" to "Westpac" under the cursor. The next turn's
+      // server response does that, once they have stopped typing.
+      if (path === "firm.name") {
+        next.firm.afca_member_no = memberNumberFor(typeof value === "string" ? value : "");
+      }
       // Changing a field here can close a branch or switch the service type
       // just as a chat turn can, so it gets the same reconciliation. The field
       // the person just edited is theirs and is never cleared. Dates are left
@@ -151,6 +192,12 @@ export default function Page() {
   }, []);
 
   const startOver = useCallback(() => {
+    // Abandon anything in flight before clearing, so a reply that is already
+    // on its way cannot repopulate the form the person just emptied.
+    generationRef.current += 1;
+    inflightRef.current?.abort();
+    inflightRef.current = null;
+    setPending(false);
     setState(emptyState());
     setMessages([{ role: "assistant", content: OPENER }]);
     setNotes([]);

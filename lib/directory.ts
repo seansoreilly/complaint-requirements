@@ -137,3 +137,17 @@ export function lookupFirm(query: string): LookupResult {
   }
   return { status: "ambiguous", candidates: ranked.slice(0, 4) };
 }
+
+/**
+ * The member number a firm name resolves to, or "" when it resolves to nothing.
+ *
+ * The number belongs to the name and must never outlive it: editing the firm
+ * from AustralianSuper to Westpac used to leave AustralianSuper's 10657 sitting
+ * on the form, attached to the wrong firm entirely. Anywhere the name can
+ * change — the chat route, the merge, a person typing in the form — the number
+ * is re-derived from this rather than carried over.
+ */
+export function memberNumberFor(name: string): string {
+  const result = lookupFirm(name);
+  return result.status === "matched" ? result.firm.afca_member_no : "";
+}

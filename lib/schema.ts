@@ -394,3 +394,27 @@ export function findField(path: string): FieldDef | undefined {
   }
   return undefined;
 }
+
+/**
+ * Semantic validity for a field's value — is this usable as the thing it
+ * claims to be, not merely non-empty?
+ *
+ * This lives in the schema so every path can share it. It used to exist only
+ * inside cleanPatch, which meant the model's answers were checked and a
+ * person's typing was not: "not-an-email" typed into the form counted as
+ * answered, earned a completion tick, and shipped in the export. A field is
+ * either valid everywhere or valid nowhere.
+ */
+export function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/** Whether a value is usable for this field's kind. Empty is not this check's business. */
+export function isUsable(field: FieldDef, value: unknown): boolean {
+  if (field.kind === "email" && typeof value === "string") return isValidEmail(value);
+  // A date is stored ISO once committed; anything else never passed commitDate.
+  if (field.kind === "date" && typeof value === "string") {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+  }
+  return true;
+}
