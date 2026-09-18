@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { emptyState, findField, isUsable, isValidEmail } from "../schema";
 import { isAnswered, missingFor, nextField, stageProgress } from "../next";
 import { cleanPatch } from "../patch";
+import { plainTextSummary, summarise } from "../export";
 
 const emailField = findField("complainant.email");
 
@@ -70,6 +71,27 @@ describe("an invalid value is not an answer", () => {
     // been silently ticked off on the way past.
     expect(nextField(state)?.path).not.toBe(undefined);
     expect(missingFor(state).some((m) => m.path === "complainant.email")).toBe(true);
+  });
+});
+
+describe("the summary does not present an unusable value as finished", () => {
+  it("flags it in the review rows and the pasteable text", () => {
+    const state = emptyState();
+    state.complainant.email = "not-an-email";
+    const rows = summarise(state).flatMap((s) => s.rows);
+    const email = rows.find((r) => r.label === "Email");
+    expect(email?.value).toContain("not-an-email");
+    expect(email?.value).toContain("needs checking");
+    expect(plainTextSummary(state)).toContain("needs checking");
+  });
+
+  it("leaves a usable value alone", () => {
+    const state = emptyState();
+    state.complainant.email = "sam@example.com";
+    const email = summarise(state)
+      .flatMap((s) => s.rows)
+      .find((r) => r.label === "Email");
+    expect(email?.value).toBe("sam@example.com");
   });
 });
 

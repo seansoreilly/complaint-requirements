@@ -1,5 +1,5 @@
 /** Turning the finished state into things a person can take away. */
-import { type ComplaintState, STAGES, getPath } from "./schema";
+import { type ComplaintState, type FieldDef, STAGES, getPath, isUsable } from "./schema";
 import { applies } from "./next";
 
 function display(value: unknown, kind?: string): string {
@@ -10,6 +10,21 @@ function display(value: unknown, kind?: string): string {
   if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
   if (value === "not_sure") return "Not sure";
   return String(value);
+}
+
+/**
+ * A field's value for the summary, flagged when it cannot be used.
+ *
+ * The summary is what a person reads before acting on this, and what they
+ * paste into the real AFCA form. Showing "not-an-email" plainly, in a row that
+ * looks like every other answered row, hands them a problem they cannot see.
+ * The value is still shown — it is theirs — but it is not shown as finished.
+ */
+function valueFor(field: FieldDef, state: ComplaintState): string {
+  const raw = getPath(state, field.path);
+  const shown = display(raw, field.kind);
+  if (shown !== "—" && !isUsable(field, raw)) return `${shown} (needs checking)`;
+  return shown;
 }
 
 export interface SummarySection {
@@ -26,7 +41,7 @@ export function summarise(state: ComplaintState): SummarySection[] {
       .filter((field) => applies(field, state))
       .map((field) => ({
         label: field.label,
-        value: display(getPath(state, field.path), field.kind),
+        value: valueFor(field, state),
       }));
     if (stage.id === "firm" && state.firm.afca_member_no) {
       rows.splice(1, 0, { label: "AFCA member number", value: state.firm.afca_member_no });

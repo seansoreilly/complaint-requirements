@@ -61,6 +61,39 @@ describe("applyServerDelta", () => {
     expect(merged.firm.afca_member_no).not.toBe("10657");
   });
 
+  it("drops the server's issues when the person's service type won", () => {
+    // The reported bug exactly: nothing is set yet, the server decides it is a
+    // superannuation insurance denial, and mid-flight the person picks Credit.
+    // The server's issue belongs to the type that lost.
+    const snapshot = emptyState();
+    const current = structuredClone(snapshot);
+    current.service.type = "Credit";
+    const server = structuredClone(snapshot);
+    server.service.type = "Superannuation";
+    server.complaint.issues = ["Denial of insurance claim"];
+
+    const merged = applyServerDelta(current, snapshot, server);
+
+    expect(merged.service.type).toBe("Credit");
+    expect(merged.complaint.issues).toEqual([]);
+  });
+
+  it("drops a stale issue even when the type was already set", () => {
+    // Here reconcile's own typeChanged fires, but the server's write to issues
+    // is in `taken` — so protecting it would preserve the stale value.
+    const snapshot = emptyState();
+    snapshot.service.type = "Superannuation";
+    const current = structuredClone(snapshot);
+    current.service.type = "Credit";
+    const server = structuredClone(snapshot);
+    server.complaint.issues = ["Denial of insurance claim"];
+
+    const merged = applyServerDelta(current, snapshot, server);
+
+    expect(merged.service.type).toBe("Credit");
+    expect(merged.complaint.issues).toEqual([]);
+  });
+
   it("does not leave the service type contradicting the issues", () => {
     // The concurrent-edit bug that produced "Credit" beside the
     // superannuation issue "Denial of insurance claim".

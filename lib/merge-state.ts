@@ -106,6 +106,18 @@ export function applyServerDelta(
     taken,
   );
 
+  // The server's subtype and issues are only meaningful for the service type
+  // the server was reasoning about. If the person's type won the conflict,
+  // those writes describe a type that is no longer selected, and reconcile
+  // cannot see it: measured from the snapshot the person's type may be the
+  // only change, and the server's issue write is in `taken`, so protecting it
+  // would preserve exactly the stale value. This is the "Credit" beside
+  // "Denial of insurance claim" case.
+  if (next.service.type !== server.service.type) {
+    if (taken.has("service.subtype")) next.service.subtype = "";
+    if (taken.has("complaint.issues")) next.complaint.issues = [];
+  }
+
   // A merge of two individually-valid states can still be invalid: the person
   // switching service.type while the server writes an issue from the old type's
   // list leaves the two contradicting each other.
