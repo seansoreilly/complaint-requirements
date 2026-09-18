@@ -6,7 +6,7 @@
  * returns the authoritative next state. The model never owns the state.
  */
 import { NextResponse } from "next/server";
-import { type ComplaintState, emptyState } from "@/lib/schema";
+import { type ComplaintState, emptyState, findField } from "@/lib/schema";
 import { applyPatch, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
@@ -33,6 +33,24 @@ function sanitiseState(input: unknown): ComplaintState {
   const parsed = patchSchema.safeParse(input);
   if (!parsed.success) return emptyState();
   return applyPatch(emptyState(), parsed.data);
+}
+
+/**
+ * A turn's message is a person typing into a chat box, not a payload. The cap
+ * bounds what reaches the model: without it a single request can carry as much
+ * input as the caller cares to send, and the paid brain is billed for it.
+ */
+const MESSAGE_MAX = 10_000;
+
+/**
+ * The focus path steers the model at one field, so it must name a real one.
+ * `findField` is the schema's own list, which keeps the allowlist from drifting
+ * as fields are added — and keeps a path like `__proto__.polluted` out of a
+ * prompt that interpolates it.
+ */
+function sanitiseFocus(input: unknown): string | undefined {
+  if (typeof input !== "string") return undefined;
+  return findField(input) ? input : undefined;
 }
 
 function sanitiseHistory(input: unknown): ChatTurn[] {
@@ -116,14 +134,26 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const message = (body.message ?? "").trim();
+  // `?? ""` only catches null and undefined, so a message of the wrong type —
+  // {"message": 42} — reached .trim() and crashed the route with a 500. The
+  // type is the check; the nullish default was never one.
+  if (typeof body.message !== "string") {
+    return NextResponse.json({ error: "Message is required." }, { status: 400 });
+  }
+  const message = body.message.trim();
   if (message.length === 0) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
+  }
+  if (message.length > MESSAGE_MAX) {
+    return NextResponse.json(
+      { error: `Message is too long — keep it under ${MESSAGE_MAX} characters.` },
+      { status: 400 },
+    );
   }
 
   const incoming = sanitiseState(body.state);
   const history = sanitiseHistory(body.history);
-  const focus = typeof body.focus === "string" ? body.focus : undefined;
+  const focus = sanitiseFocus(body.focus);
 
   // Resolve the firm from whatever state we were handed, so the prompt carries
   // real directory facts before the model speaks.
