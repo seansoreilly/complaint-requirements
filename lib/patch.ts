@@ -281,6 +281,89 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * The approval boundary, enforced rather than requested.
+ *
+ * The narrative and the outcome are the two fields a person is asked to sign
+ * off before they become their complaint. The prompt says to propose in
+ * `drafts.*` and write the real field only once they approve — but a prompt
+ * instruction is a request, and the model could write `complaint.narrative`
+ * straight out, putting words the person never saw into the document they are
+ * about to lodge.
+ *
+ * So the rule lives here: the model may promote text into the final field only
+ * when it matches the draft already on screen. Anything else is redirected
+ * back into `drafts.*` as a fresh proposal, which is what it actually is.
+ *
+ * What this deliberately does NOT gate is the person's own writing. The route
+ * applies it to the model's patch; direct edits and the approve button in the
+ * form panel are the person acting on their own text, and never pass through.
+ */
+export function gateDrafts(
+  patch: ComplaintPatch,
+  state: ComplaintState,
+  approvedText: (kind: "narrative" | "fair_outcome") => string | null = () => null,
+): CleanResult {
+  const next: ComplaintPatch = structuredClone(patch);
+  const issues: PatchIssue[] = [];
+
+  const fields = [
+    {
+      kind: "narrative" as const,
+      path: "complaint.narrative",
+      proposed: next.complaint?.narrative,
+      pending: state.drafts.narrative,
+      clear: () => {
+        if (next.complaint) delete next.complaint.narrative;
+      },
+      redirect: (text: string) => {
+        next.drafts = { ...next.drafts, narrative: text };
+      },
+    },
+    {
+      kind: "fair_outcome" as const,
+      path: "outcome.fair_outcome",
+      proposed: next.outcome?.fair_outcome,
+      pending: state.drafts.fair_outcome,
+      clear: () => {
+        if (next.outcome) delete next.outcome.fair_outcome;
+      },
+      redirect: (text: string) => {
+        next.drafts = { ...next.drafts, fair_outcome: text };
+      },
+    },
+  ];
+
+  for (const field of fields) {
+    const proposed = field.proposed;
+    if (typeof proposed !== "string") continue;
+
+    // Clearing a field is not a commitment of unseen words, so it passes.
+    if (proposed.trim() === "") continue;
+
+    // Promoting the draft the person is looking at: this is the approval the
+    // prompt describes, and the only way text reaches the final field.
+    if (field.pending.trim() !== "" && proposed.trim() === field.pending.trim()) continue;
+
+    // The person's own words, echoed back by the model in the same turn they
+    // typed them. Their text is theirs to commit; it is not a proposal.
+    if (proposed.trim() === approvedText(field.kind)?.trim()) continue;
+
+    // Everything else is the model writing text nobody has approved. Redirect
+    // it to the draft slot. The overwrite order matters: an approval-shaped
+    // patch usually clears drafts.* in the same object, and leaving that ""
+    // in place would discard the proposal entirely.
+    field.clear();
+    field.redirect(proposed);
+    issues.push({
+      path: field.path,
+      message: "Needs your approval before it goes in — shown as a draft instead.",
+    });
+  }
+
+  return { patch: next, issues };
+}
+
+/**
  * Clear answers that the latest change has just made inapplicable.
  *
  * Two ways an answer can go stale, and both produce a document that

@@ -69,7 +69,14 @@ const DRAFTING = `Two moments matter most:
 2. The outcome sought. "I just want it fixed" is not yet an outcome. Ask what
    would actually put things right, then propose a concrete, fair and reasonable
    statement in drafts.fair_outcome for them to approve. As with the narrative,
-   write outcome.fair_outcome only once they have approved it, and clear the draft.`;
+   write outcome.fair_outcome only once they have approved it, and clear the draft.
+
+This one is enforced in code, not left to you: complaint.narrative and
+outcome.fair_outcome are only accepted when the text matches the draft the
+person is currently looking at, or what they typed themselves this turn.
+Anything else is redirected back into drafts.* as a new proposal. So to change
+the wording, put the new version in drafts.* and ask again — writing it
+straight into the final field does not commit it, it just re-drafts it.`;
 
 function stageOutline(): string {
   return STAGES.map((stage, index) => {

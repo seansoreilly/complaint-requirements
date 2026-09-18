@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { type ComplaintState, emptyState, findField } from "@/lib/schema";
-import { applyPatch, parsePatch } from "@/lib/patch";
+import { applyPatch, gateDrafts, parsePatch } from "@/lib/patch";
 import { type Firm, lookupFirm } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
 import { ensureAsk } from "@/lib/continue";
@@ -176,9 +176,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { patch, issues } = parsePatch(turn.patch);
+  const parsed = parsePatch(turn.patch);
   // The member number is the directory's to assign, never the model's.
-  if (patch.firm) delete patch.firm.afca_member_no;
+  if (parsed.patch.firm) delete parsed.patch.firm.afca_member_no;
+
+  // Approval is a boundary in code, not an instruction in the prompt: the model
+  // cannot write the narrative or the outcome sought unless the text is the
+  // draft the person has already seen, or the words they just typed themselves.
+  const gated = gateDrafts(parsed.patch, resolvedBefore.state, () => message);
+  const patch = gated.patch;
+  const issues = [...parsed.issues, ...gated.issues];
+
   const applied = applyPatch(resolvedBefore.state, patch);
 
   // The firm may have only just been named, so resolve again after applying.
