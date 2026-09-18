@@ -188,6 +188,11 @@ describe("contact details can be given by talking", () => {
     const script: [string, string?][] = [
       ["I emailed AustralianSuper on 3 Sept about my insurance being cancelled without warning and they still haven't replied."],
       ["yes that's right"],
+      // Which cover, and what went wrong, are now asked rather than inferred:
+      // "insurance was cancelled" does not say it was death cover, nor that a
+      // claim was denied. The script answers them as a person would.
+      ["it was the death cover", "service.subtype"],
+      ["they kept charging me premiums for it as well", "complaint.issues"],
       ["I don't have an account number", "firm.reference"],
       ["no", "open_afca_complaint"],
       ["yes I agree to both", "consents.authority"],

@@ -208,7 +208,12 @@ function guessSubtype(type: string, text: string): string {
     if (/\b(income protection)\b/i.test(text))
       return "Insurance in superannuation (income protection)";
     if (/\b(death|beneficiar)\b/i.test(text)) return "Death benefit distribution";
-    if (/\b(insurance|cover|cancelled)\b/i.test(text))
+    // "my insurance was cancelled" says nothing about which cover it was.
+    // Naming death cover here put a kind of insurance the person never
+    // mentioned into their complaint and ticked the field as complete, so
+    // they were never asked. A guess this consequential has to be a question:
+    // leaving it blank is what makes the form ask.
+    if (/\b(death cover|life cover|life insurance)\b/i.test(text))
       return "Insurance in superannuation (death cover)";
     if (/\b(fee|charge)\b/i.test(text)) return "Fees and charges";
     if (/\b(rollover|transfer)\b/i.test(text)) return "Rollover / transfer delay";
@@ -228,7 +233,11 @@ function guessIssues(type: string, text: string): string[] {
   const options = SERVICE_ISSUES[type];
   if (!options) return [];
   const issues: string[] = [];
-  if (/\b(denied|declined|rejected|knocked back|cancelled|cancelling|stopped|terminated|without warning)\b/i.test(text)) {
+  // A refusal only. "Cancelled", "stopped" and "terminated" describe a policy
+  // ending, which is not the same complaint as a claim being refused — reading
+  // them as a denial put "Denial of insurance claim" on a complaint that was
+  // about cancellation, and marked it answered so it was never queried.
+  if (/\b(denied|declined|rejected|knocked back|refused)\b/i.test(text)) {
     const denial = options.find((o) => /denial|responsible/i.test(o));
     if (denial) issues.push(denial);
   }
@@ -236,7 +245,9 @@ function guessIssues(type: string, text: string): string[] {
     const delay = options.find((o) => /delay/i.test(o));
     if (delay) issues.push(delay);
   }
-  if (/\b(fee|charge|premium|interest)\b/i.test(text)) {
+  // Inflections count: someone says "they kept charging me premiums", not
+  // "premium". \b(charge|premium)\b matched neither.
+  if (/\b(fees?|charg(e|es|ed|ing)|premiums?|interest)\b/i.test(text)) {
     const fees = options.find((o) => /fee|premium|interest/i.test(o));
     if (fees) issues.push(fees);
   }
