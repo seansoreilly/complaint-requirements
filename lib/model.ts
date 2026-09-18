@@ -70,18 +70,31 @@ export async function runTurn(args: {
   }
 
   const client = new Anthropic();
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    system: buildSystemPrompt({ state, firm, focusPath }),
-    messages: [
-      ...history.map((turn) => ({ role: turn.role, content: turn.content })),
-      { role: "user" as const, content: message },
-    ],
-    tools: [turnTool],
-    tool_choice: { type: "tool", name: turnTool.name },
-  });
+  const response = await client.messages.create(
+    {
+      model: MODEL,
+      // Left as it is deliberately. Adaptive thinking spends from this budget,
+      // so trimming it does not reliably save money — it truncates the tool
+      // call, the parse fails, and the person loses the turn and pays anyway.
+      // Cost is bounded by the deadline and the caller limit instead.
+      max_tokens: 16000,
+      thinking: { type: "adaptive" },
+      system: buildSystemPrompt({ state, firm, focusPath }),
+      messages: [
+        ...history.map((turn) => ({ role: turn.role, content: turn.content })),
+        { role: "user" as const, content: message },
+      ],
+      tools: [turnTool],
+      tool_choice: { type: "tool", name: turnTool.name },
+    },
+    {
+      // The SDK defaults to a ten-minute timeout and retries on top of it, so
+      // one wedged request could hold a function open and be billed three
+      // times over. A chat turn that has taken a minute has already failed.
+      timeout: 60_000,
+      maxRetries: 1,
+    },
+  );
 
   const call = response.content.find((block) => block.type === "tool_use");
   const result = turnSchema.safeParse(call?.input);

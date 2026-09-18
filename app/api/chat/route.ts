@@ -13,8 +13,20 @@ import { missingFor, nextField, stageProgress } from "@/lib/next";
 import { ensureAsk } from "@/lib/continue";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
 import { patchSchema } from "@/lib/patch";
+import { RateLimiter, callerKey } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+/**
+ * A platform-enforced ceiling on the turn, just above the model client's own
+ * 60s deadline so the client fails first with a message the person can read.
+ */
+export const maxDuration = 70;
+
+/**
+ * Shared by the requests this instance happens to serve — see lib/rate-limit.ts
+ * for why that is a reducer rather than a guarantee.
+ */
+const limiter = new RateLimiter();
 
 interface ChatRequest {
   state?: ComplaintState;
@@ -63,7 +75,10 @@ function sanitiseHistory(input: unknown): ChatTurn[] {
       ((turn as ChatTurn).role === "user" || (turn as ChatTurn).role === "assistant") &&
       typeof (turn as ChatTurn).content === "string",
     )
-    .slice(-20);
+    .slice(-20)
+    // Capping the count alone bounds nothing: twenty turns of unbounded text
+    // is still unbounded, and all of it is billed on the way to the model.
+    .map((turn) => ({ ...turn, content: turn.content.slice(0, MESSAGE_MAX) }));
 }
 
 /**
@@ -151,9 +166,41 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  // Only the paid brain is worth rationing: the offline one costs nothing and
+  // the limiter would otherwise refuse the demo and its own route tests.
+  const metered = brainMode() === "claude";
+  let limited = false;
+  if (metered) {
+    const decision = limiter.take(callerKey(request.headers));
+    if (!decision.ok) {
+      return NextResponse.json(
+        {
+          error:
+            decision.reason === "concurrency"
+              ? "The assistant is busy just now — try again in a moment."
+              : "That's a lot of messages very quickly. Give it a minute.",
+        },
+        { status: 429, headers: { "Retry-After": String(decision.retryAfter) } },
+      );
+    }
+    limited = true;
+  }
+
+  try {
+    return await handleTurn(body, message, sanitiseFocus(body.focus), sanitiseHistory(body.history));
+  } finally {
+    if (limited) limiter.release();
+  }
+}
+
+/** The turn itself, once the request has been accepted. */
+async function handleTurn(
+  body: ChatRequest,
+  message: string,
+  focus: string | undefined,
+  history: ChatTurn[],
+): Promise<NextResponse> {
   const incoming = sanitiseState(body.state);
-  const history = sanitiseHistory(body.history);
-  const focus = sanitiseFocus(body.focus);
 
   // Resolve the firm from whatever state we were handed, so the prompt carries
   // real directory facts before the model speaks.

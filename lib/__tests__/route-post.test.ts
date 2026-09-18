@@ -7,8 +7,10 @@
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+const brainMode = vi.fn(() => "mock" as "mock" | "claude");
+
 vi.mock("../model", () => ({
-  brainMode: () => "mock",
+  brainMode: () => brainMode(),
   runTurn: vi.fn(async () => ({
     reply: "Thanks — what happened?",
     patch: {},
@@ -96,6 +98,45 @@ describe("POST /api/chat request envelope", () => {
     const response = await POST(post({ message: "hello", history }));
     expect(response.status).toBe(200);
     expect(vi.mocked(runTurn).mock.calls[0][0].history.length).toBeLessThanOrEqual(20);
+  });
+
+  it("truncates each history turn, not just their number", async () => {
+    const history = [{ role: "user" as const, content: "x".repeat(50_000) }];
+    await POST(post({ message: "hello", history }));
+    const forwarded = vi.mocked(runTurn).mock.calls[0][0].history;
+    expect(forwarded[0].content.length).toBeLessThanOrEqual(10_000);
+  });
+
+  it("does not ration the free offline brain", async () => {
+    for (let i = 0; i < 30; i += 1) {
+      const response = await POST(post({ message: `turn ${i}` }));
+      expect(response.status).toBe(200);
+    }
+  });
+
+  it("refuses a caller who floods the paid brain", async () => {
+    brainMode.mockReturnValue("claude");
+    try {
+      const headers = { "content-type": "application/json", "x-forwarded-for": "203.0.113.9" };
+      const flood = (): Request =>
+        new Request("http://localhost/api/chat", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ message: "hello" }),
+        });
+
+      let refused = 0;
+      for (let i = 0; i < 40; i += 1) {
+        const response = await POST(flood());
+        if (response.status === 429) {
+          refused += 1;
+          expect(response.headers.get("Retry-After")).toBeTruthy();
+        }
+      }
+      expect(refused).toBeGreaterThan(0);
+    } finally {
+      brainMode.mockReturnValue("mock");
+    }
   });
 
   it("answers a well-formed turn with the authoritative state", async () => {
