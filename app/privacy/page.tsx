@@ -17,9 +17,26 @@ export default function PrivacyPage() {
       <h1 className="mt-6 text-2xl font-extrabold tracking-tight text-afca-navy sm:text-3xl">
         Your data
       </h1>
+      {/* This line used to say "everything stays in your browser", which the two
+          sections below contradict: messages are posted to this server and, when a
+          key is configured, on to Anthropic. A privacy summary that overstates the
+          protection is worse than none, because it is the part people actually read. */}
       <p className="mt-2 text-sm text-afca-navy/70">
-        The short version: everything stays in your browser, and nothing is sent to AFCA.
+        The short version: nothing is sent to AFCA or any financial firm, but your messages
+        <em> are</em> sent to this site&rsquo;s server — and on to Anthropic when the AI
+        assistant is switched on — so please use made-up details, not your real ones.
       </p>
+
+      <section className="mt-6 rounded-2xl border-2 border-afca-blue bg-white p-5">
+        <h2 className="text-sm font-extrabold uppercase tracking-[0.08em] text-afca-navy">
+          Please use made-up details
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-afca-navy">
+          This is a demonstration, so there is no reason to enter a real name, date of birth,
+          email address, phone number or account number — and good reason not to. Invented
+          details exercise every part of the demo exactly as real ones would.
+        </p>
+      </section>
 
       <section className="mt-8 rounded-2xl border-2 border-afca-yellow bg-afca-cream p-5">
         <h2 className="text-sm font-extrabold uppercase tracking-[0.08em] text-afca-navy">

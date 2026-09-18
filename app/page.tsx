@@ -176,8 +176,9 @@ export default function Page() {
               detail is kept for wider viewports and the headline carries it on phones. */}
           <span className="ml-1.5 hidden font-normal sm:inline">
             Not affiliated with, endorsed by, or connected to the Australian Financial Complaints
-            Authority. Nothing you enter is submitted or sent anywhere, and the firm details are
-            invented. To make a real complaint, go to{" "}
+            Authority. Nothing is submitted to AFCA or any firm, and the firm details are
+            invented — but messages are sent to this server and to Anthropic&rsquo;s AI, so please
+            use made-up personal details. To make a real complaint, go to{" "}
             <a
               href="https://www.afca.org.au"
               target="_blank"
@@ -189,7 +190,7 @@ export default function Page() {
             .
           </span>
           <span className="ml-1.5 font-normal sm:hidden">
-            Nothing is submitted.{" "}
+            Not sent to AFCA. Use made-up details.{" "}
             <a href="/privacy" className="underline underline-offset-2">
               What happens to your data
             </a>
