@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 212 unit tests
+npm test         # 352 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -38,6 +38,7 @@ it, applies it, and decides what is still missing.
 | `lib/prompt.ts` | System prompt, generated from the schema. |
 | `lib/mock-brain.ts` | Offline rule-based extractor used when no API key is set. |
 | `lib/merge-state.ts` | Applies only what the server actually changed, so a form edit made while a reply is in flight is not silently discarded. |
+| `lib/reveal.ts` | Identifies what is showing above the form, so a panel that appears is scrolled into view instead of mounting off-screen. |
 | `lib/export.ts` | The review summary, the clipboard text, and the JSON download. |
 | `app/api/chat/route.ts` | One turn: validate → resolve firm → apply → return authoritative state. |
 
@@ -77,7 +78,7 @@ row, but a *required* field is returned to later rather than quietly dropped.
 npm test
 ```
 
-212 tests across fourteen files, covering the parts where being wrong matters:
+352 tests across thirty-four files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
 the in-flight merge, reconciliation, and the full six-step demo script end to
 end. Most of them exist because they caught a real bug — a super fund's
@@ -105,6 +106,25 @@ someone signs that they never said, which is the same failure
 `readContactStance` exists to prevent. The firm was also unchangeable once
 set, so a misheard or mistyped name could never be corrected — the worst
 field in the form to be stuck with.
+
+`firm-resolve` and `draft-claim-stale` came from three agents driving the
+deployed app, and they are both the first class again — **a rule enforced where
+the model writes but not where the person does** — found in two new places.
+
+The member number is the directory's to assign, but only the chat route asked
+the directory. A firm name retyped in the form panel kept the previous firm's
+number, so the form showed AustralianSuper's `10657` beside "Westpac": a real
+number against the wrong company, which is precisely what the constraint exists
+to prevent. `resolveFirmDetails` in `lib/directory.ts` is now the one lookup
+both paths call.
+
+And `correctSavedClaim` corrected a reply that claimed text was saved — but only
+on a turn where `holdDrafts` had diverted a write, and only for "I've saved
+*that*". The transcript showed the other shape: the card already up from an
+earlier turn, the reply "that's now saved as your complaint description", and a
+patch that wrote nothing. Nothing diverted, so nothing corrected, and the
+sentence the guard exists for was the one getting through. Someone told their
+complaint is written stops looking for the button that would have written it.
 
 ## Scope
 
