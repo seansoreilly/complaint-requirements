@@ -9,6 +9,7 @@ import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, getPath, setPath } from "@/lib/schema";
 import { commitDate, reconcile } from "@/lib/patch";
 import { applyServerDelta } from "@/lib/merge-state";
+import { resolveFirmDetails } from "@/lib/directory";
 import { missingFor, stageProgress } from "@/lib/next";
 import { outstandingPrompt } from "@/lib/questions";
 
@@ -110,11 +111,36 @@ export default function Page() {
   }, []);
 
   /**
+   * A firm name typed into the form, once the person has finished typing it.
+   * The member number belongs to the directory on this path exactly as it does
+   * on the chat path — otherwise retyping the firm leaves the previous firm's
+   * number sitting beside the new name. Deferred to blur because a lookup on a
+   * half-typed name would fight the typing.
+   */
+  const commitFirm = useCallback(() => {
+    setState((previous) => {
+      const { state: resolved, note } = resolveFirmDetails(previous);
+      // Same object back means the firm was already what the directory says, so
+      // there is nothing to say either — and nothing that should clear a note
+      // the person is still reading.
+      if (resolved === previous) return previous;
+      // Queued rather than set inside the updater: React may run an updater
+      // twice, and a note is a side effect.
+      queueMicrotask(() => setNotes(note ? [note] : []));
+      return resolved;
+    });
+  }, []);
+
+  /**
    * A typed date, once the person has finished typing it. Held to the same
    * rules as a date the model proposes: normalised if it is real, cleared with
    * a note if it is not, rather than left on the form as typed.
    */
   const commit = useCallback((path: string) => {
+    if (path === "firm.name") {
+      commitFirm();
+      return;
+    }
     if (findField(path)?.kind !== "date") return;
     setState((previous) => {
       const current = getPath(previous, path);
@@ -128,7 +154,7 @@ export default function Page() {
       queueMicrotask(() => setNotes(issue ? [issue.message] : []));
       return next;
     });
-  }, []);
+  }, [commitFirm]);
 
   const approveDraft = useCallback((kind: "narrative" | "fair_outcome", text: string) => {
     // Approving a card never goes near /api/chat, so `ensureAsk` — which is what

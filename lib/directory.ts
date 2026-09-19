@@ -5,6 +5,7 @@
  * impossible rather than merely discouraged by the prompt.
  */
 import firmsData from "@/data/firms.json";
+import { type ComplaintState } from "./schema";
 
 export interface ComplaintContact {
   phone: string;
@@ -166,4 +167,71 @@ export function lookupFirm(query: string): LookupResult {
   }
 
   return { status: "ambiguous", candidates: ranked.slice(0, 4) };
+}
+
+/**
+ * Resolve `firm.name` against the directory and write back what the directory
+ * says, for any path that can change the name.
+ *
+ * The route did this for the model's writes; the form panel did not, so a person
+ * who corrected the firm by hand kept the previous firm's member number on their
+ * form — AustralianSuper's 10657 shown beside "Westpac", a real number against
+ * the wrong company, which is what "firm details cannot be invented" exists to
+ * prevent. It lives here rather than in the route because both paths need the
+ * same rule and two copies would drift.
+ *
+ * Anything short of a confident match clears the number rather than leaving a
+ * stale one: no number is honest, and the note says why.
+ */
+export function resolveFirmDetails(state: ComplaintState): {
+  state: ComplaintState;
+  firm: Firm | null;
+  note: string | null;
+} {
+  const name = state.firm.name.trim();
+  if (name.length === 0) {
+    if (state.firm.afca_member_no === "") return { state, firm: null, note: null };
+    const cleared = structuredClone(state);
+    cleared.firm.afca_member_no = "";
+    return { state: cleared, firm: null, note: null };
+  }
+
+  const result = lookupFirm(name);
+  if (result.status === "matched") {
+    // Already exactly what the directory says: hand back the same object, so a
+    // caller can tell "nothing to do" from "resolved" and leave the rest of the
+    // screen — an unrelated note, say — alone.
+    if (
+      state.firm.name === result.firm.name &&
+      state.firm.afca_member_no === result.firm.afca_member_no
+    ) {
+      return { state, firm: result.firm, note: null };
+    }
+    const next = structuredClone(state);
+    next.firm.name = result.firm.name;
+    next.firm.afca_member_no = result.firm.afca_member_no;
+    return { state: next, firm: result.firm, note: null };
+  }
+
+  const cleared = structuredClone(state);
+  cleared.firm.afca_member_no = "";
+  if (result.status === "ambiguous") {
+    const names = result.candidates.map((c) => c.firm.name);
+    // One candidate is not "several". After the generic-word fix (defect 19),
+    // "super fund" comes back ambiguous with Hesta alone — and a person told
+    // "several firms match" and then shown one name will reasonably confirm
+    // that one, which lands them on Hesta by a longer route. Naming it as the
+    // only near match, and asking for the full name, keeps the choice theirs.
+    const note =
+      names.length === 1
+        ? `The closest match to "${name}" in this demo's directory is ${names[0]}, ` +
+          `but that may not be the firm you mean. What is its full name?`
+        : `Several firms match "${name}": ${names.join(", ")}. Which one is it?`;
+    return { state: cleared, firm: null, note };
+  }
+  return {
+    state: cleared,
+    firm: null,
+    note: `"${name}" isn't in this demo's firm directory, so there's no member number to attach. The rest of the form still works.`,
+  };
 }

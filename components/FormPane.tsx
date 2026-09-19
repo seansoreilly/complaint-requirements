@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   type ComplaintState,
   type FieldDef,
@@ -11,6 +11,7 @@ import {
   getPath,
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
+import { revealKey } from "@/lib/reveal";
 import { formatDateAU } from "@/lib/patch";
 
 /** A stored date, as opposed to one part-typed on its way to being stored. */
@@ -433,6 +434,20 @@ export function FormPane({
   onAttach: (names: string[]) => void;
   children?: React.ReactNode;
 }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  // Anything shown above the form — the review panel, a draft card — mounts at
+  // the top of this pane while it keeps whatever offset the person had scrolled
+  // to. Several stages down the form that put the review panel thousands of
+  // pixels above the viewport: the screen did not visibly change, so "Review"
+  // read as a dead button and the Download JSON that /privacy points people to
+  // could not be found. Below `lg` the window scrolls rather than this
+  // container, so scrolling the panel itself into view is what covers both.
+  const overlayKey = revealKey(children);
+  useEffect(() => {
+    if (overlayKey === null) return;
+    scroller.current?.firstElementChild?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [overlayKey]);
+
   function jump(id: string): void {
     document.getElementById(`stage-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -440,7 +455,7 @@ export function FormPane({
   return (
     <section className="flex h-full min-h-0 flex-col bg-afca-mist">
       <ProgressRail stages={stages} activeId={activeStageId} onJump={jump} />
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={scroller} className="flex-1 overflow-y-auto p-4">
         {children}
         {STAGES.filter((stage) => stage.fields.length > 0).map((stage) => (
           <div key={stage.id} id={`stage-${stage.id}`} className="mb-5 scroll-mt-4">

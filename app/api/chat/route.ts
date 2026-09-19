@@ -8,8 +8,9 @@
 import { NextResponse } from "next/server";
 import { type ComplaintState, emptyState } from "@/lib/schema";
 import { type ComplaintPatch, applyPatch, parsePatch } from "@/lib/patch";
-import { type Firm, lookupFirm } from "@/lib/directory";
+import { lookupFirm, resolveFirmDetails } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
+import { pendingDraft } from "@/lib/questions";
 import { ensureAsk } from "@/lib/continue";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
 import { patchSchema } from "@/lib/patch";
@@ -49,10 +50,14 @@ function sanitiseHistory(input: unknown): ChatTurn[] {
 }
 
 /**
- * Resolve firm.name against the directory and write back the member number.
- * Doing this in code — not the model — is what makes invented firm details
- * impossible rather than merely discouraged.
+ * The firm is resolved by `resolveFirmDetails` in lib/directory.ts — writing the
+ * member number in code, not letting the model supply it, is what makes invented
+ * firm details impossible rather than merely discouraged. It lives there rather
+ * than here because the form panel's own edit path needs the same rule, and two
+ * copies drifted: the panel had none, so retyping the firm kept the previous
+ * firm's number.
  */
+
 /**
  * Set the firm from a bare name the person just typed.
  *
@@ -71,58 +76,6 @@ function takeShortFirmAnswer(state: ComplaintState, message: string): void {
   state.firm.name = match.firm.name;
 }
 
-function resolveFirm(state: ComplaintState): {
-  state: ComplaintState;
-  firm: Firm | null;
-  note: string | null;
-} {
-  const name = state.firm.name.trim();
-  if (name.length === 0) return { state, firm: null, note: null };
-
-  const result = lookupFirm(name);
-  if (result.status === "matched") {
-    const next = structuredClone(state);
-    next.firm.name = result.firm.name;
-    next.firm.afca_member_no = result.firm.afca_member_no;
-    return { state: next, firm: result.firm, note: null };
-  }
-  if (result.status === "ambiguous") {
-    const cleared = structuredClone(state);
-    cleared.firm.afca_member_no = "";
-    const names = result.candidates.map((c) => c.firm.name);
-    // One candidate is not "several". After the generic-word fix (defect 19),
-    // "super fund" comes back ambiguous with Hesta alone — and a person told
-    // "several firms match" and then shown one name will reasonably confirm
-    // that one, which lands them on Hesta by a longer route. Naming it as the
-    // only near match, and asking for the full name, keeps the choice theirs.
-    const note =
-      names.length === 1
-        ? `The closest match to "${name}" in this demo's directory is ${names[0]}, ` +
-          `but that may not be the firm you mean. What is its full name?`
-        : `Several firms match "${name}": ${names.join(", ")}. Which one is it?`;
-    return { state: cleared, firm: null, note };
-  }
-  const unmatched = structuredClone(state);
-  unmatched.firm.afca_member_no = "";
-  return {
-    state: unmatched,
-    firm: null,
-    note: `"${name}" isn't in this demo's firm directory, so there's no member number to attach. The rest of the form still works.`,
-  };
-}
-
-/**
- * Should this turn's reply carry the unmatched-firm note?
- *
- * The note describes the state, not the turn, so it is recomputed every time —
- * left alone it gets appended to every reply for the rest of the conversation.
- * The route is stateless, so the only record of having said it is what the
- * assistant has already said: repeat it only if it is not already in history.
- *
- * A user echoing the text back does not count as having been told. History is
- * capped at 20 turns upstream, so in a very long conversation the note can
- * surface once more after it scrolls out — rare, and harmless for a demo.
- */
 /**
  * Text reaches the form only through an approval.
  *
@@ -171,9 +124,20 @@ function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): boolean {
  * of asking rather than enforcing. The route knows what it did, so the route
  * corrects the claim. Only the false sentence is replaced; the rest of the
  * reply, including whatever it asks next, is left alone.
+ *
+ * Two shapes, because the model uses both and only one was covered. The pronoun
+ * can follow the verb ("I've saved that as your complaint description") or lead
+ * it ("that's now saved as your complaint description") — the second is the
+ * wording a production transcript actually produced, so the claim the guard
+ * exists for was the one getting through.
  */
 const SAVED_CLAIM =
-  /\b(?:I(?:'ve| have)?\s+)?(?:saved|added|recorded|locked(?:\s+that)?\s+in|put)\b[^.!?]*\b(?:that|this|it)\b[^.!?]*[.!?]/i;
+  /\b(?:(?:I(?:'ve| have)?\s+)?(?:saved|added|recorded|locked(?:\s+that)?\s+in|put)\b[^.!?]*\b(?:that|this|it)\b|(?:that|this|it)(?:'s| is)?\s+(?:now\s+)?(?:saved|added|recorded|locked\s+in|on\s+the\s+form))\b[^.!?]*[.!?]/i;
+
+/** Does this reply assert the text has landed on the form? */
+export function makesSavedClaim(reply: string): boolean {
+  return SAVED_CLAIM.test(reply);
+}
 
 export function correctSavedClaim(reply: string): string {
   const replacement =
@@ -184,6 +148,18 @@ export function correctSavedClaim(reply: string): string {
   return reply.replace(SAVED_CLAIM, replacement);
 }
 
+/**
+ * Should this turn's reply carry the unmatched-firm note?
+ *
+ * The note describes the state, not the turn, so it is recomputed every time —
+ * left alone it gets appended to every reply for the rest of the conversation.
+ * The route is stateless, so the only record of having said it is what the
+ * assistant has already said: repeat it only if it is not already in history.
+ *
+ * A user echoing the text back does not count as having been told. History is
+ * capped at 20 turns upstream, so in a very long conversation the note can
+ * surface once more after it scrolls out — rare, and harmless for a demo.
+ */
 export function shouldSayNote(
   note: string | null,
   history: ChatTurn[],
@@ -232,7 +208,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // any member number the model invents and takes the directory's. This just
   // asks it first, before the model gets a chance to read a name as a refusal.
   takeShortFirmAnswer(incoming, message);
-  const resolvedBefore = resolveFirm(incoming);
+  const resolvedBefore = resolveFirmDetails(incoming);
 
   let turn;
   try {
@@ -261,7 +237,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const applied = applyPatch(resolvedBefore.state, patch);
 
   // The firm may have only just been named, so resolve again after applying.
-  const resolvedAfter = resolveFirm(applied);
+  const resolvedAfter = resolveFirmDetails(applied);
   const state = resolvedAfter.state;
 
   const note = resolvedAfter.note;
@@ -282,7 +258,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Applied to the text actually being sent, so an ambiguous-firm note that asks
   // "Which one is it?" counts as this turn's question — but only when the note is
   // genuinely included, since a note suppressed as a repeat asks nothing.
-  const corrected = heldForApproval ? correctSavedClaim(withNote) : withNote;
+  // Two ways a reply can claim text is on the form when it is not. `holdDrafts`
+  // diverting a write is one. The other is a draft left pending after the turn:
+  // the card was already up, the model said "that's now saved" and moved on, and
+  // its patch wrote nothing — so nothing was diverted and, before this, nothing
+  // was corrected. Either way the state is the authority on what happened.
+  //
+  // The pending case tests the wording first, because `correctSavedClaim`
+  // prepends its line when it finds no claim to replace. That is right after a
+  // divert, where the card is news; it would be a nag on every ordinary turn
+  // spent editing a draft that is already on screen.
+  const staleClaim = pendingDraft(state) !== null && makesSavedClaim(withNote);
+  const corrected = heldForApproval || staleClaim ? correctSavedClaim(withNote) : withNote;
   const reply = ensureAsk(corrected, state);
 
   return NextResponse.json({
