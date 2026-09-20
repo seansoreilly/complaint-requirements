@@ -288,7 +288,18 @@ function describeMissing(
   deferred: string[],
 ): string {
   if (missing.length === 0) {
-    return `Nothing required is missing. Move them to the review step and offer the export.`;
+    // The evidence question is asked HERE, at the one point it is useful, and
+    // asked by the model because the model is mid-conversation. The code
+    // fallback in continue.ts stays as the guarantee for a turn that trails
+    // off — but it only fires when the reply asks nothing, and a prompted
+    // model almost always ends on a question, so the guarantee alone left the
+    // question never asked. A tester finished on contact details and the demo
+    // simply stopped.
+    return `Nothing required is missing. If you have not already asked about
+evidence, ask once now whether they have bank statements, letters or
+screenshots showing what happened — they can just tell you what they have and
+you will note it in attachments, since nothing is uploaded here. Then move them
+to the review step and offer the export.`;
   }
   const refused = new Set(declined);
   // Declined fields stay on the list — they are genuinely still blank, and the

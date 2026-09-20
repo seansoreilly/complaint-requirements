@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { applyPatch } from "../patch";
 import { emptyState } from "../schema";
 import { buildSystemPrompt } from "../prompt";
+import { completeState } from "./completion-handoff.test";
 
 describe("buildSystemPrompt", () => {
   it("flags a narrative draft that is waiting on approval", () => {
@@ -56,5 +57,30 @@ describe("buildSystemPrompt", () => {
     expect(prompt.replace(/\s+/g, " ")).toContain(
       "never press them to change a year that is already right",
     );
+  });
+});
+
+/**
+ * The evidence question has to be asked by the MODEL, not only guaranteed by
+ * code.
+ *
+ * `ensureAsk` appends the completion handoff, but only when the reply asks
+ * nothing — and a prompted model almost always ends on a question. Driven to
+ * completion on the live brain it offered the optional sensitive questions and
+ * closed "or shall we leave them blank?", so `endsWithQuestion` returned early
+ * and the evidence question was never asked at all. The code fallback stays as
+ * the guarantee for a turn that trails off; this is what makes it happen on
+ * the turns that do not.
+ */
+describe("the completion instruction", () => {
+  it("asks for evidence once nothing required is missing", () => {
+    const prompt = buildSystemPrompt({ state: completeState(), firm: null });
+    expect(prompt.replace(/\s+/g, " ")).toContain("statements, letters or screenshots");
+  });
+
+  it("still sends them on to the review and the export", () => {
+    const prompt = buildSystemPrompt({ state: completeState(), firm: null });
+    expect(prompt).toContain("review step");
+    expect(prompt).toContain("export");
   });
 });

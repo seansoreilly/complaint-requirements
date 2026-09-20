@@ -23,8 +23,14 @@ import { completionHandoff } from "../questions";
 import { type ComplaintState, emptyState } from "../schema";
 import { missingFor } from "../next";
 
-/** Everything required, answered. */
-function completeState(): ComplaintState {
+/**
+ * Everything required, answered.
+ *
+ * Exported because `prompt.test.ts` needs the same thing, and a fourth
+ * hand-copied fixture is a fourth chance for one of them to drift out of step
+ * with the schema and quietly stop testing completion at all.
+ */
+export function completeState(): ComplaintState {
   const state = emptyState();
   state.firm.name = "AustralianSuper";
   state.firm.afca_member_no = "10657";
