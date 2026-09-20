@@ -13,7 +13,7 @@ and the firm directory is fabricated.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 352 unit tests
+npm test         # 419 unit tests
 ```
 
 With no `ANTHROPIC_API_KEY` set, the app runs on a deterministic offline
@@ -38,6 +38,7 @@ it, applies it, and decides what is still missing.
 | `lib/prompt.ts` | System prompt, generated from the schema. |
 | `lib/mock-brain.ts` | Offline rule-based extractor used when no API key is set. |
 | `lib/merge-state.ts` | Applies only what the server actually changed, so a form edit made while a reply is in flight is not silently discarded. |
+| `lib/changed.ts` | What a turn actually changed on the form, diffed from the state before and after — never from the patch. The chips, the field flash and the unbacked-claim guard all read it. |
 | `lib/reveal.ts` | Identifies what is showing above the form, so a panel that appears is scrolled into view instead of mounting off-screen. |
 | `lib/export.ts` | The review summary, the clipboard text, and the JSON download. |
 | `app/api/chat/route.ts` | One turn: validate → resolve firm → apply → return authoritative state. |
@@ -78,7 +79,7 @@ row, but a *required* field is returned to later rather than quietly dropped.
 npm test
 ```
 
-352 tests across thirty-four files, covering the parts where being wrong matters:
+419 tests across forty-three files, covering the parts where being wrong matters:
 date and enum coercion, branch rules, firm matching, request-input sanitising,
 the in-flight merge, reconciliation, and the full six-step demo script end to
 end. Most of them exist because they caught a real bug — a super fund's
@@ -125,6 +126,33 @@ earlier turn, the reply "that's now saved as your complaint description", and a
 patch that wrote nothing. Nothing diverted, so nothing corrected, and the
 sentence the guard exists for was the one getting through. Someone told their
 complaint is written stops looking for the button that would have written it.
+
+`changed-paths`, `unbacked-claim`, `approval-gate` and `chat-approval` came from
+a fifth pass over the deployed app, and they are the first class again — **a
+rule the model was asked to follow rather than held to** — in the place it does
+the most damage: what the chat says it did.
+
+"I've changed the date to 2 September" was said, believed, and false; the form
+still read the 7th. That is `correctSavedClaim`'s failure one field along, so it
+gets the same treatment. `lib/changed.ts` diffs the state the browser sent
+against the state going back, which is deliberately not `touchedPaths` — that
+reports what a patch *asked* for, and a patch rewriting a field with the value
+it already holds, or one whose write `reconcile` cleared, touches a path and
+moves nothing. The answer drives chips naming the fields under the reply, a
+flash on those fields, and a correction in front of any claim the diff cannot
+see. The baseline is taken before the route resolves the firm, or the demo's
+opening beat — type "Westpac", watch the member number appear — would diff to
+"nothing changed".
+
+The same pass found the ask-confirm-ask-again loop. A draft on screen is a
+question already asked, but `outstandingPrompt` only preferred the approval
+request for the question `ensureAsk` *appends*; the model's own reply ended on
+the next field, `endsWithQuestion` saw a question and left it, and the court
+case got asked either side of a card nobody had approved. The gate turned one
+untidiness into a trap, so `holdDrafts` closes it: approving on the card cleared
+the draft client-side, saying "yes, use it" in chat cleared nothing unless the
+model remembered to, and a draft outliving its approval would now ask for
+approval every turn with no answer that moves it along.
 
 ## Scope
 

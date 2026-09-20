@@ -97,7 +97,15 @@ const EXTRACTION = `How you work:
   never repeat that form back to the person. In your reply write "3 September 2025".
 - If they give only a month ("sometime in September"), ask for the day. Do not
   invent one.
-- Set firm.no_reference true when they say they have no account or reference number.`;
+- Set firm.no_reference true when they say they have no account or reference number.
+- firm.reference and firm.account_number are different things and go in different
+  fields: the reference is what the firm calls the COMPLAINT (a case or reference
+  number), the account number is what it calls the MONEY (account, policy or member
+  number). Never put both in one field. If someone gives you both in one breath —
+  "CPX-4471, account 062-114 8837 2291" — split them.
+- Never ask for a full account number twice, and never repeat one back in your
+  reply. This is a demo and people paste real ones into it; the form shows only
+  the last few digits and your replies should not undo that.`;
 
 const SCAMS = `If what they describe is a scam — someone impersonating their bank or a
 business, a payment they were tricked into making, a fake investment — say so

@@ -66,7 +66,23 @@ export interface ComplaintState {
    */
   deferred: string[];
   declined: string[];
-  firm: { name: string; afca_member_no: string; reference: string; no_reference: boolean };
+  firm: {
+    name: string;
+    afca_member_no: string;
+    /** What the FIRM calls the complaint: a case or reference number. */
+    reference: string;
+    /**
+     * What the firm calls the money: an account, policy or member number.
+     *
+     * Separate from `reference` because they are separate things and AFCA asks
+     * for them separately. One box labelled "Reference / account number" got
+     * "CPX-4471 / account 062-114 8837 2291" typed into it, which no reader
+     * downstream can take apart again — least of all the paste into the real
+     * form, which is what the export is for.
+     */
+    account_number: string;
+    no_reference: boolean;
+  };
   open_afca_complaint: boolean | null;
   complained_to_firm: {
     yes: boolean | null;
@@ -105,7 +121,7 @@ export function emptyState(): ComplaintState {
     firm_note_said: "",
     deferred: [],
     declined: [],
-    firm: { name: "", afca_member_no: "", reference: "", no_reference: false },
+    firm: { name: "", afca_member_no: "", reference: "", account_number: "", no_reference: false },
     open_afca_complaint: null,
     complained_to_firm: { yes: null, date: "", how: "", final_reply: null },
     legal_proceedings: null,
@@ -167,6 +183,15 @@ export interface FieldDef {
 export interface StageDef {
   id: string;
   title: string;
+  /**
+   * Why AFCA asks for this — the coaching a concierge is actually for.
+   *
+   * The fields already say what to type; this says what the answer is FOR, in
+   * AFCA's own terms. Someone who knows that the firm needs a chance to
+   * respond first writes a better complaint than someone filling in boxes, and
+   * the plumbing that fills the boxes is the easy half of this product.
+   */
+  why?: string;
   fields: FieldDef[];
 }
 
@@ -231,6 +256,8 @@ export const STAGES: StageDef[] = [
   {
     id: "firm",
     title: "Financial firm",
+    why:
+      "AFCA can only consider a complaint about a firm that is one of its members. Naming the firm exactly is what lets AFCA match it — and the member number is looked up for you, never typed by you.",
     fields: [
       {
         path: "firm.name",
@@ -241,11 +268,21 @@ export const STAGES: StageDef[] = [
       },
       {
         path: "firm.reference",
-        label: "Reference / account number",
+        label: "Complaint reference",
         kind: "text",
         required: true,
         showIf: (s) => !s.firm.no_reference,
-        help: "An account, policy, member or complaint number. 'I don't know' is fine.",
+        help: "The case or reference number the firm gave your complaint. 'I don't know' is fine.",
+      },
+      {
+        // Optional, deliberately. Someone with a complaint reference has what
+        // AFCA needs to find the matter, and a required account-number field
+        // is a demo pressing for a real bank account before it will continue.
+        path: "firm.account_number",
+        label: "Account or policy number",
+        kind: "text",
+        required: false,
+        help: "The account, policy or member number, if you have it. Only the last few digits are shown back to you, and nothing is submitted anywhere.",
       },
       {
         path: "open_afca_complaint",
@@ -259,6 +296,8 @@ export const STAGES: StageDef[] = [
   {
     id: "authority",
     title: "Authority",
+    why:
+      "AFCA needs your authority before it can ask a firm about your account, and the engagement charter is what sets out how it will handle things. Nothing moves until both are given.",
     fields: [
       {
         path: "complainant.lodging_for",
@@ -287,6 +326,8 @@ export const STAGES: StageDef[] = [
   {
     id: "service",
     title: "Type of service",
+    why:
+      "The product decides which rules apply and which team at AFCA handles it. Superannuation complaints, for instance, run under different law to a credit card dispute.",
     fields: [
       {
         path: "service.type",
@@ -308,6 +349,8 @@ export const STAGES: StageDef[] = [
   {
     id: "details",
     title: "Complaint details",
+    why:
+      "This is the part AFCA actually reads. What happened, when, and what the firm did about it. AFCA normally expects the firm to have had a chance to put it right first, which is why the dates matter.",
     fields: [
       {
         path: "complaint.issues",
@@ -366,6 +409,8 @@ export const STAGES: StageDef[] = [
   {
     id: "attachments",
     title: "Attach files",
+    why:
+      "Statements, letters and screenshots are what turn an account of events into something AFCA can check. Even a note of what you have is worth more than nothing.",
     fields: [
       {
         path: "attachments",
@@ -379,6 +424,8 @@ export const STAGES: StageDef[] = [
   {
     id: "outcome",
     title: "Outcome sought",
+    why:
+      "AFCA asks what would resolve this for you, and a specific answer is easier to act on than a general one. It also helps the firm see whether it can simply agree.",
     fields: [
       {
         path: "outcome.seeking_compensation",
@@ -400,6 +447,8 @@ export const STAGES: StageDef[] = [
   {
     id: "contact",
     title: "Contact details",
+    why:
+      "How AFCA reaches you, and how it confirms you are who you say you are before discussing your account with anyone.",
     fields: [
       {
         path: "complainant.first_name",

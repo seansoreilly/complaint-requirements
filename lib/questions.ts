@@ -15,7 +15,9 @@ export function questionFor(path: string, label: string, state: ComplaintState):
     case "firm.name":
       return `Which financial firm is your complaint about? A name, ABN or ACN all work.`;
     case "firm.reference":
-      return `Do you have an account, policy or reference number for this? If you don't have one to hand, just say so — it's not required.`;
+      return `Do you have a complaint or case reference number from them? If you don't have one to hand, just say so — it's not required.`;
+    case "firm.account_number":
+      return `And an account, policy or member number? Only the last few digits are shown back to you, and nothing is submitted anywhere — so feel free to skip it.`;
     case "open_afca_complaint":
       return `Do you already have a complaint open with AFCA?`;
     case "complainant.lodging_for":

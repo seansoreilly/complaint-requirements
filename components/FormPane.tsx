@@ -12,6 +12,7 @@ import {
 } from "@/lib/schema";
 import { applies, isAnswered } from "@/lib/next";
 import { revealKey } from "@/lib/reveal";
+import { maskAccount } from "@/lib/export";
 import { formatDateAU } from "@/lib/patch";
 
 /** A stored date, as opposed to one part-typed on its way to being stored. */
@@ -193,6 +194,9 @@ function Field({
   const value = getPath(state, field.path);
   const answered = isAnswered(field, state);
   const options = optionsFor(field, state);
+  // Whether this field is being typed into, which is the only time a masked
+  // account number shows in full. See the value expression below.
+  const [editing, setEditing] = useState(false);
 
   const control = (() => {
     if (field.kind === "consent") {
@@ -332,10 +336,26 @@ function Field({
         // flip as the last digit lands — odd, but this is an Australian form
         // and it lands on the format we want.
         value={
-          typeof value !== "string" ? "" : field.kind === "date" ? formatDateAU(value) : value
+          typeof value !== "string"
+            ? ""
+            : field.kind === "date"
+              ? formatDateAU(value)
+              : // An account number is masked while it sits there and shown in
+                // full while it is being typed. Masking the value outright
+                // would make the field uneditable — the person would be typing
+                // into their own bullets — so the swap is on focus, which also
+                // means nobody is ever prevented from checking what they
+                // entered. The state always holds what they typed.
+                field.path === "firm.account_number" && !editing
+                ? maskAccount(value)
+                : value
         }
         onChange={(event) => onEdit(field.path, event.target.value)}
-        onBlur={() => onCommit(field.path)}
+        onFocus={() => setEditing(true)}
+        onBlur={() => {
+          setEditing(false);
+          onCommit(field.path);
+        }}
         placeholder={field.kind === "date" ? "DD/MM/YYYY — e.g. 3 Sept 2025" : ""}
         className="w-full rounded-lg border border-afca-line bg-white px-2.5 py-1.5 text-xs text-afca-navy outline-none focus:border-afca-blue"
       />
@@ -475,8 +495,14 @@ export function FormPane({
         {children}
         {STAGES.filter((stage) => stage.fields.length > 0).map((stage) => (
           <div key={stage.id} id={`stage-${stage.id}`} className="mb-5 scroll-mt-4">
-            <h3 className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-afca-blue">
+            {/* The section header carries why AFCA asks for any of this. The
+                fields already say what to type; coaching someone to write a
+                complaint that meets the criteria is the half of this product
+                the plumbing cannot do. Same tooltip component as the fields,
+                so there is one thing to learn rather than two. */}
+            <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-afca-blue">
               {stage.title}
+              {stage.why && <InfoTooltip label={`why ${stage.title} matters`} help={stage.why} />}
             </h3>
             <div className="space-y-0.5 rounded-2xl border border-afca-line bg-white p-2 shadow-sm">
               {stage.fields

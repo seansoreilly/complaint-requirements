@@ -80,6 +80,7 @@ export const patchSchema = z
         name: z.string(),
         afca_member_no: z.string(),
         reference: z.string(),
+        account_number: z.string(),
         no_reference: z.boolean(),
       })
       .partial(),

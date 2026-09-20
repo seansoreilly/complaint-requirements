@@ -16,6 +16,25 @@ function display(value: unknown, kind?: string): string {
   return String(value);
 }
 
+/**
+ * An account number as a screen should show it: the last three digits, and
+ * nothing else.
+ *
+ * This is about the demo, not about AFCA. People paste real BSBs and account
+ * numbers into anything shaped like a form. This one says on every screen that
+ * it is not AFCA and submits nothing, and it still should not read a full
+ * account number back at them.
+ *
+ * The state keeps what they typed. The person owns it, the JSON export is
+ * theirs to take away, and a demo that silently destroyed an answer would be
+ * worse than one that displays it discreetly.
+ */
+export function maskAccount(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= 3) return trimmed;
+  return `••• ${trimmed.slice(-3)}`;
+}
+
 export interface SummaryRow {
   label: string;
   value: string;
@@ -45,7 +64,12 @@ export function summarise(state: ComplaintState): SummarySection[] {
       .filter((field) => applies(field, state))
       .map((field) => ({
         label: field.label,
-        value: display(getPath(state, field.path), field.kind),
+        value:
+          // Masked rather than displayed, and only once there is something to
+          // mask — a blank stays the "—" every other empty row shows.
+          field.path === "firm.account_number" && isAnswered(field, state)
+            ? maskAccount(String(getPath(state, field.path) ?? ""))
+            : display(getPath(state, field.path), field.kind),
         optionalBlank: !field.required && !isAnswered(field, state),
       }));
     if (stage.id === "firm" && state.firm.afca_member_no) {
