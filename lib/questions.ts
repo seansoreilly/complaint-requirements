@@ -90,6 +90,44 @@ export function outstandingPrompt(state: ComplaintState): string | null {
 }
 
 /**
+ * The turn that finishes the form.
+ *
+ * Everything required is in, so `outstandingPrompt` returns null and the
+ * conversation would otherwise stop on whatever the model happened to say
+ * last. The tester's demo ended exactly there — one message after contact
+ * details, before the optional questions, with no handoff to the review.
+ *
+ * The evidence question is the right one to ask here, and only here. AFCA
+ * wants to know what someone can produce, so asking teaches the person
+ * something true about a real complaint even in a demo. It also fills the
+ * attachments step, which nothing else asks for: `attachments` is optional, so
+ * it never enters `missingFor` and no question is ever generated for it. And
+ * it is phrased to accept an answer in words — "just tell me what you have" —
+ * because this demo uploads nothing, and a note saying the person has app
+ * screenshots showing the balance is the useful half of an attachment anyway.
+ */
+export function completionHandoff(): string {
+  return (
+    "That's everything AFCA requires. One last thing worth having: do you have " +
+    "bank statements, letters or screenshots showing what happened? Tell me what " +
+    "you've got and I'll note it — or open Review to see the whole complaint."
+  );
+}
+
+/**
+ * Has the form reached the point where the handoff belongs?
+ *
+ * Once, at the hinge: nothing required outstanding, no draft waiting, and
+ * nothing said about evidence yet. Repeated under every later turn it stops
+ * being the opening of the last step and becomes the thing that ends the demo.
+ */
+export function needsCompletionHandoff(state: ComplaintState): boolean {
+  if (pendingDraft(state)) return false;
+  if (state.attachments.length > 0) return false;
+  return groupedWithNext(state).length === 0;
+}
+
+/**
  * Does this reply actually ask for anything?
  *
  * A reply that trails off without a question is where the conversation stalls:

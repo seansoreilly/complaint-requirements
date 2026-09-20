@@ -158,9 +158,17 @@ export function ChatPane({
           )}
           {/* The assistant used to append "(N things left after this.)" to every
               reply. The count belongs in the UI, where it updates with the form
-              and does not repeat itself down the transcript. */}
+              and does not repeat itself down the transcript.
+
+              It says "questions", not "answers". A tester read "3 answers left"
+              as a demo allowance being spent — each field the bot filled looked
+              like it cost one — and expected the conversation to be cut off when
+              it ran out. Nothing here is metered: it counts required fields that
+              are still blank and goes up if a branch opens. "Questions left" can
+              only be read as the form's, and the title says so outright. */}
           <p
             aria-live="polite"
+            title="Required fields still blank. Nothing here is rationed — the count goes up if a new branch of the form opens."
             className={
               missingCount === 0 || missingCount === declinedCount
                 ? "ml-auto text-xs font-semibold text-emerald-600"
@@ -168,12 +176,12 @@ export function ChatPane({
             }
           >
             {missingCount === 0
-              ? "All answers in ✓"
+              ? "All questions answered ✓"
               : missingCount === declinedCount
                 ? `Ready — ${declinedCount} left blank ✓`
                 : `${missingCount - declinedCount} ${
-                    missingCount - declinedCount === 1 ? "answer" : "answers"
-                  } left`}
+                    missingCount - declinedCount === 1 ? "question" : "questions"
+                  } left to answer`}
           </p>
         </div>
         <div className="flex gap-2">

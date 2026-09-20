@@ -14,7 +14,13 @@ import {
   SERVICE_TYPES,
 } from "./schema";
 import { type MissingField, nextField } from "./next";
-import { endsWithQuestion, outstandingPrompt, pendingDraft } from "./questions";
+import {
+  completionHandoff,
+  endsWithQuestion,
+  needsCompletionHandoff,
+  outstandingPrompt,
+  pendingDraft,
+} from "./questions";
 
 /**
  * Return the reply, guaranteed to ask for something while anything is
@@ -32,8 +38,25 @@ import { endsWithQuestion, outstandingPrompt, pendingDraft } from "./questions";
  */
 export function ensureAsk(reply: string, state: ComplaintState): string {
   const prompt = outstandingPrompt(state);
-  // Nothing left to ask: a reply with no question is the correct ending.
-  if (prompt === null) return reply;
+  // Nothing required is left. That is not the same as nothing left to say: the
+  // form ends, the conversation should hand over. Without this the demo
+  // stopped on whatever the model said last — the tester's ended one message
+  // after contact details, before the optional questions, with no route to the
+  // review. `needsCompletionHandoff` fires once, at the hinge.
+  if (prompt === null) {
+    if (!needsCompletionHandoff(state)) return reply;
+    if (endsWithQuestion(reply)) return reply;
+    // A reply that already sends them to the review has done this job in its
+    // own words, which are better than these. That is not a cosmetic
+    // preference: the turn where someone declines the last required field
+    // often ends "your form is ready for review", and stacking a second,
+    // longer sign-off under a boundary the app has just agreed to respect is
+    // how "I won't ask again" starts sounding like a preamble.
+    if (/\breview\b/i.test(reply)) return reply;
+    const body = reply.trim();
+    const handoff = completionHandoff();
+    return body.length === 0 ? handoff : `${body}\n\n${handoff}`;
+  }
 
   // A draft on screen is a question already asked, so it owns the turn until
   // it is resolved. `outstandingPrompt` has preferred the approval request

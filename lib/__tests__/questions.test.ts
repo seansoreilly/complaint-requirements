@@ -110,9 +110,20 @@ describe("ensureAsk", () => {
     expect(ensureAsk(reply, state)).toBe(reply);
   });
 
-  it("does not invent a question once the form is complete", () => {
+  /**
+   * Still no invented FIELD question once the form is complete — that was
+   * always the point of this test, and it holds. What changed is what happens
+   * instead of silence: the form ending is not the conversation ending, and a
+   * demo that stopped dead one message after the last required field is the
+   * anticlimax a tester reported. The turn now hands over to the evidence
+   * question and the review. See completion-handoff.test.ts.
+   */
+  it("does not invent a field question once the form is complete", () => {
     const reply = "That's everything the form needs.";
-    expect(ensureAsk(reply, completeState())).toBe(reply);
+    const result = ensureAsk(reply, completeState());
+    expect(result).toContain(reply);
+    expect(result).toContain("Review");
+    expect(result).not.toContain("Could you tell me your");
   });
 
   it("rescues the model-failure fallback, which asks for nothing", () => {

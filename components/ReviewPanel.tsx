@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { type ComplaintState } from "@/lib/schema";
-import { exportJson, plainTextSummary, summarise } from "@/lib/export";
+import { dateWarnings, exportJson, plainTextSummary, summarise } from "@/lib/export";
 
 export function ReviewPanel({
   state,
@@ -14,6 +14,7 @@ export function ReviewPanel({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const warnings = dateWarnings(state);
 
   function download(): void {
     const blob = new Blob([exportJson(state)], { type: "application/json" });
@@ -51,21 +52,62 @@ export function ReviewPanel({
         </p>
       )}
 
-      {summarise(state).map((section) => (
-        <div key={section.title} className="mb-3">
-          <h3 className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-afca-blue">
-            {section.title}
-          </h3>
-          <dl className="divide-y divide-afca-line/60 overflow-hidden rounded-xl border border-afca-line">
-            {section.rows.map((row) => (
-              <div key={row.label} className="flex gap-3 px-2.5 py-1.5">
-                <dt className="w-2/5 shrink-0 text-[11px] font-semibold text-afca-navy/60">{row.label}</dt>
-                <dd className="flex-1 whitespace-pre-wrap text-[11px] text-afca-navy">{row.value}</dd>
-              </div>
-            ))}
-          </dl>
+      {/* Dates in the story that disagree with the date on the form. It warns
+          rather than corrects: only the person knows which of the two is
+          right, and this is the last screen before they export something they
+          will put their name to. */}
+      {warnings.length > 0 && (
+        <div className="mb-3 space-y-1.5">
+          {warnings.map((warning) => (
+            <p
+              key={warning.path}
+              className="rounded-xl border-l-4 border-afca-amber bg-afca-cream px-3 py-2 text-xs font-semibold text-afca-navy"
+            >
+              ⚠ {warning.message}
+            </p>
+          ))}
         </div>
-      ))}
+      )}
+
+      {summarise(state).map((section) => {
+        // Answered rows and blank required ones are the review. Optional
+        // questions nobody was asked are folded away: four rows of "—" make a
+        // finished form look unfinished, and bury the blanks that matter.
+        const shown = section.rows.filter((row) => !row.optionalBlank);
+        const skipped = section.rows.filter((row) => row.optionalBlank);
+        return (
+          <div key={section.title} className="mb-3">
+            <h3 className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-afca-blue">
+              {section.title}
+            </h3>
+            {shown.length > 0 && (
+              <dl className="divide-y divide-afca-line/60 overflow-hidden rounded-xl border border-afca-line">
+                {shown.map((row) => (
+                  <div key={row.label} className="flex gap-3 px-2.5 py-1.5">
+                    <dt className="w-2/5 shrink-0 text-[11px] font-semibold text-afca-navy/60">{row.label}</dt>
+                    <dd className="flex-1 whitespace-pre-wrap text-[11px] text-afca-navy">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {skipped.length > 0 && (
+              <details className="mt-1 rounded-xl border border-dashed border-afca-line px-2.5 py-1.5">
+                <summary className="cursor-pointer text-[11px] font-semibold text-afca-navy/50">
+                  Optional — not answered ({skipped.length})
+                </summary>
+                <dl className="mt-1 divide-y divide-afca-line/60">
+                  {skipped.map((row) => (
+                    <div key={row.label} className="flex gap-3 py-1.5">
+                      <dt className="w-2/5 shrink-0 text-[11px] font-semibold text-afca-navy/40">{row.label}</dt>
+                      <dd className="flex-1 text-[11px] text-afca-navy/40">{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+            )}
+          </div>
+        );
+      })}
 
       <div className="no-print mt-4 flex flex-wrap gap-2">
         <button
