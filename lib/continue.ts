@@ -14,7 +14,7 @@ import {
   SERVICE_TYPES,
 } from "./schema";
 import { type MissingField, nextField } from "./next";
-import { endsWithQuestion, outstandingPrompt } from "./questions";
+import { endsWithQuestion, outstandingPrompt, pendingDraft } from "./questions";
 
 /**
  * Return the reply, guaranteed to ask for something while anything is
@@ -34,6 +34,21 @@ export function ensureAsk(reply: string, state: ComplaintState): string {
   const prompt = outstandingPrompt(state);
   // Nothing left to ask: a reply with no question is the correct ending.
   if (prompt === null) return reply;
+
+  // A draft on screen is a question already asked, so it owns the turn until
+  // it is resolved. `outstandingPrompt` has preferred the approval request
+  // over the next field all along, but only for the question this function
+  // APPENDS — and the observed failure was the model's own. It ended its reply
+  // with the next field's question, `endsWithQuestion` saw a question and left
+  // it alone, and the person answered it with the card still up. The next turn
+  // had no record of the answer belonging to that question, so it asked again:
+  // the court case twice, either side of a card nobody had approved.
+  //
+  // So while a draft waits, the turn closes on the approval request whoever
+  // wrote the reply. Enforced here rather than asked for in the prompt, for
+  // the reason every other rule in this file is: asking is not guaranteeing.
+  if (pendingDraft(state)) return closeOnApproval(reply, prompt);
+
   if (endsWithQuestion(reply)) return reply;
 
   // The reply may ask for the field in wording `endsWithQuestion` does not
@@ -48,6 +63,66 @@ export function ensureAsk(reply: string, state: ComplaintState): string {
 
   const body = reply.trim();
   return body.length === 0 ? prompt : `${body}\n\n${prompt}`;
+}
+
+/**
+ * End the turn on the approval request, dropping a question that jumps ahead
+ * of the card.
+ *
+ * What the reply said before that question is kept: it is the model explaining
+ * the write-up it just proposed, which is the useful half of the turn. Only
+ * the closing question goes, and only when it is not already about the draft —
+ * "does that read right to you?" is the right question in the model's own
+ * words, and its wording beats this one.
+ */
+function closeOnApproval(reply: string, prompt: string): string {
+  const body = reply.trim();
+  if (body.length === 0) return prompt;
+  if (asksAboutDraft(body)) return reply;
+
+  const kept = dropTrailingQuestion(body);
+  return kept.length === 0 ? prompt : `${kept}\n\n${prompt}`;
+}
+
+/**
+ * Does the closing stretch already put the card to the person?
+ *
+ * Not "does it end with a question": the route's own correction for a false
+ * saved-claim ends "I've put that on the card for you to check — use it, edit
+ * it, or discard it.", which is an invitation with no question mark in it.
+ * Requiring one stacked the approval request underneath that sentence — two
+ * invitations to the same click, on exactly the turn the draft guard fires.
+ *
+ * The phrases are specific to the card instead. Bare "change" and "edit" are
+ * deliberately absent: "Would you like to change your email?" would defeat the
+ * gate, which is the defect this exists to close.
+ */
+function asksAboutDraft(reply: string): boolean {
+  const tail = reply.split(/\n\s*\n/).slice(-1)[0]?.toLowerCase() ?? "";
+  return /\b(read right|look right|sound right|approve|use it|as it is|that capture|happy with (?:that|it)|tell me what to change|on the card|discard it|rewrite it|the wording|that draft|write-?up)\b/.test(
+    tail,
+  );
+}
+
+/**
+ * Remove the trailing question, leaving the statements before it.
+ *
+ * Paragraph first, because a question that got its own paragraph is a whole
+ * thought and takes any lead-in with it ("One more thing. Is there a court
+ * case?"). Otherwise sentence by sentence from the end, so a question tacked
+ * onto a paragraph of explanation costs only the question.
+ */
+function dropTrailingQuestion(reply: string): string {
+  const paragraphs = reply.split(/\n\s*\n/);
+  if (paragraphs.length > 1 && paragraphs[paragraphs.length - 1].includes("?")) {
+    return paragraphs.slice(0, -1).join("\n\n").trim();
+  }
+
+  const sentences = reply.split(/(?<=[.!?])\s+/);
+  while (sentences.length > 0 && sentences[sentences.length - 1].includes("?")) {
+    sentences.pop();
+  }
+  return sentences.join(" ").trim();
 }
 
 /**

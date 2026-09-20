@@ -1,13 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type FieldDef } from "@/lib/schema";
+import { type FieldDef, findField } from "@/lib/schema";
 import { Assistant } from "@/components/Assistant";
 import { renderInlineMarkdown } from "@/lib/markdown";
 
 export interface Message {
   role: "user" | "assistant";
   content: string;
+  /**
+   * Form paths this turn actually wrote, from the route's own before/after
+   * diff. Carried on the message rather than held as "the latest change" so
+   * the record stays with the turn that made it: scrolling back up a
+   * transcript should show what each turn did, not what the newest one did.
+   */
+  changed?: string[];
+}
+
+/**
+ * The fields a turn wrote, named.
+ *
+ * The demo's best trick is the form moving in response to the chat, and until
+ * now that only happened where the person was not looking. This is the chat's
+ * half of the claim — the form's half is the flash — and both are computed
+ * from what the state did, so neither can say a write happened that did not.
+ */
+function ChangedChips({ paths }: { paths: string[] }) {
+  const labels = paths
+    .map((path) => findField(path)?.label)
+    .filter((label): label is string => Boolean(label));
+  if (labels.length === 0) return null;
+
+  return (
+    <ul className="mt-1 flex flex-wrap gap-1">
+      {labels.map((label) => (
+        <li
+          key={label}
+          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
+        >
+          ✓ {label}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 const DEMO_STORY =
@@ -68,16 +103,21 @@ export function ChatPane({
           return (
             <div key={index} className={isUser ? "flex justify-end" : "flex justify-start gap-2"}>
               {!isUser && <Assistant state={isLatestAssistant ? "speaking" : "still"} />}
-              <div
-                className={
-                  isUser
-                    ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
-                    : `max-w-[calc(85%-2.5rem)] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
-                }
-              >
-                {/* The model writes light markdown; the person shouldn't see
-                    the asterisks. User messages stay literal. */}
-                {isUser ? message.content : renderInlineMarkdown(message.content)}
+              <div className={isUser ? "max-w-[85%]" : "max-w-[calc(85%-2.5rem)]"}>
+                <div
+                  className={
+                    isUser
+                      ? "whitespace-pre-wrap rounded-2xl rounded-br-sm bg-afca-navy px-4 py-2.5 text-sm leading-relaxed text-white"
+                      : `whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-afca-skylight px-4 py-2.5 text-sm leading-relaxed text-afca-navy`
+                  }
+                >
+                  {/* The model writes light markdown; the person shouldn't see
+                      the asterisks. User messages stay literal. */}
+                  {isUser ? message.content : renderInlineMarkdown(message.content)}
+                </div>
+                {!isUser && message.changed && message.changed.length > 0 && (
+                  <ChangedChips paths={message.changed} />
+                )}
               </div>
             </div>
           );

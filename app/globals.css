@@ -130,3 +130,36 @@ html {
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* A field the last turn actually wrote, flashed so the chat's claim and the
+   form agree in front of the person rather than only in the state. The chat
+   saying "I've changed the date" and the date changing where they can see it
+   are two different assurances, and only the second one is checkable.
+
+   Keyed on the turn rather than the value: a correction back to something the
+   field held earlier still has to show movement. */
+@keyframes field-flash {
+  0% {
+    background-color: rgb(254 243 199);
+    border-color: rgb(245 158 11);
+  }
+  100% {
+    background-color: transparent;
+    border-color: transparent;
+  }
+}
+
+.field-flash {
+  animation: field-flash 1.8s ease-out;
+}
+
+/* Motion is the signal here, so removing it would remove the confirmation.
+   The highlight is held briefly instead of pulsing — same information, no
+   movement. */
+@media (prefers-reduced-motion: reduce) {
+  .field-flash {
+    animation: none;
+    background-color: rgb(254 243 199);
+    border-color: rgb(245 158 11);
+  }
+}

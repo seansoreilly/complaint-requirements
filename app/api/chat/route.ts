@@ -10,6 +10,7 @@ import { type ComplaintState, emptyState } from "@/lib/schema";
 import { type ComplaintPatch, applyPatch, parsePatch } from "@/lib/patch";
 import { lookupFirm, resolveFirmDetails } from "@/lib/directory";
 import { missingFor, nextField, stageProgress } from "@/lib/next";
+import { changedPaths } from "@/lib/changed";
 import { pendingDraft } from "@/lib/questions";
 import { ensureAsk } from "@/lib/continue";
 import { type ChatTurn, brainMode, runTurn } from "@/lib/model";
@@ -101,8 +102,18 @@ function holdDrafts(patch: ComplaintPatch, incoming: ComplaintState): boolean {
   let diverted = false;
   for (const [key, proposed, existing] of pairs) {
     if (typeof proposed !== "string" || proposed.trim().length === 0) continue;
-    // An approval: there was something to approve.
-    if (incoming.drafts[key].trim().length > 0) continue;
+    // An approval: there was something to approve. The write stands, and the
+    // card comes down with it — in code, because the model has to remember to
+    // clear the draft and a draft that outlives its approval is now a trap
+    // rather than untidiness. `ensureAsk` closes every turn on the approval
+    // request while one is pending, so a stale draft would ask the person to
+    // approve what they just approved, every turn, with no answer that moves
+    // it along. Clicking "Use this" clears it on the client; saying "yes, use
+    // it" is the same act down the other path and clears it here.
+    if (incoming.drafts[key].trim().length > 0) {
+      patch.drafts = { ...patch.drafts, [key]: "" };
+      continue;
+    }
     // An edit: the field already holds text they approved earlier.
     if (existing.trim().length > 0) continue;
 
@@ -140,12 +151,67 @@ export function makesSavedClaim(reply: string): boolean {
 }
 
 export function correctSavedClaim(reply: string): string {
+  // Ends on a question, because the turn must not dead-end and this sentence
+  // is often the whole turn. It used to end on a full stop and rely on
+  // `ensureAsk` to append the approval request underneath — which worked only
+  // while `asksAboutDraft` did not recognise it, and produced two invitations
+  // to the same click once it did. One sentence that both corrects the claim
+  // and hands the turn back is the shape that holds either way.
   const replacement =
-    "I've put that on the card for you to check — use it, edit it, or discard it.";
+    "I've put that on the card for you to check — use it, edit it, or discard it. Does it read right?";
   if (!SAVED_CLAIM.test(reply)) {
     return `${replacement}\n\n${reply}`.trim();
   }
   return reply.replace(SAVED_CLAIM, replacement);
+}
+
+/**
+ * A reply that claims it changed a field, on a turn that changed nothing.
+ *
+ * `correctSavedClaim` covers one field — text diverted onto a draft card. The
+ * same lie has a second shape with no card in it: "I've changed the date to 2
+ * September" when the patch wrote nothing, because the model misread the date,
+ * or emitted a value `cleanPatch` rejected, or simply narrated an intention.
+ * The tester met exactly this and believed the chat, which is the rational
+ * thing to do when the chat is the thing talking to you.
+ *
+ * The route knows what it did: `changedPaths` reads the form before and after.
+ * So a claim of change with an empty diff gets one honest sentence in front of
+ * it. The reply is not otherwise touched — whatever it asks next still stands,
+ * and the person can correct the app from there.
+ *
+ * Narrow on purpose, and narrower than it first was. The first version took
+ * any of eight verbs followed by "to", "as" or "in", which is most of the
+ * language: "Has anything changed in your circumstances?", "Have they updated
+ * you as to their decision?", "AFCA has a fixed timeframe to respond" and
+ * "I've set aside the fees question to come back to" all matched, and all four
+ * are turns that write nothing and claim nothing. The correction would have
+ * fired on every one of them, denying a claim the person had never been given.
+ *
+ * So it wants a first-person claim about a field — the app saying it did
+ * something — in the two shapes the saved-text guard already found the model
+ * using: the pronoun leading the verb, or following it. The same rule
+ * `IMPERATIVE_ASK` states in questions.ts holds here: entries come from
+ * replies that actually occurred, never from imagination.
+ */
+const CHANGE_CLAIM =
+  /\b(?:I(?:'ve| have)?\s+(?:changed|updated|corrected|amended)|(?:that|this|it)(?:'s| is)?\s+(?:now\s+)?(?:changed|updated|corrected|amended))\b[^.!?]*[.!?]/i;
+
+/** Does this reply assert a field moved? */
+export function makesChangeClaim(reply: string): boolean {
+  return CHANGE_CLAIM.test(reply);
+}
+
+/**
+ * Put the truth in front of an unbacked claim.
+ *
+ * Prepended rather than substituted: unlike the saved-text case there is no
+ * single wrong sentence to swap out — the claim may be spread over a reply
+ * that is otherwise fine — and the person needs to know the form did not move
+ * before they read on and act as though it did.
+ */
+export function flagUnbackedClaim(reply: string): string {
+  return `I haven't actually changed anything on the form just now — tell me the value and I'll put it in, or type it into the form on the right.\n\n${reply}`;
 }
 
 /**
@@ -190,6 +256,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const incoming = sanitiseState(body.state);
+  // The state exactly as the person sent it, kept for the change diff at the
+  // end. It has to be taken here, before `takeShortFirmAnswer` and
+  // `resolveFirmDetails` run: those are writes the route makes on the person's
+  // behalf, and they are the demo's opening beat — someone types "Westpac" and
+  // the firm and its member number appear. Diffing from after them would call
+  // that turn "nothing changed" and hide the one write the split screen exists
+  // to show.
+  const asSent = structuredClone(incoming);
   const history = sanitiseHistory(body.history);
   const focus = typeof body.focus === "string" ? body.focus : undefined;
 
@@ -269,12 +343,27 @@ export async function POST(request: Request): Promise<NextResponse> {
   // divert, where the card is news; it would be a nag on every ordinary turn
   // spent editing a draft that is already on screen.
   const staleClaim = pendingDraft(state) !== null && makesSavedClaim(withNote);
-  const corrected = heldForApproval || staleClaim ? correctSavedClaim(withNote) : withNote;
-  const reply = ensureAsk(corrected, state);
+  const divertedOrStale = heldForApproval || staleClaim;
+  const corrected = divertedOrStale ? correctSavedClaim(withNote) : withNote;
+
+  // What this turn actually did to the form, read from the form rather than
+  // from the patch — see lib/changed.ts for why those differ. The browser
+  // renders it as chips under the reply and flashes the fields themselves, so
+  // a claimed change the person cannot see becomes one they can, and a claim
+  // with nothing behind it has nothing to show.
+  const changed = changedPaths(asSent, state);
+
+  // A claim that a field moved, on a turn where none did. Skipped when the
+  // draft guard has already spoken: that case has its own, more specific
+  // correction, and two apologies stacked above one reply is worse than the
+  // lie they are fixing.
+  const unbacked = !divertedOrStale && changed.length === 0 && makesChangeClaim(corrected);
+  const reply = ensureAsk(unbacked ? flagUnbackedClaim(corrected) : corrected, state);
 
   return NextResponse.json({
     reply,
     state,
+    changed,
     missing: missingFor(state),
     next: nextField(state),
     stages: stageProgress(state),

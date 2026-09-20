@@ -175,6 +175,7 @@ function Field({
   field,
   state,
   focused,
+  justChanged,
   onFocusField,
   onEdit,
   onCommit,
@@ -182,6 +183,8 @@ function Field({
   field: FieldDef;
   state: ComplaintState;
   focused: boolean;
+  /** Written by the turn that just landed — flashed so the write is visible. */
+  justChanged: boolean;
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
   /** Called when the person leaves a field, for checks too eager per keystroke. */
@@ -386,10 +389,16 @@ function Field({
 
   return (
     <div
+      // The flash is how a write the chat claims becomes a write the person
+      // sees. It is keyed on the turn, not on the value, so correcting a field
+      // back to something it held earlier still shows movement.
+      data-just-changed={justChanged ? "true" : undefined}
       className={
         focused
           ? "rounded-xl border-2 border-afca-sky bg-afca-skylight/60 p-2.5"
-          : "rounded-xl border-2 border-transparent p-2.5 transition hover:bg-afca-skylight/40"
+          : justChanged
+            ? "field-flash rounded-xl border-2 border-transparent p-2.5"
+            : "rounded-xl border-2 border-transparent p-2.5 transition hover:bg-afca-skylight/40"
       }
     >
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -418,6 +427,7 @@ export function FormPane({
   stages,
   activeStageId,
   focusPath,
+  changed,
   onFocusField,
   onEdit,
   onCommit,
@@ -428,6 +438,12 @@ export function FormPane({
   stages: StageStatus[];
   activeStageId: string | null;
   focusPath: string | null;
+  /**
+   * Paths the last turn actually wrote, from the route's own before/after
+   * diff. The chat says what it did; this is the form saying the same thing,
+   * which is the half the person can check.
+   */
+  changed: readonly string[];
   onFocusField: (path: string) => void;
   onEdit: (path: string, value: unknown) => void;
   onCommit: (path: string) => void;
@@ -471,6 +487,7 @@ export function FormPane({
                     field={field}
                     state={state}
                     focused={focusPath === field.path}
+                    justChanged={changed.includes(field.path)}
                     onFocusField={onFocusField}
                     onEdit={onEdit}
                     onCommit={onCommit}

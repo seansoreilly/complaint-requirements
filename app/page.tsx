@@ -8,6 +8,7 @@ import { FormPane, type StageStatus } from "@/components/FormPane";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { type ComplaintState, emptyState, findField, getPath, setPath } from "@/lib/schema";
 import { commitDate, reconcile } from "@/lib/patch";
+import { changedPaths } from "@/lib/changed";
 import { applyServerDelta } from "@/lib/merge-state";
 import { resolveFirmDetails } from "@/lib/directory";
 import { missingFor, stageProgress } from "@/lib/next";
@@ -25,6 +26,20 @@ export default function Page() {
   const [focusPath, setFocusPath] = useState<string | null>(null);
   const [mode, setMode] = useState<"claude" | "mock" | null>(null);
   const [showReview, setShowReview] = useState(false);
+  /**
+   * Fields the last turn wrote, held just long enough to flash them.
+   *
+   * Cleared on a timer rather than left standing: the highlight means "this
+   * just moved", and a highlight that never fades stops meaning anything by
+   * the third turn. The chips in the transcript are the durable record.
+   */
+  const [changed, setChanged] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (changed.length === 0) return;
+    const timer = setTimeout(() => setChanged([]), 2000);
+    return () => clearTimeout(timer);
+  }, [changed]);
 
   useEffect(() => {
     fetch("/api/chat")
@@ -82,7 +97,15 @@ export default function Page() {
         // only what the server actually changed this turn — see
         // applyServerDelta for the merge and its conflict rule.
         setState((previous) => applyServerDelta(previous, snapshot, data.state as ComplaintState));
-        setMessages((previous) => [...previous, { role: "assistant", content: data.reply }]);
+        // What the turn actually wrote, as the route measured it. It rides on
+        // the message so the chips stay with the turn that earned them, and
+        // `setChanged` drives the matching flash on the form.
+        const wrote = (data.changed ?? []) as string[];
+        setMessages((previous) => [
+          ...previous,
+          { role: "assistant", content: data.reply, changed: wrote },
+        ]);
+        setChanged(wrote);
         setNotes((data.issues ?? []).map((issue: { message: string }) => issue.message));
         setFocusPath(null);
       } catch {
@@ -188,10 +211,21 @@ export default function Page() {
       // cleared and the field it filled is no longer outstanding, so the old
       // state would ask for the very thing they just supplied.
       const prompt = outstandingPrompt(reconciled);
+      // Only claim the write once the write is there. Approval runs entirely
+      // client-side, so the route's guards never see it, and the same line was
+      // being said whether the text landed or `reconcile` cleared it — the
+      // premature "Added to your complaint" the tester read. `changedPaths` is
+      // the same measurement the route makes, applied to this path.
+      const landed = changedPaths(previous, reconciled).includes(path);
+      // The approval writes the form too, so it earns the same flash a chat
+      // turn does — this is the one write the person makes themselves, and the
+      // one they most want to see confirmed.
+      if (landed) queueMicrotask(() => setChanged([path]));
       queueMicrotask(() =>
         setMessages((before) => {
-          const line =
-            kind === "narrative"
+          const line = !landed
+            ? "That didn't save — the form wouldn't take it. Have another go, or type it into the form on the right."
+            : kind === "narrative"
               ? "Added to your complaint. That's the part most people find hardest — it's done."
               : "Noted as the outcome you're seeking.";
           const content = prompt ? `${line}\n\n${prompt}` : line;
@@ -291,6 +325,7 @@ export default function Page() {
             stages={stages}
             activeStageId={activeStageId}
             focusPath={focusPath}
+            changed={changed}
             onFocusField={setFocusPath}
             onEdit={edit}
             onCommit={commit}
