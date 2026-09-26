@@ -11,6 +11,7 @@ const nunito = Nunito_Sans({
 export const metadata: Metadata = {
   title: "Complaint Concierge — AFCA complaint demo",
   description: "A chat that fills in an AFCA complaint form. Demo only; not affiliated with AFCA.",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
